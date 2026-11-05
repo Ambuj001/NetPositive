@@ -1,0 +1,67 @@
+{
+  "_meta": {
+    "built_from": "data/research/2026-11-05/extracted (card-rewards-dataset-india, voucher-route-card-research)",
+    "warning": "Research inputs, not production-verified. Re-check official terms before showing numbers to users.",
+    "max_voucher_denomination": 5000
+  },
+  "cards": [
+    {"id":"hdfc_infinia","name":"HDFC Infinia","issuer":"HDFC","aliases":["infinia","hdfc infinia"]},
+    {"id":"hdfc_infinia_metal","name":"HDFC Infinia Metal","issuer":"HDFC","aliases":["infinia metal"]},
+    {"id":"hdfc_diners_black","name":"HDFC Diners Club Black","issuer":"HDFC","aliases":["diners black","diners club black","dcb"]},
+    {"id":"hdfc_regalia_gold","name":"HDFC Regalia Gold","issuer":"HDFC","aliases":["regalia gold","regalia"]},
+    {"id":"hdfc_millennia","name":"HDFC Millennia","issuer":"HDFC","aliases":["millennia"]},
+    {"id":"icici_emeralde_private","name":"ICICI Emeralde Private Metal","issuer":"ICICI","aliases":["emeralde","emeralde private"]},
+    {"id":"icici_times_black","name":"ICICI Times Black","issuer":"ICICI","aliases":["times black"]},
+    {"id":"icici_sapphiro","name":"ICICI Sapphiro","issuer":"ICICI","aliases":["sapphiro"]},
+    {"id":"icici_rubyx","name":"ICICI Rubyx","issuer":"ICICI","aliases":["rubyx"]},
+    {"id":"icici_coral","name":"ICICI Coral","issuer":"ICICI","aliases":["coral"]},
+    {"id":"icici_amazon_pay","name":"Amazon Pay ICICI","issuer":"ICICI","aliases":["amazon pay icici","amazon pay","amazon icici"]},
+    {"id":"axis_magnus","name":"Axis Magnus","issuer":"Axis","aliases":["magnus","axis magnus"]},
+    {"id":"axis_magnus_burgundy","name":"Axis Magnus for Burgundy","issuer":"Axis","aliases":["magnus burgundy","burgundy"]},
+    {"id":"axis_select","name":"Axis Select","issuer":"Axis","aliases":["axis select"]},
+    {"id":"axis_atlas","name":"Axis Atlas","issuer":"Axis","aliases":["atlas","axis atlas"]},
+    {"id":"axis_flipkart","name":"Flipkart Axis","issuer":"Axis","aliases":["flipkart axis"]},
+    {"id":"sbi_cashback","name":"SBI Cashback","issuer":"SBI","aliases":["sbi cashback","cashback sbi"]},
+    {"id":"sbi_simplyclick","name":"SBI SimplyCLICK","issuer":"SBI","aliases":["simplyclick","simply click"]},
+    {"id":"sbi_elite","name":"SBI ELITE","issuer":"SBI","aliases":["sbi elite","elite"]},
+    {"id":"sbi_prime","name":"SBI PRIME","issuer":"SBI","aliases":["sbi prime"]},
+    {"id":"sbi_aurum","name":"SBI AURUM","issuer":"SBI","aliases":["aurum","sbi aurum"]},
+    {"id":"sbi_flipkart","name":"Flipkart SBI","issuer":"SBI","aliases":["flipkart sbi"]},
+    {"id":"kotak_zen","name":"Kotak Zen Signature","issuer":"Kotak","aliases":["zen signature","kotak zen"]},
+    {"id":"amex_platinum_charge","name":"Amex Platinum Charge","issuer":"Amex","aliases":["amex platinum charge","platinum charge"]},
+    {"id":"cryptocom_obsidian_eu","name":"Crypto.com Visa Obsidian (EU)","issuer":"Crypto.com","aliases":["obsidian","crypto.com obsidian","crypto.com visa"],"regions":["EEA"]}
+  ],
+  "routes": [
+    {"id":"infinia_smartbuy_5x","card_id":"hdfc_infinia","channel":"HDFC SmartBuy (accelerated 5X)","kind":"points","unit":150,"base_pts":5,"mult":5,"bonus_cap_pts":3000,"cap_group":"hdfc_smartbuy_voucher_bonus","status":"OFFICIAL","verified":true,"checked":"2026-11-04","source":"SmartBuy offer 15282; HDFC MITC 31 Oct 2026",
+     "steps":["Open SmartBuy > Gift Vouchers > the brand","Choose the accelerated rewards tab, NOT InstaDeals","Buy in the largest denomination available","Pay with this card"],"note":"Points post within 90 working days."},
+    {"id":"infinia_instadeals","card_id":"hdfc_infinia","channel":"HDFC SmartBuy InstaDeals (GyFTR)","kind":"points","unit":150,"base_pts":5,"mult":1,"discount_pct":7.5,"status":"OFFICIAL","verified":true,"checked":"2026-11-04","source":"GyFTR Lifestyle calculator, 4 Nov 2026","note":"Instant discount plus 1X points on the discounted amount. Cannot combine with accelerated points.","steps":["Open SmartBuy > InstaDeals > the brand","Pay with this card"]},
+    {"id":"infinia_direct","card_id":"hdfc_infinia","channel":"Direct on merchant/brand site","kind":"points","unit":150,"base_pts":5,"mult":1,"status":"SECONDARY","verified":true,"checked":"2026-11-04","source":"HDFC MITC 31 Oct 2026","note":"Base rate assumed to apply; confirm gift-voucher MCC treatment."},
+
+    {"id":"infinia_metal_smartbuy_5x","card_id":"hdfc_infinia_metal","channel":"HDFC SmartBuy (accelerated 5X)","kind":"points","unit":150,"base_pts":5,"mult":5,"bonus_cap_pts":3000,"cap_group":"hdfc_smartbuy_voucher_bonus","status":"OFFICIAL","verified":true,"checked":"2026-11-04","source":"SmartBuy offer 15282 (same terms as Infinia)",
+     "steps":["Open SmartBuy > Gift Vouchers > the brand","Choose the accelerated rewards tab, NOT InstaDeals","Buy in the largest denomination available","Pay with this card"],"note":"Points post within 90 working days."},
+    {"id":"infinia_metal_instadeals","card_id":"hdfc_infinia_metal","channel":"HDFC SmartBuy InstaDeals (GyFTR)","kind":"points","unit":150,"base_pts":5,"mult":1,"discount_pct":7.5,"status":"OFFICIAL","verified":true,"checked":"2026-11-04","source":"GyFTR Lifestyle calculator, 4 Nov 2026","note":"Cannot combine with accelerated points."},
+
+    {"id":"dcb_smartbuy","card_id":"hdfc_diners_black","channel":"HDFC SmartBuy","kind":"unknown","status":"SECONDARY","verified":false,"checked":"2026-11-05","source":"voucher-route research, row 3","note":"Voucher multiplier not confirmed; bonus capped at 3,000 RP/month."},
+    {"id":"regalia_gold_smartbuy","card_id":"hdfc_regalia_gold","channel":"HDFC SmartBuy","kind":"unknown","status":"SECONDARY","verified":false,"checked":"2026-11-05","source":"voucher-route research, row 6","note":"Voucher multiplier not confirmed; bonus capped at 3,000 RP/month."},
+    {"id":"millennia_none","card_id":"hdfc_millennia","channel":"Gift vouchers","kind":"unknown","status":"PENDING","verified":false,"checked":"2026-11-05","source":"india dataset","note":"No voucher route researched; 5% applies to 10 partner brands only, not vouchers in general."},
+
+    {"id":"emeralde_ishop","card_id":"icici_emeralde_private","channel":"ICICI iShop 6X","kind":"flat_pct","reward_pct":18.0,"bonus_cap_pts":18000,"status":"SECONDARY","verified":false,"checked":"2025-03-01","source":"CardExpert iShop (Feb-Mar 2025, STALE)","note":"Stale data. Amazon/Flipkart vouchers capped at Rs 12,000/month. Re-verify iShop 2026 terms first."},
+    {"id":"times_black_ishop","card_id":"icici_times_black","channel":"ICICI iShop 6X","kind":"flat_pct","reward_pct":12.0,"bonus_cap_pts":15000,"status":"SECONDARY","verified":false,"checked":"2025-03-01","source":"CardExpert iShop (STALE)","note":"Stale data. Re-verify."},
+    {"id":"sapphiro_ishop","card_id":"icici_sapphiro","channel":"ICICI iShop 6X","kind":"flat_pct","reward_pct":3.0,"bonus_cap_pts":9000,"status":"SECONDARY","verified":false,"checked":"2025-03-01","source":"CardExpert iShop (STALE)","note":"Stale data. Re-verify."},
+    {"id":"rubyx_ishop","card_id":"icici_rubyx","channel":"ICICI iShop 6X","kind":"flat_pct","reward_pct":3.0,"bonus_cap_pts":9000,"status":"SECONDARY","verified":false,"checked":"2025-03-01","source":"CardExpert iShop (STALE)","note":"Stale data. Re-verify."},
+    {"id":"coral_ishop","card_id":"icici_coral","channel":"ICICI iShop 6X","kind":"flat_pct","reward_pct":3.0,"bonus_cap_pts":9000,"status":"SECONDARY","verified":false,"checked":"2025-03-01","source":"CardExpert iShop (STALE)","note":"Stale data. Re-verify."},
+    {"id":"amazonpay_icici_ishop","card_id":"icici_amazon_pay","channel":"ICICI iShop (cashback)","kind":"flat_pct","reward_pct":4.0,"status":"SECONDARY","verified":false,"checked":"2025-03-01","source":"CardExpert iShop (STALE)","note":"Stale. The 5%/3% Amazon rate is for Amazon purchases, NOT gift cards; gift-card treatment pending terms PDF."},
+
+    {"id":"magnus_giftcards","card_id":"axis_magnus","channel":"Any","kind":"excluded","status":"OFFICIAL","verified":true,"checked":"2026-11-05","source":"Axis MITC","note":"Gift cards earn 0 from 28 Aug 2026."},
+    {"id":"magnus_burgundy_giftcards","card_id":"axis_magnus_burgundy","channel":"Any","kind":"excluded","status":"OFFICIAL","verified":true,"checked":"2026-11-05","source":"Axis Burgundy T&C","note":"Gift cards earn 0 from 28 Aug 2026."},
+    {"id":"axis_select_giftcards","card_id":"axis_select","channel":"Any","kind":"excluded","status":"OFFICIAL","verified":true,"checked":"2026-11-05","source":"Axis MITC","note":"Gift-card purchases earn 0 from 28 Aug 2026."},
+    {"id":"flipkart_sbi_vouchers","card_id":"sbi_flipkart","channel":"Any","kind":"excluded","status":"SECONDARY","verified":true,"checked":"2026-11-05","source":"india dataset note","note":"Voucher purchases excluded from rewards."},
+    {"id":"sbi_cashback_vouchers","card_id":"sbi_cashback","channel":"Online","kind":"unknown","status":"PENDING","verified":false,"checked":"2026-11-05","source":"voucher-route research, row 18","note":"5% online excludes many categories; voucher treatment not researched."},
+    {"id":"aurum_base","card_id":"sbi_aurum","channel":"Aurum reward portal / direct","kind":"flat_pct","reward_pct":1.0,"status":"OFFICIAL","verified":true,"checked":"2026-11-05","source":"SBI Aurum T&C","note":"No accelerated voucher earn; 4 RP/Rs100 standard, only if vouchers earn at all."},
+    {"id":"amex_platinum_charge_shopwise","card_id":"amex_platinum_charge","channel":"Amex ShopWise e-vouchers (5X)","kind":"unknown","status":"SECONDARY","verified":false,"checked":"2026-11-05","source":"voucher-route research, row 16","note":"Value depends on MR redemption; applications paused; not confirmed."}
+  ],
+  "seller_options": [
+    {"id":"voucher_rail","name":"Voucher Rail","fee_pct":1.0,"note":"Lock USDT in escrow; receive vouchers after verification."},
+    {"id":"cryptocom_obsidian_eu","name":"Crypto.com Visa Obsidian (EU)","reward_pct":4.5,"note":"First US$5,000/month only; needs US$500k staked; EEA only.","regions":["EEA"],"status":"OFFICIAL","verified":true,"checked":"2026-11-04"}
+  ]
+}
