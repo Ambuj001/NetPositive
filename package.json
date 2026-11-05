@@ -1,0 +1,22 @@
+{
+  "name": "netpositive",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @netpositive/web",
+    "build": "npm run build --workspace @netpositive/web",
+    "preview": "npm run preview --workspace @netpositive/web",
+    "typecheck": "npm run typecheck --workspace @netpositive/web",
+    "test": "npm run test --workspace @netpositive/web",
+    "format": "prettier --write apps/web/src apps/web/vite.config.ts"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}
