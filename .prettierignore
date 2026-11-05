@@ -1,0 +1,5 @@
+node_modules
+apps/web/dist
+data
+docs/product
+package-lock.json
