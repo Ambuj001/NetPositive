@@ -2412,3 +2412,28 @@ h3 {
     padding-block: 15px;
   }
 }
+
+.vault-panel { min-width:0; }
+.vault-intro { display:flex; align-items:center; gap:17px; margin:4px 0 28px; }
+.vault-symbol { display:grid; place-items:center; width:54px; height:54px; border-radius:18px; background:#e9eee5; }
+.vault-intro p { font-size:18px; line-height:1.55; margin:0; }
+.vault-intro span:not(.vault-symbol) { font-size:13px; color:#747970; }
+.vault-form { display:grid; gap:16px; }
+.vault-form label { display:grid; gap:9px; font-size:13px; font-weight:500; }
+.vault-form input,.vault-form select { width:100%; min-width:0; border:1px solid #dddfd8; border-radius:12px; padding:13px 14px; background:#fff; color:#242720; font:inherit; outline-offset:3px; }
+.vault-caption,.vault-status { font-size:12px; line-height:1.6; color:#73786e; margin:0; }
+.vault-status { margin-top:20px; padding-top:16px; border-top:1px solid #e9eae5; }
+.vault-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:20px; padding:0 0 22px; border-bottom:1px solid #e9eae5; }
+.vault-toolbar .text-button { display:flex; gap:6px; align-items:center; font-size:12px; }
+.vault-toolbar .text-button:last-child { margin-left:auto; }
+.vault-add { padding:22px 0; border-bottom:1px solid #e9eae5; }
+.vault-tabs { display:flex; border:1px solid #dddfd8; border-radius:24px; padding:4px; width:fit-content; }
+.vault-tabs button { border:0; background:transparent; border-radius:20px; padding:9px 17px; font:inherit; font-size:12px; cursor:pointer; }
+.vault-tabs button[aria-pressed=true] { background:#252923; color:white; }
+.vault-two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.vault-item { display:flex; gap:15px; align-items:center; padding:20px 0; border-bottom:1px solid #e9eae5; }
+.vault-item>div { display:grid; gap:5px; flex:1; }
+.vault-item strong { font-size:14px; font-weight:500; }
+.vault-item span { font-size:12px; color:#73786e; }
+.vault-item>svg:last-child { color:#8b9284; }
+.vault-empty { text-align:center; padding:42px 8px 20px; color:#8b9086; font-size:14px; }

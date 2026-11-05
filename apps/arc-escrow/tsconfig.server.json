@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "bun",
+      "vite/client"
+    ],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.tsbuildinfo"
+  },
+  "include": [
+    "server",
+    "scripts",
+    "src/**/*.test.ts",
+    "src/shared",
+    "src/lib",
+    "src/abi",
+    "src/onchain-facts.ts",
+    "src/onchain-money.ts",
+    "src/vite-env.d.ts"
+  ],
+  "exclude": []
+}

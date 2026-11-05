@@ -28,3 +28,9 @@ The supplied MCC matrix is a PDF export, not a valid source CSV. Its text extrac
 ## Product planning
 
 [Latest pitch and architecture visuals](docs/product/README.md) are included as planning references, separate from the research archive.
+
+## Isolated backend work
+
+Branch `backend-2` contains the private vault, Arc Studio export and voucher protocol. It has no integration merges from `ai-chatbot` or `backend-integration`. See [backend status](docs/vault/status.md) and [vault setup](docs/vault/README.md).
+
+Modules: `@netpositive/api` (`apps/vault-api`), `@netpositive/vault` (`packages/vault`), and standalone `@netpositive/arc-escrow` (`apps/arc-escrow`, Bun). The existing web application is `@netpositive/web`.

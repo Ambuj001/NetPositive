@@ -159,5 +159,12 @@ export function useWallet() {
     disconnect,
     switchNetwork,
     onArc: chainId.toLowerCase() === ARC.chainId,
+    signMessage: async (message: string): Promise<string> => {
+      if (!selected || !address) throw new Error('Connect your wallet first')
+      const encoded = '0x' + Array.from(new TextEncoder().encode(message)).map(b => b.toString(16).padStart(2, '0')).join('')
+      const signature = await selected.provider.request({ method: 'personal_sign', params: [encoded, address] })
+      if (typeof signature !== 'string') throw new Error('Signature cancelled')
+      return signature
+    },
   }
 }

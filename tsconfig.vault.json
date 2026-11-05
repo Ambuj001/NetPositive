@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "lib": ["ES2022", "DOM"], "types": ["node"],
+    "module": "NodeNext", "moduleResolution": "NodeNext", "strict": true,
+    "noEmit": true, "allowImportingTsExtensions": true, "erasableSyntaxOnly": true, "skipLibCheck": true
+  },
+  "include": ["packages/vault/src/**/*.ts", "packages/vault/test/**/*.ts", "apps/vault-api/**/*.ts", "scripts/prove-record.ts", "types/**/*.d.ts"]
+}

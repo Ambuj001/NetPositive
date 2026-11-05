@@ -19,6 +19,8 @@ import {
   Search,
 } from 'lucide-react'
 import { Dialog } from './components/Dialog'
+import { Vault } from './components/Vault'
+import { WorldID } from './components/WorldID'
 import { ARC, useWallet } from './lib/wallet'
 import { RESEARCH_SOURCE, rewardRoutes, voucherPreview } from './lib/rewards'
 
@@ -151,9 +153,10 @@ export default function App() {
   const [category, setCategory] = useState('All vouchers')
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState<
-    'trade' | 'wallet' | 'privacy' | 'drafts' | null
+    'trade' | 'wallet' | 'privacy' | 'drafts' | 'vault' | 'world' | null
   >(null)
   const [mode, setMode] = useState<Mode>('buy')
+  const [verifiedHuman,setVerifiedHuman]=useState('')
   const [voucher, setVoucher] = useState(vouchers[0])
   const [amount, setAmount] = useState('5000')
   const [review, setReview] = useState(false)
@@ -247,6 +250,7 @@ export default function App() {
           <a href="#faq" onClick={navigate}>
             FAQs
           </a>
+          <button className="text-button" onClick={()=>{setModal('vault');setMenu(false)}}>Vault</button>
         </nav>
         <div className="header-actions">
           <button
@@ -798,6 +802,10 @@ export default function App() {
                 </button>
               )}
               <button
+                className="button button-soft full-width"
+                onClick={()=>setModal('world')}
+              >{verifiedHuman===wallet.address?'Human verified':'Verify to trade'}</button>
+              <button
                 className="text-button disconnect"
                 onClick={wallet.disconnect}
               >
@@ -1051,6 +1059,8 @@ export default function App() {
         </Dialog>
       )}
 
+      {modal === 'world' && <WorldID address={wallet.address} signMessage={wallet.signMessage} close={()=>setModal(null)} verified={()=>setVerifiedHuman(wallet.address)}/>}
+      {modal === 'vault' && <Dialog title="Your private vault" close={()=>setModal(null)}><Vault address={wallet.address} signMessage={wallet.signMessage}/></Dialog>}
       {modal === 'drafts' && (
         <Dialog title="Your possibilities." close={() => setModal(null)}>
           <p className="dialog-subtitle">Saved here, ready when you are.</p>
@@ -1114,15 +1124,17 @@ export default function App() {
         <Dialog title="Your details stay yours." close={() => setModal(null)}>
           <div className="privacy-copy">
             <p>
-              This frontend stores only your saved voucher drafts in this
-              browser: brand, amount, exchange side and time. Clear them from
-              the drafts panel whenever you like.
+              Saved drafts stay in this browser. Your private vault is encrypted
+              on your device, including card metadata and voucher codes. Keep an
+              encrypted backup and your recovery passphrase separately.
             </p>
             <p>
               Wallet addresses stay in memory for the current page session.
-              Connecting requests account access from your wallet. This frontend
-              does not request signatures, send transactions, or collect voucher
-              codes, card numbers or private keys.
+              Connecting requests account access from your wallet. Vault sync
+              asks you to sign a sign-in message and sends encrypted records to
+              our server. The server sees your address, request metadata and
+              ciphertext; your recovery key stays on your device. Payment-card
+              records accept only the last four digits and card metadata.
             </p>
             <p>
               There are no analytics trackers or account sign-ups. External

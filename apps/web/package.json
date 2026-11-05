@@ -13,6 +13,8 @@
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@netpositive/vault": "^0.1.0",
+    "@worldcoin/idkit": "4.6.0",
     "lucide-react": "^1.69.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

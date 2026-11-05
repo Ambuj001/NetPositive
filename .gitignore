@@ -9,3 +9,15 @@ apps/*/dist/
 *.tsbuildinfo
 *.log
 .playwright/
+var/
+circuits/build/
+contracts/build/
+deployments/local.json
+deployments/*.pending.json
+apps/web/public/zk/
+
+contracts/out/
+contracts/cache/
+**/.agents/skills/
+*.pem
+*.key

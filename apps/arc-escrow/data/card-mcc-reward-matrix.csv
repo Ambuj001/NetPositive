@@ -1,0 +1,631 @@
+bank,card,mcc_group,category,mccs,reward_pct,status,cap_or_note,source
+HDFC,Infinia / Infinia Metal,GEN,other offline retail,"5310,5399,5699,5732 etc.",3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,ONLINE,general online retail,"5964,5999,5691 (online)",3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,GROC,grocery,5411,3.33,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,DEPT,department stores,5311,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,DINE,dining & food delivery,"5812,5814",3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,MOVIE,movies,7832,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,UTIL,utilities,4900,3.33,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,TEL,telecom/cable,"4814,4899",3.33,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,INS,insurance,6300,3.33,V,"cap 10,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,RENT,rent,6513,0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,WALLET,wallet load,"6540,6541",0,X,excluded; 1% fee >Rs10k/month,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,EDU,education,"8211,8220,8241,8244,8249,8299",0,X,0 via third-party apps; direct = base,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,GOVT,government/tax,"9311,9399,9222",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,GAME,online gaming,"5816,7993,7994",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,JEWEL,jewellery/gold,5944,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,RAIL,rail,4112,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,AIR,airlines direct,"3000-3350,4511",16.67,V,SmartBuy flights 5X; direct = base,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,HOTEL,hotels direct,"3501-3999,7011",33.33,V,SmartBuy hotels 10X; direct = base,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,GVP,gift voucher via bank portal,portal merchant MCC,16.67,V,"SmartBuy brand vouchers 5X; voucher bonus cap 3,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Infinia / Infinia Metal,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC,Diners Club Black Metal,GEN,other offline retail,"5310,5399,5699,5732 etc.",3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,ONLINE,general online retail,"5964,5999,5691 (online)",3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,GROC,grocery,5411,3.33,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,DEPT,department stores,5311,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,DINE,dining & food delivery,"5812,5814",6.67,S,2X weekends only; weekdays base,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,MOVIE,movies,7832,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,UTIL,utilities,4900,3.33,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,TEL,telecom/cable,"4814,4899",3.33,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,INS,insurance,6300,3.33,V,"cap 5,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,RENT,rent,6513,0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,WALLET,wallet load,"6540,6541",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,EDU,education,"8211,8220,8241,8244,8249,8299",0,X,0 via apps,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,GOVT,government/tax,"9311,9399,9222",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,GAME,online gaming,"5816,7993,7994",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,JEWEL,jewellery/gold,5944,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,RAIL,rail,4112,3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,AIR,airlines direct,"3000-3350,4511",16.5,S,SmartBuy flights 5X,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,HOTEL,hotels direct,"3501-3999,7011",33.0,S,SmartBuy hotels 10X,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,GVP,gift voucher via bank portal,portal merchant MCC,10.0,S,"SmartBuy vouchers 3X; voucher bonus cap 3,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Diners Club Black Metal,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",3.33,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.25,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,ONLINE,general online retail,"5964,5999,5691 (online)",1.25,S,partner brands 6.25%,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,GROC,grocery,5411,1.25,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,DEPT,department stores,5311,1.25,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,DINE,dining & food delivery,"5812,5814",1.25,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,MOVIE,movies,7832,1.25,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,UTIL,utilities,4900,1.25,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,TEL,telecom/cable,"4814,4899",1.25,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,INS,insurance,6300,1.25,V,"cap 2,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,RENT,rent,6513,0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,WALLET,wallet load,"6540,6541",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,EDU,education,"8211,8220,8241,8244,8249,8299",0,X,0 via apps,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,GOVT,government/tax,"9311,9399,9222",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,GAME,online gaming,"5816,7993,7994",0,X,excluded,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,JEWEL,jewellery/gold,5944,1.25,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,RAIL,rail,4112,1.25,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,AIR,airlines direct,"3000-3350,4511",6.25,S,SmartBuy flights 5X,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,HOTEL,hotels direct,"3501-3999,7011",12.5,S,SmartBuy hotels 10X,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,GVP,gift voucher via bank portal,portal merchant MCC,,U,"SmartBuy multiplier not confirmed; voucher bonus cap 3,000 RP/month",HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Regalia Gold,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.25,A,base rate assumed - not confirmed for this MCC,HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC,Millennia,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,V,"5% on 10 partner brands (cap 1,000 CP/month); 1% tier cap 1,000 CP/month",Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,UTIL,utilities,4900,1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,TEL,telecom/cable,"4814,4899",1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,RENT,rent,6513,0,X,excluded,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,WALLET,wallet load,"6540,6541",0,X,excluded,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,EDU,education,"8211,8220,8241,8244,8249,8299",0,X,0 via apps,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,GOVT,government/tax,"9311,9399,9222",0,X,excluded,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,GAME,online gaming,"5816,7993,7994",0,X,excluded,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,GVP,gift voucher via bank portal,portal merchant MCC,1.0,S,partner brands via SmartBuy/PayZapp drop to 1%,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Millennia,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,Millennia T&C 20-Jul-2026 + MITC
+HDFC,Tata Neu Infinity,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,ONLINE,general online retail,"5964,5999,5691 (online)",1.5,S,5% on Tata brands via Tata Neu,MITC + cardadvisor
+HDFC,Tata Neu Infinity,GROC,grocery,5411,1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,DEPT,department stores,5311,1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,DINE,dining & food delivery,"5812,5814",1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,MOVIE,movies,7832,1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,FUEL,fuel,"5541,5542,5983,5172",0,X,listed in MITC fuel exclusion - verify,MITC + cardadvisor
+HDFC,Tata Neu Infinity,UTIL,utilities,4900,1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,TEL,telecom/cable,"4814,4899",1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,INS,insurance,6300,1.5,S,"via Tata Neu bill pay, cap 2,000 NeuCoins/month",MITC + cardadvisor
+HDFC,Tata Neu Infinity,RENT,rent,6513,0,X,excluded,MITC + cardadvisor
+HDFC,Tata Neu Infinity,WALLET,wallet load,"6540,6541",0,X,excluded,MITC + cardadvisor
+HDFC,Tata Neu Infinity,EDU,education,"8211,8220,8241,8244,8249,8299",1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,GOVT,government/tax,"9311,9399,9222",0,X,excluded,MITC + cardadvisor
+HDFC,Tata Neu Infinity,GAME,online gaming,"5816,7993,7994",0,X,excluded,MITC + cardadvisor
+HDFC,Tata Neu Infinity,JEWEL,jewellery/gold,5944,1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,RAIL,rail,4112,1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,AIR,airlines direct,"3000-3350,4511",1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,HOTEL,hotels direct,"3501-3999,7011",1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+HDFC,Tata Neu Infinity,GVP,gift voucher via bank portal,portal merchant MCC,5.0,S,Tata brand vouchers inside Tata Neu,MITC + cardadvisor
+HDFC,Tata Neu Infinity,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.5,A,base rate assumed - not confirmed for this MCC,MITC + cardadvisor
+ICICI,Emeralde Private Metal,GEN,other offline retail,"5310,5399,5699,5732 etc.",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,ONLINE,general online retail,"5964,5999,5691 (online)",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,GROC,grocery,5411,3.0,S,"cap 1,000 pts/cycle",cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,DEPT,department stores,5311,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,DINE,dining & food delivery,"5812,5814",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,MOVIE,movies,7832,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,UTIL,utilities,4900,3.0,S,"cap 1,000 pts/cycle",cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,TEL,telecom/cable,"4814,4899",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,INS,insurance,6300,3.0,S,"cap 1,000 pts/cycle",cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,RENT,rent,6513,0,X,excluded,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,WALLET,wallet load,"6540,6541",0,X,excluded; 1% fee >Rs5k/month,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,EDU,education,"8211,8220,8241,8244,8249,8299",3.0,S,"cap 1,000 pts/cycle",cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,GOVT,government/tax,"9311,9399,9222",0,X,excluded,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,GAME,online gaming,"5816,7993,7994",0,X,0; 2% fee,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,JEWEL,jewellery/gold,5944,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,RAIL,rail,4112,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,AIR,airlines direct,"3000-3350,4511",18.0,S,iShop 6X,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,HOTEL,hotels direct,"3501-3999,7011",36.0,S,iShop 12X,cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,GVP,gift voucher via bank portal,portal merchant MCC,18.0,S,"iShop 6X; bonus cap 18,000; Amazon/Flipkart vouchers Rs12,000/month (data early 2025)",cardadvisor + CardExpert iShop
+ICICI,Emeralde Private Metal,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,ONLINE,general online retail,"5964,5999,5691 (online)",0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,GROC,grocery,5411,0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,DEPT,department stores,5311,0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,DINE,dining & food delivery,"5812,5814",0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,MOVIE,movies,7832,0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor + CardExpert iShop
+ICICI,Times Black,UTIL,utilities,4900,0.8,S,"shared cap 5,000 RP/cycle with INS/EDU/GOVT",cardadvisor + CardExpert iShop
+ICICI,Times Black,TEL,telecom/cable,"4814,4899",0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,INS,insurance,6300,0.8,S,shared cap,cardadvisor + CardExpert iShop
+ICICI,Times Black,RENT,rent,6513,0,X,excluded,cardadvisor + CardExpert iShop
+ICICI,Times Black,WALLET,wallet load,"6540,6541",0,X,1% fee >Rs5k/month,cardadvisor + CardExpert iShop
+ICICI,Times Black,EDU,education,"8211,8220,8241,8244,8249,8299",0.8,S,shared cap,cardadvisor + CardExpert iShop
+ICICI,Times Black,GOVT,government/tax,"9311,9399,9222",0.8,S,shared cap,cardadvisor + CardExpert iShop
+ICICI,Times Black,GAME,online gaming,"5816,7993,7994",0,X,0; 2% fee,cardadvisor + CardExpert iShop
+ICICI,Times Black,JEWEL,jewellery/gold,5944,0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,RAIL,rail,4112,0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Times Black,AIR,airlines direct,"3000-3350,4511",12.0,S,iShop 6X,cardadvisor + CardExpert iShop
+ICICI,Times Black,HOTEL,hotels direct,"3501-3999,7011",24.0,S,iShop 12X,cardadvisor + CardExpert iShop
+ICICI,Times Black,GVP,gift voucher via bank portal,portal merchant MCC,12.0,S,"iShop 6X; bonus cap 15,000",cardadvisor + CardExpert iShop
+ICICI,Times Black,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.8,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardExpert iShop
+ICICI,Sapphiro,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,ONLINE,general online retail,"5964,5999,5691 (online)",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,GROC,grocery,5411,0.5,S,cap Rs40k spend/cycle,cardadvisor + Finology
+ICICI,Sapphiro,DEPT,department stores,5311,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,DINE,dining & food delivery,"5812,5814",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,MOVIE,movies,7832,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor + Finology
+ICICI,Sapphiro,UTIL,utilities,4900,0.25,S,cap Rs80k spend/cycle,cardadvisor + Finology
+ICICI,Sapphiro,TEL,telecom/cable,"4814,4899",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,INS,insurance,6300,0.25,S,cap Rs80k spend/cycle,cardadvisor + Finology
+ICICI,Sapphiro,RENT,rent,6513,0,X,excluded,cardadvisor + Finology
+ICICI,Sapphiro,WALLET,wallet load,"6540,6541",0,X,excluded,cardadvisor + Finology
+ICICI,Sapphiro,EDU,education,"8211,8220,8241,8244,8249,8299",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,GOVT,government/tax,"9311,9399,9222",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,GAME,online gaming,"5816,7993,7994",0,X,0; 2% fee,cardadvisor + Finology
+ICICI,Sapphiro,JEWEL,jewellery/gold,5944,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Sapphiro,RAIL,rail,4112,0.5,S,transport cap Rs20k/month; 1% fee >Rs50k,cardadvisor + Finology
+ICICI,Sapphiro,AIR,airlines direct,"3000-3350,4511",3.0,S,iShop 6X,cardadvisor + Finology
+ICICI,Sapphiro,HOTEL,hotels direct,"3501-3999,7011",6.0,S,iShop 12X,cardadvisor + Finology
+ICICI,Sapphiro,GVP,gift voucher via bank portal,portal merchant MCC,3.0,S,"iShop 6X; bonus cap 9,000",cardadvisor + Finology
+ICICI,Sapphiro,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,ONLINE,general online retail,"5964,5999,5691 (online)",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,GROC,grocery,5411,0.5,S,cap Rs40k spend/cycle,cardadvisor + Finology
+ICICI,Rubyx,DEPT,department stores,5311,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,DINE,dining & food delivery,"5812,5814",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,MOVIE,movies,7832,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor + Finology
+ICICI,Rubyx,UTIL,utilities,4900,0.25,S,cap Rs80k spend/cycle,cardadvisor + Finology
+ICICI,Rubyx,TEL,telecom/cable,"4814,4899",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,INS,insurance,6300,0.25,S,cap Rs80k spend/cycle,cardadvisor + Finology
+ICICI,Rubyx,RENT,rent,6513,0,X,excluded,cardadvisor + Finology
+ICICI,Rubyx,WALLET,wallet load,"6540,6541",0,X,excluded,cardadvisor + Finology
+ICICI,Rubyx,EDU,education,"8211,8220,8241,8244,8249,8299",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,GOVT,government/tax,"9311,9399,9222",0.25,S,billed as utility,cardadvisor + Finology
+ICICI,Rubyx,GAME,online gaming,"5816,7993,7994",0,X,0; 2% fee,cardadvisor + Finology
+ICICI,Rubyx,JEWEL,jewellery/gold,5944,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Rubyx,RAIL,rail,4112,0.5,S,transport cap Rs20k/month,cardadvisor + Finology
+ICICI,Rubyx,AIR,airlines direct,"3000-3350,4511",3.0,S,iShop 6X,cardadvisor + Finology
+ICICI,Rubyx,HOTEL,hotels direct,"3501-3999,7011",6.0,S,iShop 12X,cardadvisor + Finology
+ICICI,Rubyx,GVP,gift voucher via bank portal,portal merchant MCC,3.0,S,"iShop 6X; bonus cap 9,000",cardadvisor + Finology
+ICICI,Rubyx,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + Finology
+ICICI,Amazon Pay ICICI,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,S,Amazon 5% Prime / 3% non-Prime; Amazon Pay partners 2%,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,UTIL,utilities,4900,0,X,0 outside Amazon since 11-Oct-2025; via Amazon = 5%/3%,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,TEL,telecom/cable,"4814,4899",0,X,0 outside Amazon; via Amazon = 5%/3%,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,RENT,rent,6513,0,X,excluded,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,WALLET,wallet load,"6540,6541",,U,1% fee >Rs5k; reward treatment unknown,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,EDU,education,"8211,8220,8241,8244,8249,8299",0,X,excluded,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,GOVT,government/tax,"9311,9399,9222",0,X,excluded,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,GAME,online gaming,"5816,7993,7994",0,X,0; 2% fee,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,JEWEL,jewellery/gold,5944,0,X,gold/silver excluded,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,GVP,gift voucher via bank portal,portal merchant MCC,4.0,S,"iShop co-brand, cap Rs1,100",cardadvisor + CardInsider
+ICICI,Amazon Pay ICICI,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",,U,gift card treatment pending - check T&C PDF,cardadvisor + CardInsider
+SBI,Cashback SBI,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,S,"cap Rs2,000/month",cardadvisor + SBI KFS
+SBI,Cashback SBI,ONLINE,general online retail,"5964,5999,5691 (online)",5.0,S,"5% online any merchant, cap Rs2,000/month",cardadvisor + SBI KFS
+SBI,Cashback SBI,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,Cashback SBI,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,Cashback SBI,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,Cashback SBI,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,Cashback SBI,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,UTIL,utilities,4900,0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,TEL,telecom/cable,"4814,4899",0,X,treated as utility - verify,cardadvisor + SBI KFS
+SBI,Cashback SBI,INS,insurance,6300,0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,RENT,rent,6513,0,X,0; Rs199 fee,cardadvisor + SBI KFS
+SBI,Cashback SBI,WALLET,wallet load,"6540,6541",0,X,"0; 1% fee per load >Rs1,000",cardadvisor + SBI KFS
+SBI,Cashback SBI,EDU,education,"8211,8220,8241,8244,8249,8299",0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,GOVT,government/tax,"9311,9399,9222",0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,GAME,online gaming,"5816,7993,7994",0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,JEWEL,jewellery/gold,5944,0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,RAIL,rail,4112,0,X,excluded,cardadvisor + SBI KFS
+SBI,Cashback SBI,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,Cashback SBI,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,Cashback SBI,GVP,gift voucher via bank portal,portal merchant MCC,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,Cashback SBI,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",5.0,U,online gift card not in exclusion list - verify before relying,cardadvisor + SBI KFS
+SBI,SimplyCLICK,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,ONLINE,general online retail,"5964,5999,5691 (online)",1.25,S,5X online; 10X (2.5%) partner brands,cardadvisor + SBI KFS
+SBI,SimplyCLICK,GROC,grocery,5411,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,DEPT,department stores,5311,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,DINE,dining & food delivery,"5812,5814",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,MOVIE,movies,7832,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,FUEL,fuel,"5541,5542,5983,5172",0,X,assumed - verify,cardadvisor + SBI KFS
+SBI,SimplyCLICK,UTIL,utilities,4900,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,TEL,telecom/cable,"4814,4899",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,INS,insurance,6300,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,RENT,rent,6513,0,X,Rs199 fee,cardadvisor + SBI KFS
+SBI,SimplyCLICK,WALLET,wallet load,"6540,6541",0,X,"0; 1% fee per load >Rs1,000",cardadvisor + SBI KFS
+SBI,SimplyCLICK,EDU,education,"8211,8220,8241,8244,8249,8299",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,GOVT,government/tax,"9311,9399,9222",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,GAME,online gaming,"5816,7993,7994",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,JEWEL,jewellery/gold,5944,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,RAIL,rail,4112,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,AIR,airlines direct,"3000-3350,4511",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,HOTEL,hotels direct,"3501-3999,7011",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,GVP,gift voucher via bank portal,portal merchant MCC,0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,SimplyCLICK,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.25,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,ONLINE,general online retail,"5964,5999,5691 (online)",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,GROC,grocery,5411,2.5,S,5X; Metro/Reliance Market/Walmart excluded,cardadvisor + SBI KFS
+SBI,ELITE,DEPT,department stores,5311,2.5,S,5X,cardadvisor + SBI KFS
+SBI,ELITE,DINE,dining & food delivery,"5812,5814",2.5,S,5X,cardadvisor + SBI KFS
+SBI,ELITE,MOVIE,movies,7832,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,FUEL,fuel,"5541,5542,5983,5172",0,X,assumed - verify,cardadvisor + SBI KFS
+SBI,ELITE,UTIL,utilities,4900,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,TEL,telecom/cable,"4814,4899",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,INS,insurance,6300,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,RENT,rent,6513,0,X,Rs199 fee,cardadvisor + SBI KFS
+SBI,ELITE,WALLET,wallet load,"6540,6541",0,X,"0; 1% fee per load >Rs1,000",cardadvisor + SBI KFS
+SBI,ELITE,EDU,education,"8211,8220,8241,8244,8249,8299",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,GOVT,government/tax,"9311,9399,9222",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,GAME,online gaming,"5816,7993,7994",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,JEWEL,jewellery/gold,5944,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,RAIL,rail,4112,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,AIR,airlines direct,"3000-3350,4511",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,HOTEL,hotels direct,"3501-3999,7011",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,GVP,gift voucher via bank portal,portal merchant MCC,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,ELITE,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,ONLINE,general online retail,"5964,5999,5691 (online)",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,GROC,grocery,5411,2.5,S,10X; same grocery exclusions,cardadvisor + SBI KFS
+SBI,PRIME,DEPT,department stores,5311,2.5,S,10X,cardadvisor + SBI KFS
+SBI,PRIME,DINE,dining & food delivery,"5812,5814",2.5,S,10X,cardadvisor + SBI KFS
+SBI,PRIME,MOVIE,movies,7832,2.5,S,10X,cardadvisor + SBI KFS
+SBI,PRIME,FUEL,fuel,"5541,5542,5983,5172",0,X,assumed - verify,cardadvisor + SBI KFS
+SBI,PRIME,UTIL,utilities,4900,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,TEL,telecom/cable,"4814,4899",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,INS,insurance,6300,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,RENT,rent,6513,0,X,Rs199 fee,cardadvisor + SBI KFS
+SBI,PRIME,WALLET,wallet load,"6540,6541",0,X,"0; 1% fee per load >Rs1,000",cardadvisor + SBI KFS
+SBI,PRIME,EDU,education,"8211,8220,8241,8244,8249,8299",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,GOVT,government/tax,"9311,9399,9222",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,GAME,online gaming,"5816,7993,7994",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,JEWEL,jewellery/gold,5944,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,RAIL,rail,4112,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,AIR,airlines direct,"3000-3350,4511",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,HOTEL,hotels direct,"3501-3999,7011",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,GVP,gift voucher via bank portal,portal merchant MCC,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,PRIME,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor + SBI KFS
+SBI,AURUM,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,SBI Aurum portal T&C
+SBI,AURUM,UTIL,utilities,4900,1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,TEL,telecom/cable,"4814,4899",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,RENT,rent,6513,0,X,excluded,SBI Aurum portal T&C
+SBI,AURUM,WALLET,wallet load,"6540,6541",0,X,excluded,SBI Aurum portal T&C
+SBI,AURUM,EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,GOVT,government/tax,"9311,9399,9222",0,X,excluded,SBI Aurum portal T&C
+SBI,AURUM,GAME,online gaming,"5816,7993,7994",0,X,excluded,SBI Aurum portal T&C
+SBI,AURUM,JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+SBI,AURUM,GVP,gift voucher via bank portal,portal merchant MCC,1.0,V,Aurum portal: no accelerated voucher earn,SBI Aurum portal T&C
+SBI,AURUM,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,SBI Aurum portal T&C
+Axis,Magnus,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.2,S,12 EDGE/Rs200 @Rs0.20; 3.5% above Rs1.5L monthly,Axis MITC
+Axis,Magnus,ONLINE,general online retail,"5964,5999,5691 (online)",1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,GROC,grocery,5411,1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,DEPT,department stores,5311,1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,DINE,dining & food delivery,"5812,5814",1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,MOVIE,movies,7832,1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,Axis MITC
+Axis,Magnus,UTIL,utilities,4900,0,X,excluded,Axis MITC
+Axis,Magnus,TEL,telecom/cable,"4814,4899",0,X,utility MCC per Axis fee list,Axis MITC
+Axis,Magnus,INS,insurance,6300,0,X,excluded,Axis MITC
+Axis,Magnus,RENT,rent,6513,0,X,excluded,Axis MITC
+Axis,Magnus,WALLET,wallet load,"6540,6541",0,X,excluded,Axis MITC
+Axis,Magnus,EDU,education,"8211,8220,8241,8244,8249,8299",1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,GOVT,government/tax,"9311,9399,9222",0,X,excluded,Axis MITC
+Axis,Magnus,GAME,online gaming,"5816,7993,7994",1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,JEWEL,jewellery/gold,5944,0,X,gold,Axis MITC
+Axis,Magnus,RAIL,rail,4112,1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,AIR,airlines direct,"3000-3350,4511",1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,HOTEL,hotels direct,"3501-3999,7011",1.2,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Magnus,GVP,gift voucher via bank portal,portal merchant MCC,0,X,gift cards 0 from 28-Aug-2026,Axis MITC
+Axis,Magnus,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0,X,gift cards 0 from 28-Aug-2026,Axis MITC
+Axis,Atlas,GEN,other offline retail,"5310,5399,5699,5732 etc.",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,ONLINE,general online retail,"5964,5999,5691 (online)",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,GROC,grocery,5411,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,DEPT,department stores,5311,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,DINE,dining & food delivery,"5812,5814",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,MOVIE,movies,7832,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,FUEL,fuel,"5541,5542,5983,5172",0,X,1% fee >=Rs50k; reward assumed 0 - verify,cardadvisor + Axis MITC
+Axis,Atlas,UTIL,utilities,4900,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,TEL,telecom/cable,"4814,4899",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,INS,insurance,6300,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,RENT,rent,6513,0,X,1% fee,cardadvisor + Axis MITC
+Axis,Atlas,WALLET,wallet load,"6540,6541",0,X,0; 1% fee >=Rs10k/cycle (bank-wide),cardadvisor + Axis MITC
+Axis,Atlas,EDU,education,"8211,8220,8241,8244,8249,8299",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,GOVT,government/tax,"9311,9399,9222",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,GAME,online gaming,"5816,7993,7994",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,JEWEL,jewellery/gold,5944,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,RAIL,rail,4112,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,AIR,airlines direct,"3000-3350,4511",5.0,S,5 Miles/Rs100 up to Rs2L/month,cardadvisor + Axis MITC
+Axis,Atlas,HOTEL,hotels direct,"3501-3999,7011",5.0,S,5 Miles/Rs100,cardadvisor + Axis MITC
+Axis,Atlas,GVP,gift voucher via bank portal,portal merchant MCC,2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Atlas,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",2.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + Axis MITC
+Axis,Select,GEN,other offline retail,"5310,5399,5699,5732 etc.",2.0,S,20/Rs200 on first Rs20k/month retail,Axis MITC
+Axis,Select,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,Axis MITC
+Axis,Select,UTIL,utilities,4900,0,X,excluded,Axis MITC
+Axis,Select,TEL,telecom/cable,"4814,4899",0,X,excluded,Axis MITC
+Axis,Select,INS,insurance,6300,0,X,excluded,Axis MITC
+Axis,Select,RENT,rent,6513,0,X,excluded,Axis MITC
+Axis,Select,WALLET,wallet load,"6540,6541",0,X,excluded,Axis MITC
+Axis,Select,EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,GOVT,government/tax,"9311,9399,9222",0,X,excluded,Axis MITC
+Axis,Select,GAME,online gaming,"5816,7993,7994",1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,JEWEL,jewellery/gold,5944,0,X,gold,Axis MITC
+Axis,Select,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,Axis MITC
+Axis,Select,GVP,gift voucher via bank portal,portal merchant MCC,0,X,gift cards 0 from 28-Aug-2026,Axis MITC
+Axis,Select,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0,X,gift cards 0 from 28-Aug-2026,Axis MITC
+Axis,Flipkart Axis,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,S,5% Flipkart/Myntra/Cleartrip; 4% preferred merchants,cardadvisor
+Axis,Flipkart Axis,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,FUEL,fuel,"5541,5542,5983,5172",0,X,verify,cardadvisor
+Axis,Flipkart Axis,UTIL,utilities,4900,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,TEL,telecom/cable,"4814,4899",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,RENT,rent,6513,0,X,1% fee,cardadvisor
+Axis,Flipkart Axis,WALLET,wallet load,"6540,6541",0,X,bank-wide; verify,cardadvisor
+Axis,Flipkart Axis,EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,GOVT,government/tax,"9311,9399,9222",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,GAME,online gaming,"5816,7993,7994",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,GVP,gift voucher via bank portal,portal merchant MCC,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Flipkart Axis,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,FUEL,fuel,"5541,5542,5983,5172",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,UTIL,utilities,4900,1.0,S,10% via Airtel Thanks app,cardadvisor
+Axis,Airtel Axis,TEL,telecom/cable,"4814,4899",1.0,S,25% on Airtel bills via Airtel Thanks (cap 2x base earned),cardadvisor
+Axis,Airtel Axis,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,RENT,rent,6513,0,X,1% fee,cardadvisor
+Axis,Airtel Axis,WALLET,wallet load,"6540,6541",0,X,verify,cardadvisor
+Axis,Airtel Axis,EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,GOVT,government/tax,"9311,9399,9222",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,GAME,online gaming,"5816,7993,7994",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,GVP,gift voucher via bank portal,portal merchant MCC,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Axis,Airtel Axis,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,White Reserve,GEN,other offline retail,"5310,5399,5699,5732 etc.",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,ONLINE,general online retail,"5964,5999,5691 (online)",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,GROC,grocery,5411,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,DEPT,department stores,5311,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,DINE,dining & food delivery,"5812,5814",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,MOVIE,movies,7832,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,FUEL,fuel,"5541,5542,5983,5172",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,UTIL,utilities,4900,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,TEL,telecom/cable,"4814,4899",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,INS,insurance,6300,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,RENT,rent,6513,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,WALLET,wallet load,"6540,6541",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,EDU,education,"8211,8220,8241,8244,8249,8299",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,GOVT,government/tax,"9311,9399,9222",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,GAME,online gaming,"5816,7993,7994",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,JEWEL,jewellery/gold,5944,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,RAIL,rail,4112,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,AIR,airlines direct,"3000-3350,4511",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,HOTEL,hotels direct,"3501-3999,7011",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,GVP,gift voucher via bank portal,portal merchant MCC,,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,White Reserve,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",,U,base rate assumed - not confirmed for this MCC,cardadvisor (incomplete)
+Kotak,Solitaire,GEN,other offline retail,"5310,5399,5699,5732 etc.",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,ONLINE,general online retail,"5964,5999,5691 (online)",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,GROC,grocery,5411,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,DEPT,department stores,5311,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,DINE,dining & food delivery,"5812,5814",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,MOVIE,movies,7832,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor
+Kotak,Solitaire,UTIL,utilities,4900,0,X,excluded,cardadvisor
+Kotak,Solitaire,TEL,telecom/cable,"4814,4899",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,INS,insurance,6300,0,X,excluded,cardadvisor
+Kotak,Solitaire,RENT,rent,6513,0,X,excluded,cardadvisor
+Kotak,Solitaire,WALLET,wallet load,"6540,6541",0,X,excluded,cardadvisor
+Kotak,Solitaire,EDU,education,"8211,8220,8241,8244,8249,8299",0,X,excluded,cardadvisor
+Kotak,Solitaire,GOVT,government/tax,"9311,9399,9222",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,GAME,online gaming,"5816,7993,7994",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,JEWEL,jewellery/gold,5944,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,RAIL,rail,4112,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,AIR,airlines direct,"3000-3350,4511",10.0,S,"via Kotak Unbox; cap 1,00,000 miles/cycle",cardadvisor
+Kotak,Solitaire,HOTEL,hotels direct,"3501-3999,7011",10.0,S,via Kotak Unbox,cardadvisor
+Kotak,Solitaire,GVP,gift voucher via bank portal,portal merchant MCC,3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Solitaire,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",3.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,ONLINE,general online retail,"5964,5999,5691 (online)",1.67,S,"shopping 10/Rs150; cap 6,500 pts/cycle",cardadvisor
+Kotak,Zen Signature,GROC,grocery,5411,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,DEPT,department stores,5311,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,DINE,dining & food delivery,"5812,5814",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,MOVIE,movies,7832,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor
+Kotak,Zen Signature,UTIL,utilities,4900,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,TEL,telecom/cable,"4814,4899",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,INS,insurance,6300,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,RENT,rent,6513,0,X,excluded,cardadvisor
+Kotak,Zen Signature,WALLET,wallet load,"6540,6541",0,X,excluded,cardadvisor
+Kotak,Zen Signature,EDU,education,"8211,8220,8241,8244,8249,8299",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,GOVT,government/tax,"9311,9399,9222",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,GAME,online gaming,"5816,7993,7994",0,X,excluded,cardadvisor
+Kotak,Zen Signature,JEWEL,jewellery/gold,5944,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,RAIL,rail,4112,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,AIR,airlines direct,"3000-3350,4511",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,HOTEL,hotels direct,"3501-3999,7011",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,GVP,gift voucher via bank portal,portal merchant MCC,0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Zen Signature,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.83,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,ONLINE,general online retail,"5964,5999,5691 (online)",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,GROC,grocery,5411,5.0,S,online grocery; shared cap Rs750/cycle,cardadvisor
+Kotak,Cashback+ Prime,DEPT,department stores,5311,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,DINE,dining & food delivery,"5812,5814",5.0,S,food delivery; shared cap,cardadvisor
+Kotak,Cashback+ Prime,MOVIE,movies,7832,5.0,S,entertainment; shared cap,cardadvisor
+Kotak,Cashback+ Prime,FUEL,fuel,"5541,5542,5983,5172",3.0,S,shared cap,cardadvisor
+Kotak,Cashback+ Prime,UTIL,utilities,4900,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,TEL,telecom/cable,"4814,4899",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,INS,insurance,6300,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,RENT,rent,6513,0,X,verify,cardadvisor
+Kotak,Cashback+ Prime,WALLET,wallet load,"6540,6541",0,X,verify,cardadvisor
+Kotak,Cashback+ Prime,EDU,education,"8211,8220,8241,8244,8249,8299",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,GOVT,government/tax,"9311,9399,9222",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,GAME,online gaming,"5816,7993,7994",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,JEWEL,jewellery/gold,5944,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,RAIL,rail,4112,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,AIR,airlines direct,"3000-3350,4511",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,HOTEL,hotels direct,"3501-3999,7011",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,GVP,gift voucher via bank portal,portal merchant MCC,0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,Cashback+ Prime,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.5,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,GEN,other offline retail,"5310,5399,5699,5732 etc.",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,ONLINE,general online retail,"5964,5999,5691 (online)",0.4,S,2 pts/Rs100 @~Rs0.20 (estimate),cardadvisor
+Kotak,811 #DreamDifferent,GROC,grocery,5411,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,DEPT,department stores,5311,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,DINE,dining & food delivery,"5812,5814",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,MOVIE,movies,7832,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor
+Kotak,811 #DreamDifferent,UTIL,utilities,4900,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,TEL,telecom/cable,"4814,4899",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,INS,insurance,6300,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,RENT,rent,6513,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,WALLET,wallet load,"6540,6541",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,EDU,education,"8211,8220,8241,8244,8249,8299",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,GOVT,government/tax,"9311,9399,9222",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,GAME,online gaming,"5816,7993,7994",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,JEWEL,jewellery/gold,5944,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,RAIL,rail,4112,0,X,excluded,cardadvisor
+Kotak,811 #DreamDifferent,AIR,airlines direct,"3000-3350,4511",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,HOTEL,hotels direct,"3501-3999,7011",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,GVP,gift voucher via bank portal,portal merchant MCC,0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Kotak,811 #DreamDifferent,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",0.2,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Gold Charge,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,FUEL,fuel,"5541,5542,5983,5172",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,UTIL,utilities,4900,,U,conflicting info,cardadvisor + LFAL
+Amex,Gold Charge,TEL,telecom/cable,"4814,4899",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,RENT,rent,6513,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,WALLET,wallet load,"6540,6541",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,GOVT,government/tax,"9311,9399,9222",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,GAME,online gaming,"5816,7993,7994",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Gold Charge,GVP,gift voucher via bank portal,portal merchant MCC,5.0,S,ShopWise e-vouchers 5X,cardadvisor + LFAL
+Amex,Gold Charge,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor + LFAL
+Amex,Platinum Travel,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,FUEL,fuel,"5541,5542,5983,5172",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,UTIL,utilities,4900,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,TEL,telecom/cable,"4814,4899",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,RENT,rent,6513,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,WALLET,wallet load,"6540,6541",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,GOVT,government/tax,"9311,9399,9222",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,GAME,online gaming,"5816,7993,7994",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,GVP,gift voucher via bank portal,portal merchant MCC,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Travel,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),ONLINE,general online retail,"5964,5999,5691 (online)",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),FUEL,fuel,"5541,5542,5983,5172",0,X,excluded,cardadvisor
+Amex,Membership Rewards (MRCC),UTIL,utilities,4900,0,X,excluded,cardadvisor
+Amex,Membership Rewards (MRCC),TEL,telecom/cable,"4814,4899",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),INS,insurance,6300,0,X,excluded,cardadvisor
+Amex,Membership Rewards (MRCC),RENT,rent,6513,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),WALLET,wallet load,"6540,6541",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),GOVT,government/tax,"9311,9399,9222",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),GAME,online gaming,"5816,7993,7994",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),GVP,gift voucher via bank portal,portal merchant MCC,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Membership Rewards (MRCC),GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,ONLINE,general online retail,"5964,5999,5691 (online)",1.0,S,"10X partners (Flipkart, Myntra, Uber...) cap 500/month; 5X Amazon cap 250/month",cardadvisor
+Amex,SmartEarn,GROC,grocery,5411,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,DEPT,department stores,5311,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,DINE,dining & food delivery,"5812,5814",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,MOVIE,movies,7832,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,FUEL,fuel,"5541,5542,5983,5172",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,UTIL,utilities,4900,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,TEL,telecom/cable,"4814,4899",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,INS,insurance,6300,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,RENT,rent,6513,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,WALLET,wallet load,"6540,6541",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,EDU,education,"8211,8220,8241,8244,8249,8299",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,GOVT,government/tax,"9311,9399,9222",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,GAME,online gaming,"5816,7993,7994",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,JEWEL,jewellery/gold,5944,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,RAIL,rail,4112,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,AIR,airlines direct,"3000-3350,4511",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,HOTEL,hotels direct,"3501-3999,7011",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,GVP,gift voucher via bank portal,portal merchant MCC,1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,SmartEarn,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.0,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,GEN,other offline retail,"5310,5399,5699,5732 etc.",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,ONLINE,general online retail,"5964,5999,5691 (online)",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,GROC,grocery,5411,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,DEPT,department stores,5311,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,DINE,dining & food delivery,"5812,5814",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,MOVIE,movies,7832,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,FUEL,fuel,"5541,5542,5983,5172",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,UTIL,utilities,4900,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,TEL,telecom/cable,"4814,4899",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,INS,insurance,6300,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,RENT,rent,6513,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,WALLET,wallet load,"6540,6541",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,EDU,education,"8211,8220,8241,8244,8249,8299",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,GOVT,government/tax,"9311,9399,9222",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,GAME,online gaming,"5816,7993,7994",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,JEWEL,jewellery/gold,5944,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,RAIL,rail,4112,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,AIR,airlines direct,"3000-3350,4511",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,HOTEL,hotels direct,"3501-3999,7011",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,GVP,gift voucher via bank portal,portal merchant MCC,1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor
+Amex,Platinum Charge,GVD,gift card bought from merchant/aggregator,"5947,5999,5311",1.25,A,base rate assumed - not confirmed for this MCC,cardadvisor

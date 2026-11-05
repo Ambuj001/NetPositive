@@ -1,0 +1,389 @@
+<title>Voucher Rail Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: cast + outcome first, then screen-by-screen steps (extension mock left, what happens + tech right), then stack, guidelines, risks. */
+:root {
+  --bg: #F4F7F5; --surface: #FFFFFF; --fg: #14201B; --muted: #586661; --line: #C6D0CC;
+  --usdt: #0B7A57; --usdt-bg: #E2F2EA; --card: #A65F00; --card-bg: #FBF0DE;
+  --warn: #B3442A; --warn-bg: #FBE9E3; --ink: #1E2B26;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1412; --surface: #151D1A; --fg: #E1E9E5; --muted: #93A29C; --line: #2D3A35;
+    --usdt: #3DCB9A; --usdt-bg: #12312A; --card: #F0B24A; --card-bg: #33270F;
+    --warn: #F2876A; --warn-bg: #3A1E17; --ink: #0A0F0D; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1412; --surface: #151D1A; --fg: #E1E9E5; --muted: #93A29C; --line: #2D3A35;
+  --usdt: #3DCB9A; --usdt-bg: #12312A; --card: #F0B24A; --card-bg: #33270F;
+  --warn: #F2876A; --warn-bg: #3A1E17; --ink: #0A0F0D; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 44px; padding-block: 36px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: grid; gap: 10px; }
+.eyebrow { margin: 0; font: 500 12px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+h1 { margin: 0; font-size: clamp(28px, 4.2vw, 40px); line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { margin: 0; font-size: 20px; font-weight: 600; text-wrap: balance; }
+h3 { margin: 0; font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+.lede { max-width: 70ch; }
+.muted { color: var(--muted); }
+section { display: grid; gap: 16px; min-width: 0; }
+.num { font-variant-numeric: tabular-nums; }
+code, .mono { font-family: var(--font-mono); font-size: .9em; }
+
+/* cast + outcome */
+.cast { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.person { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: grid; gap: 6px; }
+.role { font: 600 11.5px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.role.s { color: var(--usdt); } .role.b { color: var(--card); }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+.big { font-weight: 600; }
+
+/* steps */
+.steps { display: grid; gap: 28px; }
+.step { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 28px; align-items: start; padding-top: 24px; border-top: 1px solid var(--line); }
+@media (max-width: 820px) { .step { grid-template-columns: minmax(0, 1fr); } }
+.step-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.stepno { font: 600 13px var(--font-mono); color: var(--muted); }
+.who { font: 600 11px var(--font-mono); text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.who.s { color: var(--usdt); } .who.b { color: var(--card); } .who.p { color: var(--muted); }
+.explain { display: grid; gap: 10px; min-width: 0; }
+.tech { display: grid; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.tech .lbl { font: 600 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tech ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; }
+
+/* extension screen mock */
+.screen { width: 100%; max-width: 340px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 0 var(--line), 0 10px 24px -18px rgba(0,0,0,.45); font-size: 13.5px; }
+.bar { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; background: var(--ink); color: #E8EFEB; font: 500 12px var(--font-mono); }
+.bar .site { opacity: .75; }
+.sc { padding: 12px; display: grid; gap: 10px; }
+.sc h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.opt { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; display: grid; gap: 3px; }
+.opt.best { border-color: var(--usdt); background: var(--usdt-bg); }
+.opt.cardbest { border-color: var(--card); background: var(--card-bg); }
+.opt.off { opacity: .7; }
+.row { display: flex; justify-content: space-between; gap: 10px; }
+.row b { font-variant-numeric: tabular-nums; }
+.pill { font: 600 10.5px var(--font-mono); text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 4px; background: var(--bg); color: var(--muted); align-self: start; justify-self: start; }
+.pill.ok { color: var(--usdt); background: var(--usdt-bg); }
+.pill.warn { color: var(--warn); background: var(--warn-bg); }
+.btn { display: block; text-align: center; padding: 8px; border-radius: 6px; background: var(--fg); color: var(--bg); font-weight: 600; font-size: 13px; }
+.small { font-size: 12px; color: var(--muted); }
+.check { display: grid; grid-template-columns: 18px 1fr; gap: 4px 6px; font-size: 13px; }
+.check span:nth-child(odd) { color: var(--usdt); font-weight: 600; }
+.chat { display: grid; gap: 8px; }
+.msg { padding: 8px 10px; border-radius: 8px; max-width: 92%; }
+.msg.me { justify-self: end; background: var(--bg); border: 1px solid var(--line); }
+.msg.ai { background: var(--usdt-bg); }
+
+/* stack */
+.stack { display: grid; gap: 8px; }
+.layer { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; }
+@media (max-width: 640px) { .layer { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+.layer .name { font-weight: 600; }
+.layer.chain { border-color: var(--usdt); }
+.layer.verify { border-color: var(--card); }
+
+.risk { background: var(--warn-bg); border: 1px solid var(--warn); border-radius: 8px; padding: 16px 18px; display: grid; gap: 8px; }
+.risk ul, .rules { margin: 0; padding-left: 18px; display: grid; gap: 5px; font-size: 14px; }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+
+<main class="wrap">
+  <header>
+    <p class="eyebrow">ETHGlobal Mumbai · product walkthrough v3 · 5 Nov 2026</p>
+    <h1>Voucher Rail Walkthrough</h1>
+    <p class="lede">A crypto holder who wants to shop gets a gift voucher. A card holder who wants crypto buys that voucher on her best reward route and keeps 100% of her card rewards. A verification layer checks the voucher is live before the escrow releases the USDT. No rupees move between strangers.</p>
+  </header>
+
+  <section>
+    <h2>The two people in this example</h2>
+    <div class="cast">
+      <div class="person">
+        <span class="role s">Seller of crypto</span>
+        <h3>Rohan, Bengaluru</h3>
+        <p>Holds 120 USDT. Wants to buy clothes worth ₹10,000 at a Lifestyle store this weekend without cashing out through an exchange.</p>
+      </div>
+      <div class="person">
+        <span class="role b">Buyer of crypto</span>
+        <h3>Priya, Pune</h3>
+        <p>Holds HDFC Infinia (saved in her card portfolio). Wants about 110 USDT. Has not used her SmartBuy voucher bonus this month.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Outcome of the trade</th><th class="r">Rohan (seller)</th><th class="r">Priya (buyer)</th></tr></thead>
+        <tbody>
+          <tr><td>Gives</td><td class="r">112.22 USDT</td><td class="r">₹10,000 on her card</td></tr>
+          <tr><td>Gets</td><td class="r">₹10,000 Lifestyle vouchers</td><td class="r">111.11 USDT + 1,650 reward points</td></tr>
+          <tr><td>Effective price per USDT</td><td class="r">₹89.11</td><td class="r">₹75.15 (travel value) · ₹85.55 (statement value)</td></tr>
+          <tr><td class="big">Saving shown in the extension</td><td class="r big">pays 1% fee, nothing else</td><td class="r big">16.5% (travel) · 4.95% (statement)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">Example rate ₹90 per USDT, set by the two users in the order. Card numbers from the Infinia terms and SmartBuy offer 15282 as checked on 4 Nov 2026: 5 points per ₹150, brand vouchers 5X, voucher bonus capped at 3,000 points a month, ₹1 per point on flights and hotels, up to ₹0.30 per point as statement credit. The live product re-checks these before every recommendation.</p>
+  </section>
+
+  <section>
+    <h2>Step by step, screen by screen</h2>
+    <div class="steps">
+
+      <!-- 1 -->
+      <div class="step">
+        <div class="screen" aria-label="Seller extension on a merchant site">
+          <div class="bar"><span>Voucher Rail</span><span class="site">lifestylestores.com</span></div>
+          <div class="sc">
+            <h4>Pay for this shop with crypto</h4>
+            <div class="opt best">
+              <span class="pill ok">Best for you</span>
+              <div class="row"><span>Voucher rail</span><b>1% fee</b></div>
+              <span class="small">₹10,000 Lifestyle voucher for 112.22 USDT</span>
+            </div>
+            <div class="opt off">
+              <span class="pill">Not in your region</span>
+              <div class="row"><span>Crypto.com Visa (Obsidian, EU)</span><b>4.5% back</b></div>
+              <span class="small">First US$5,000/month only. Needs US$500k staked.</span>
+            </div>
+            <span class="btn">Post voucher request</span>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">1</span><span class="who s">Rohan</span><h3>The extension spots the merchant and offers the crypto options</h3></div>
+          <p>Rohan opens Lifestyle's site to pick his clothes. The extension recognises the merchant and compares two ways to pay with crypto: our voucher rail, or a crypto prepaid card that pays rewards. The card is shown with its real limits. It isn't available in his region, so the voucher rail wins.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>Content script reads the domain only, never page data or card details</li>
+            <li>Crypto card catalogue: reward rate, cap, staking needs and countries, with source and date checked</li>
+            <li>Voucher catalogue maps the merchant to the voucher brands that work there</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="step">
+        <div class="screen" aria-label="Seller posts request and locks USDT">
+          <div class="bar"><span>Voucher Rail</span><span class="site">Request</span></div>
+          <div class="sc">
+            <h4>Your request</h4>
+            <div class="row"><span>Voucher</span><b>Lifestyle · ₹10,000</b></div>
+            <div class="row"><span>Rate</span><b>₹90 / USDT</b></div>
+            <div class="row"><span>Buyer receives</span><b>111.11 USDT</b></div>
+            <div class="row"><span>Fee (1%)</span><b>1.11 USDT</b></div>
+            <div class="row"><span>You lock</span><b>112.22 USDT</b></div>
+            <span class="pill ok">Locked in escrow · releases only after voucher check</span>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">2</span><span class="who s">Rohan</span><h3>He locks the USDT and the request goes live</h3></div>
+          <p>He can take one of hundreds of suggested vouchers or type a custom one (any brand, any amount). His USDT moves into the escrow contract, so buyers know the crypto is really there.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>Escrow contract holds USDT against an order ID (brand, amount, rate, deadline)</li>
+            <li>Request appears in the order book shown to buyers</li>
+            <li>World ID check on first use: one real person per account</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="step">
+        <div class="screen" aria-label="Buyer sees matching request with best card">
+          <div class="bar"><span>Voucher Rail</span><span class="site">Buy USDT</span></div>
+          <div class="sc">
+            <h4>Lifestyle ₹10,000 → 111.11 USDT</h4>
+            <div class="opt cardbest">
+              <span class="pill ok">Best from your cards</span>
+              <div class="row"><span>Infinia · SmartBuy 5X</span><b>16.5%</b></div>
+              <span class="small">1,650 points ≈ ₹1,650 on travel</span>
+            </div>
+            <div class="opt">
+              <div class="row"><span>Infinia · InstaDeals</span><b>10.5%</b></div>
+              <span class="small">7.5% off + 1X points</span>
+            </div>
+            <div class="opt">
+              <div class="row"><span>Infinia · direct</span><b>3.3%</b></div>
+            </div>
+            <span class="small">Voucher bonus left this month: 3,000 of 3,000 points. This uses 1,320.</span>
+            <span class="btn">Accept order</span>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">3</span><span class="who b">Priya</span><h3>Her extension ranks every way to buy that voucher</h3></div>
+          <p>Priya wants USDT. She sees Rohan's request with the result already worked out from her saved cards: which card, which channel (SmartBuy, InstaDeals, other bank portals like Axis Grab Deals), and how much of her monthly cap she has left. She accepts.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>Card portfolio stored on her device only: issuer, variant, caps used. No card numbers</li>
+            <li>Route engine: base rate × channel multiplier, minus caps, per-transaction rounding and exclusions</li>
+            <li>Channel rates (SmartBuy, GyFTR, bank portals) refreshed from official pages with date checked</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="step">
+        <div class="screen" aria-label="Buyer buys vouchers on SmartBuy">
+          <div class="bar"><span>Voucher Rail</span><span class="site">smartbuy.hdfc…</span></div>
+          <div class="sc">
+            <h4>Buy it this way</h4>
+            <div class="check">
+              <span>1</span><span>Open SmartBuy → Gift Vouchers → Lifestyle</span>
+              <span>2</span><span>Choose the <b>accelerated rewards</b> tab, not InstaDeals</span>
+              <span>3</span><span>2 × ₹5,000 (largest denomination)</span>
+              <span>4</span><span>Pay with Infinia</span>
+            </div>
+            <span class="small">Points post within 90 working days, per SmartBuy terms.</span>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">4</span><span class="who b">Priya</span><h3>She buys the vouchers on the recommended route</h3></div>
+          <p>The extension walks her through the exact route so the 5X multiplier applies. She pays on SmartBuy as usual. The reward is between her and HDFC; we never touch it.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>Guided steps on the bank portal; she checks out herself</li>
+            <li>Her local record of caps used updates after purchase</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="step">
+        <div class="screen" aria-label="Verification layer result">
+          <div class="bar"><span>Voucher Rail</span><span class="site">Verification</span></div>
+          <div class="sc">
+            <h4>Voucher check</h4>
+            <div class="check">
+              <span>✓</span><span>Code 1: live, ₹5,000 balance, not redeemed</span>
+              <span>✓</span><span>Code 2: live, ₹5,000 balance, not redeemed</span>
+              <span>✓</span><span>Brand matches: Lifestyle (in-store)</span>
+              <span>✓</span><span>Expiry: 6 months from issue</span>
+            </div>
+            <span class="pill ok">Signed result sent to escrow</span>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">5</span><span class="who p">Verification layer</span><h3>The codes are checked live before Rohan sees them</h3></div>
+          <p>Priya pastes the codes into the extension. They go encrypted to our verification layer, which checks balance and status on the issuer's balance-check page. For vouchers above ₹10,000, or brands like jewellers (Kalyan, Tanishq), it checks on the merchant's own portal. Only a pass moves the trade forward.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>Codes encrypted on Priya's device to the verifier key; deleted after the trade</li>
+            <li>Verifier queries the issuer or merchant balance check, then signs: order ID, amount, status, time</li>
+            <li>Escrow contract accepts only a signed pass. Stretch: a zkTLS proof of the balance page instead of trusting our signature</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="step">
+        <div class="screen" aria-label="Seller receives voucher and release">
+          <div class="bar"><span>Voucher Rail</span><span class="site">Your vouchers</span></div>
+          <div class="sc">
+            <h4>2 × Lifestyle ₹5,000</h4>
+            <span class="small">Codes visible to you only.</span>
+            <div class="opt best">
+              <div class="row"><span>Re-checked just now</span><b>₹10,000 live</b></div>
+            </div>
+            <span class="btn">I've received them</span>
+            <span class="small">USDT goes to Priya the moment you confirm, or automatically 30 min after the re-check passes.</span>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">6</span><span class="who s">Rohan</span><h3>Rohan gets the codes, the escrow pays Priya</h3></div>
+          <p>The codes open only for Rohan. The verifier re-checks the balance at that moment, because Priya also has the codes. Then the contract sends 111.11 USDT to Priya and splits the 1.11 USDT fee. Rohan shops on Saturday.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>Codes re-encrypted to Rohan's key; second verifier check right before release</li>
+            <li>Contract releases 111.11 USDT to Priya</li>
+            <li>Fee split (proposal): 0.56 USDT to the dispute reserve, 0.55 USDT platform revenue</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <div class="step">
+        <div class="screen" aria-label="Dispute screen">
+          <div class="bar"><span>Voucher Rail</span><span class="site">Dispute</span></div>
+          <div class="sc">
+            <h4>Voucher didn't work at the store?</h4>
+            <div class="check">
+              <span>1</span><span>Verifier pulls the voucher's history</span>
+              <span>2</span><span>Spent before your first use → you're refunded from the reserve</span>
+              <span>3</span><span>The other user is banned; their World ID can't make a new account</span>
+            </div>
+            <span class="pill warn">Small disputes paid from reserve</span>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">7</span><span class="who p">If something goes wrong</span><h3>The 1% fee works like card network dispute money</h3></div>
+          <p>Like Visa or Mastercard charging merchants to fund chargebacks, part of every 1% fee builds a reserve. If a voucher was spent before Rohan used it, the reserve pays him back up to a limit. Bigger trades can require the voucher provider to post a bond.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>Reserve held in the contract, payouts need a verifier-signed dispute result</li>
+            <li>Per-person dispute and trade limits tied to World ID, not to wallets</li>
+          </ul></div>
+        </div>
+      </div>
+
+      <!-- 8 -->
+      <div class="step">
+        <div class="screen" aria-label="Chat in the extension">
+          <div class="bar"><span>Voucher Rail</span><span class="site">Ask</span></div>
+          <div class="sc chat">
+            <div class="msg me">Why not InstaDeals? It's an instant 7.5% off.</div>
+            <div class="msg ai">InstaDeals gives 7.5% off plus 1X points, about 10.5%. SmartBuy's accelerated route gives 5X, about 16.5%. SmartBuy doesn't give accelerated points on InstaDeals, so you can't get both.</div>
+            <div class="msg me">And next week?</div>
+            <div class="msg ai">You'll have 1,680 bonus points left this month. After that 5X stops, and InstaDeals becomes your best route.</div>
+          </div>
+        </div>
+        <div class="explain">
+          <div class="step-head"><span class="stepno">8</span><span class="who b">Any user</span><h3>Chat explains every pick and every rejection</h3></div>
+          <p>Users can ask why a card or route was chosen and why the others weren't. Answers come from the same numbers the engine used, with the source and the date each rule was checked.</p>
+          <div class="tech"><span class="lbl">Tech</span><ul>
+            <li>AI reads the engine's ranked list and its rule citations; it doesn't do the maths itself</li>
+            <li>Sends only the purchase and card names, never the user's full portfolio</li>
+          </ul></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>The tech stack, top to bottom</h2>
+    <div class="stack">
+      <div class="layer"><span class="name">Browser extension</span><span>Seller view (merchant detection, voucher request, crypto card comparison) and buyer view (order feed, best card and route, guided purchase). Card portfolio stays on the device.</span></div>
+      <div class="layer"><span class="name">Rewards engine + chat</span><span>Card catalogue for India (credit and debit, all major banks), Europe (your list) and crypto prepaid cards. Channel multipliers, caps and exclusions, each with source and date. Chat explains the ranking.</span></div>
+      <div class="layer"><span class="name">Order book</span><span>Voucher requests from sellers, matched to buyers by brand, amount and rate.</span></div>
+      <div class="layer verify"><span class="name">Verification layer</span><span>Checks each code live with the issuer (GyFTR, Woohoo, Pine Labs) or the merchant's own portal for high values and jewellers. Signs pass or fail. Re-checks before release.</span></div>
+      <div class="layer chain"><span class="name">Escrow contract</span><span>Holds USDT, releases only on a signed pass, splits the 1% fee into reserve and revenue, pays small disputes.</span></div>
+      <div class="layer"><span class="name">Identity</span><span>World ID: one real person per account, bans that stick.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Our working rules</h2>
+    <ul class="rules">
+      <li>Re-check the latest official terms for every card and channel before showing a number. Show the source and the date checked.</li>
+      <li>Never collect card numbers, CVV, PIN or OTP. Voucher codes are encrypted and deleted after the trade.</li>
+      <li>Rewards belong to the user's card. We only predict them; we never pay or promise them.</li>
+      <li>Hackathon: build only after kickoff, open-source repo, list where AI helped, demo video 2–4 minutes.</li>
+    </ul>
+  </section>
+
+  <section class="risk">
+    <h2>Must solve before this goes live</h2>
+    <ul>
+      <li>Voucher terms: Amazon Pay gift cards "cannot be resold, transferred for value or redeemed for cash". Check each brand's terms; the issuer can cancel vouchers or close accounts, and HDFC can withhold points.</li>
+      <li>Balance checks: automated lookups on issuer and merchant portals need their permission or an API. For the demo, use one issuer.</li>
+      <li>The voucher provider keeps a copy of the code. The re-check and reserve reduce this risk; they don't remove it.</li>
+      <li>Tax: crypto trades paid in kind may still need TDS under Section 194S. Confirm with a CA.</li>
+    </ul>
+  </section>
+
+  <footer>Proposed design, not yet built. Example people and rate are illustrative; card figures as checked 4 Nov 2026.</footer>
+</main>
