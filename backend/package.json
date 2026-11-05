@@ -1,0 +1,29 @@
+{
+  "name": "netpositive-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Express + Firestore backend for P2P gift-card <-> USDC escrow on Arc, gated by World ID.",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "emulator": "firebase emulators:start --only firestore --project demo-netpositive",
+    "smoke": "firebase emulators:exec --only firestore --project demo-netpositive \"node scripts/smoke.js\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "jsonwebtoken": "^9.0.2",
+    "viem": "^2.31.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.6.0"
+  }
+}
