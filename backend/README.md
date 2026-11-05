@@ -19,6 +19,16 @@ npm run smoke               # or: full lifecycle test in a throwaway emulator
 
 `ESCROW_MODE=mock` and `WORLD_ID_MOCK=true` are refused when `NODE_ENV=production`.
 
+## Testing without Java/Firebase (in-memory Firestore)
+
+`npm run smoke:mem` runs the full lifecycle smoke test against an in-memory Firestore stand-in (`test-support/`), loaded through a Node module hook, so the backend source is untouched and **no Java, emulator or Firebase project is needed**.
+
+`npm run sim` runs the chatbot + backend integration simulation: the Python chatbot API (`../chatbot/server.py`) and this backend side by side. It covers seller query -> merchant choice -> request draft -> `POST /requests` -> simulated escrow deposit -> `POST /requests/:id/fund` -> open and listed, plus validation/abuse cases and the buyer side.
+
+- Uses throwaway secrets generated at start-up; never reads `.env`; refuses to run if real Firebase credentials are set.
+- `ESCROW_MODE=mock` and `WORLD_ID_MOCK=true`: **no funds move and no chain is contacted.**
+- The stand-in does not model composite-index requirements, security rules or latency. Use the real emulator (`npm run smoke`) for those before release.
+
 ## Lifecycle
 
 ```

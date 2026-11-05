@@ -21,7 +21,7 @@ ROUTES = DATA["routes"]
 MAX_DENOM = DATA["_meta"]["max_voucher_denomination"]
 PORTALS_DATA = json.loads((ROOT / "data" / "portals.json").read_text(encoding="utf-8"))
 PORTALS = PORTALS_DATA["portals"]
-STATE_FILE = ROOT / "state" / "portfolios.json"
+STATE_FILE = Path(os.environ.get("NETPOSITIVE_STATE_FILE") or ROOT / "state" / "portfolios.json")  # env override keeps tests/simulations off the real file
 MATRIX_CHECKED_ON = "2026-11-05"
 MAX_AMOUNT = 100_000_000  # Rs 10 crore sanity cap
 

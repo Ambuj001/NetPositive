@@ -30,6 +30,9 @@ export function createApp() {
     if (err.type === 'entity.parse.failed') {
       return res.status(400).json({ error: 'invalid_json', message: 'Malformed JSON body' });
     }
+    if (err.type === 'entity.too.large') {
+      return res.status(413).json({ error: 'payload_too_large', message: 'Request body is too large' });
+    }
     console.error(err);
     res.status(500).json({ error: 'internal_error', message: 'Something went wrong' });
   });

@@ -12,7 +12,9 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "emulator": "firebase emulators:start --only firestore --project demo-netpositive",
-    "smoke": "firebase emulators:exec --only firestore --project demo-netpositive \"node scripts/smoke.js\""
+    "smoke": "firebase emulators:exec --only firestore --project demo-netpositive \"node scripts/smoke.js\"",
+    "smoke:mem": "node --import ./test-support/register.mjs scripts/smoke.js",
+    "sim": "node --import ./test-support/register.mjs scripts/integration-sim.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
