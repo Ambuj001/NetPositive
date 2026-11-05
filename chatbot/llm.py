@@ -42,12 +42,16 @@ Hard rules:
 
 BUYER_PROMPT = COMMON_RULES + """
 You are talking to a BUYER of crypto: they pay for a gift voucher with their card and receive crypto in return.
-Goal: tell them the best card + channel to buy the requested voucher, with exact steps, using recommend_voucher_routes.
-Ask for brand/amount if missing, and whether they prefer travel-value or statement-credit redemption (default travel)."""
+- If the user names something to shop for (e.g. "Nike shoes from Amazon"): the STORE is where they will shop (Amazon), not the product brand. Call plan_voucher_purchase with store, item and amount; it returns the voucher to buy, the best card+channel and a redirect link. Present the redirect link and the exact steps.
+- If they only ask which card is best for a site or category without buying a voucher, call recommend_for_merchant.
+- Ask for the amount if missing. Ask travel-value vs statement-credit only if they hold a points card (default travel).
+- If a tool says the store/merchant is unknown, ask what kind of purchase it is, then call again with a category code.
+- Rates with status A are assumed base rates; S need confirming on the issuer page. Say so briefly. Mention caps when flags include has_cap, and weekend-only boosts when flagged."""
 
 SELLER_PROMPT = COMMON_RULES + """
 You are talking to a SELLER of crypto: they hold crypto and want a gift voucher/shopping.
-Goal: use recommend_seller_options to compare the Voucher Rail (1% fee) with crypto-card options in THEIR portfolio only, respecting region limits."""
+Goal: use recommend_seller_options to compare the Voucher Rail (1% fee) with crypto-card options in THEIR portfolio only, respecting region limits.
+If they ask which of their cards is best for a site or category, call recommend_for_merchant."""
 
 T_LIST = {"type": "function", "function": {"name": "list_my_cards", "description": "List the cards in this user's portfolio.", "parameters": {"type": "object", "properties": {}}}}
 T_ADD = {"type": "function", "function": {"name": "add_card", "description": "Add a card to this user's portfolio by name.", "parameters": {"type": "object", "properties": {"card_name": {"type": "string"}}, "required": ["card_name"]}}}
@@ -55,7 +59,11 @@ T_REM = {"type": "function", "function": {"name": "remove_card", "description": 
 T_BUY = {"type": "function", "function": {"name": "recommend_voucher_routes", "description": "Rank the best card+channel routes to buy a voucher, using only the user's own cards.", "parameters": {"type": "object", "properties": {"brand": {"type": "string"}, "amount": {"type": "number", "description": "INR"}, "value_mode": {"type": "string", "enum": ["travel", "statement"]}}, "required": ["brand", "amount"]}}}
 T_SELL = {"type": "function", "function": {"name": "recommend_seller_options", "description": "Compare Voucher Rail with crypto-card options in the user's portfolio.", "parameters": {"type": "object", "properties": {"amount_inr": {"type": "number"}}, "required": ["amount_inr"]}}}
 
-TOOLS = {"buyer": [T_LIST, T_ADD, T_REM, T_BUY], "seller": [T_LIST, T_ADD, T_REM, T_SELL]}
+_CATS = ["GEN", "ONLINE", "GROC", "DEPT", "DINE", "MOVIE", "FUEL", "UTIL", "TEL", "INS", "RENT", "WALLET", "EDU", "GOVT", "GAME", "JEWEL", "RAIL", "AIR", "HOTEL"]
+T_MERCH = {"type": "function", "function": {"name": "recommend_for_merchant", "description": "Rank the user's own cards for a direct purchase at a website/merchant/category (no vouchers).", "parameters": {"type": "object", "properties": {"merchant": {"type": "string", "description": "URL, domain, store name or category phrase"}, "amount": {"type": "number", "description": "INR, optional"}, "prime": {"type": "boolean", "description": "Amazon Prime member, if known"}, "category": {"type": "string", "enum": _CATS, "description": "Only if the merchant is unknown: the spend category"}}, "required": ["merchant"]}}}
+T_PLAN = {"type": "function", "function": {"name": "plan_voucher_purchase", "description": "User wants to shop at a store (e.g. Nike shoes from Amazon): returns which voucher to buy, a redirect link, and the best of THEIR cards/channels to buy it.", "parameters": {"type": "object", "properties": {"store": {"type": "string", "description": "The store they will shop at, e.g. Amazon"}, "amount": {"type": "number", "description": "INR"}, "item": {"type": "string", "description": "What they want, e.g. Nike shoes"}, "value_mode": {"type": "string", "enum": ["travel", "statement"]}}, "required": ["store", "amount"]}}}
+
+TOOLS = {"buyer": [T_LIST, T_ADD, T_REM, T_PLAN, T_BUY, T_MERCH], "seller": [T_LIST, T_ADD, T_REM, T_SELL, T_MERCH]}
 
 
 def run_tool(user_id, name, args):
@@ -66,9 +74,13 @@ def run_tool(user_id, name, args):
     if name == "remove_card":
         return engine.remove_card(user_id, args.get("card_name", ""))
     if name == "recommend_voucher_routes":
-        return engine.recommend_voucher_routes(user_id, args.get("brand", "voucher"), float(args["amount"]), args.get("value_mode", "travel"))
+        return engine.recommend_voucher_routes(user_id, args.get("brand", "voucher"), args.get("amount"), args.get("value_mode", "travel"))
+    if name == "recommend_for_merchant":
+        return engine.recommend_for_merchant(user_id, args.get("merchant", ""), args.get("amount"), args.get("prime"), args.get("category"))
+    if name == "plan_voucher_purchase":
+        return engine.plan_voucher_purchase(user_id, args.get("store", ""), args.get("amount"), args.get("item"), args.get("value_mode", "travel"))
     if name == "recommend_seller_options":
-        return engine.recommend_seller_options(user_id, float(args["amount_inr"]))
+        return engine.recommend_seller_options(user_id, args.get("amount_inr"))
     return {"error": f"unknown tool {name}"}
 
 
