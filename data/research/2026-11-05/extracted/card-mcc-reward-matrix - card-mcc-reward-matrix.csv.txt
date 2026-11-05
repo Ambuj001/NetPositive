@@ -1,0 +1,666 @@
+--- Page 1 ---
+bank card mcc_group category mccs reward_pct status cap_or_note source
+HDFC Infinia / Infinia MeGtaElN other offline retail5310,5399,5699,5732 etc. 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Infinia / Infinia MeOtaNl LINE general online reta5i9l64,5999,5691 (online) 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Infinia / Infinia MeGtaRl OC grocery 5411 3.33 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeDtaElPT department stores 5311 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Infinia / Infinia MeDtaIlNE dining & food delivery 58,125,814 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Infinia / Infinia MeMtaOl VIE movies 7832 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Infinia / Infinia MeFtaUlEL fuel 5541,5542,5983,5172 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeUtaTlIL utilities 4900 3.33 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeTtaElL telecom/cable 48,144,899 3.33 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeItNalS insurance 6300 3.33 V cap 10,000 RP/moHnDthFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeRtaElNT rent 6513 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeWtalALLET wallet load 65,406,541 0 X excluded; 1% fee H>DRFs1C0 Mk/mIToCn 3th1-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeEtaDlU education 8211,8220,8241,8244,8249,82990 X 0 via third-party apHpDsF; Cdi rMecITt C= b3a1s-Oect-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeGtaOl VT government/tax 931,193,999,222 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeGtaAlME online gaming 581,679,937,994 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeJtaElWEL jewellery/gold 5944 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Infinia / Infinia MeRtaAlIL rail 4112 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Infinia / Infinia MeAtaIlR airlines direct 3000-3350,4511 16.67 V SmartBuy flights 5HXD; FdCire MctI T=C b a3s1e-Oct-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeHtaOl TEL hotels direct 3501-3999,7011 33.33 V SmartBuy hotels 1H0DXF; Cdi rMecITt C= b3a1s-Oect-2026 + SmartBuy 15282
+HDFC Infinia / Infinia MeGtaVlP gift voucher via bapnokr tpaol mrtaelrchant MCC 16.67 V SmartBuy brand vHoDucFhCe rMs I5TXC; 3v1o-uOchcte-r2 0b2o6n u+s Scmapa r3t,B0u0y0 1R5P2/8m2onth
+HDFC Infinia / Infinia MeGtaVlD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282
+HDFC Diners Club BlackG MEeNtal other offline retail5310,5399,5699,5732 etc. 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackO MNeLtIaNlE general online reta5i9l64,5999,5691 (online) 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackG MReOtaCl grocery 5411 3.33 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackD MEePtTal department stores 5311 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackD MINeEtal dining & food delivery 58,125,814 6.67 S 2X weekends onlyH; DwFeCek MdaITyCs b3a1s-Oect-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackM MOeVtaIEl movies 7832 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackF MUeEtLal fuel 5541,5542,5983,5172 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackU MTeILtal utilities 4900 3.33 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackT MELetal telecom/cable 48,144,899 3.33 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackI NMSetal insurance 6300 3.33 V cap 5,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackR MEeNtTal rent 6513 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackW MAeLtaLlET wallet load 65,406,541 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackE MDeUtal education 8211,8220,8241,8244,8249,82990 X 0 via apps HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackG MOeVtaTl government/tax 931,193,999,222 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackG MAeMtaEl online gaming 581,679,937,994 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+
+--- Page 2 ---
+HDFC Diners Club BlackJ MEWetEalL jewellery/gold 5944 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackR MAeILtal rail 4112 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackA MIRetal airlines direct 3000-3350,4511 16.5 S SmartBuy flights 5HXDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackH MOeTtEalL hotels direct 3501-3999,7011 33 S SmartBuy hotels 1H0DXFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Diners Club BlackG MVePtal gift voucher via bapnokr tpaol mrtaelrchant MCC 10 S SmartBuy voucheHrsD 3FXC; vMoIuTcCh e3r1 b-Oonctu-s2 0c2a6p +3 ,S00m0a RrtBPu/my o1n5t2h82 + cardadvisor
+HDFC Diners Club BlackG MVeDtal gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 3.33 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Regalia Gold GEN other offline retail5310,5399,5699,5732 etc. 1.25 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Regalia Gold ONLINE general online reta5i9l64,5999,5691 (online) 1.25 S partner brands 6.2H5D%FC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold GROC grocery 5411 1.25 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold DEPT department stores 5311 1.25 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Regalia Gold DINE dining & food delivery 58,125,814 1.25 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Regalia Gold MOVIE movies 7832 1.25 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Regalia Gold FUEL fuel 5541,5542,5983,5172 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold UTIL utilities 4900 1.25 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold TEL telecom/cable 48,144,899 1.25 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold INS insurance 6300 1.25 V cap 2,000 RP/monHtDhFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold RENT rent 6513 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold WALLET wallet load 65,406,541 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold EDU education 8211,8220,8241,8244,8249,82990 X 0 via apps HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold GOVT government/tax 931,193,999,222 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold GAME online gaming 581,679,937,994 0 X excluded HDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold JEWEL jewellery/gold 5944 1.25 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Regalia Gold RAIL rail 4112 1.25 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Regalia Gold AIR airlines direct 3000-3350,4511 6.25 S SmartBuy flights 5HXDFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold HOTEL hotels direct 3501-3999,7011 12.5 S SmartBuy hotels 1H0DXFC MITC 31-Oct-2026 + SmartBuy 15282 + cardadvisor
+HDFC Regalia Gold GVP gift voucher via bapnokr tpaol mrtaelrchant MCC U SmartBuy multipliHerD nFoCt cMoInTfiCrm 3e1d-O; vcot-u2c0h2e6r +bo Snmusa rctaBpu y3 ,1050208 R2 P+/ mcaorndtahdvisor
+HDFC Regalia Gold GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1.25 A base rate assumeHdD - FnCot McoITnCfir m31e-dO fcot-r2 t0h2is6 M +C SCmartBuy 15282 + cardadvisor
+HDFC Millennia GEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia ONLINE general online reta5i9l64,5999,5691 (online) 1 V 5% on 10 partner Mbrilalenndnsi a(c Ta&p C1 ,2000-0J uCl-P2/0m2o6n +th M); I1T%C tier cap 1,000 CP/month
+HDFC Millennia GROC grocery 5411 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia DEPT department stores 5311 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia DINE dining & food delivery 58,125,814 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia MOVIE movies 7832 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia FUEL fuel 5541,5542,5983,5172 0 X excluded Millennia T&C 20-Jul-2026 + MITC
+HDFC Millennia UTIL utilities 4900 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia TEL telecom/cable 48,144,899 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia INS insurance 6300 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+
+--- Page 3 ---
+HDFC Millennia RENT rent 6513 0 X excluded Millennia T&C 20-Jul-2026 + MITC
+HDFC Millennia WALLET wallet load 65,406,541 0 X excluded Millennia T&C 20-Jul-2026 + MITC
+HDFC Millennia EDU education 8211,8220,8241,8244,8249,82990 X 0 via apps Millennia T&C 20-Jul-2026 + MITC
+HDFC Millennia GOVT government/tax 931,193,999,222 0 X excluded Millennia T&C 20-Jul-2026 + MITC
+HDFC Millennia GAME online gaming 581,679,937,994 0 X excluded Millennia T&C 20-Jul-2026 + MITC
+HDFC Millennia JEWEL jewellery/gold 5944 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia RAIL rail 4112 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia AIR airlines direct 3000-3350,4511 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia HOTEL hotels direct 3501-3999,7011 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Millennia GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1 S partner brands viaM SilmlenanrtiBau Ty&/PCa y2Z0a-Jpupl- d2r0o2p6 t+o 1M%ITC
+HDFC Millennia GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumeMd i-ll ennont icao Tn&firCm 2e0d- Jfourl -t2h0is2 6M +C CMITC
+HDFC Tata Neu Infinity GEN other offline retail5310,5399,5699,5732 etc. 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity ONLINE general online reta5i9l64,5999,5691 (online) 1.5 S 5% on Tata brandMs vITiaC T +a tcaa Nrdeaudvisor
+HDFC Tata Neu Infinity GROC grocery 5411 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity DEPT department stores 5311 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity DINE dining & food delivery 58,125,814 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity MOVIE movies 7832 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity FUEL fuel 5541,5542,5983,5172 0 X listed in MITC fueMl eIxTcClu +s iocanr -d avedrviifsyor
+HDFC Tata Neu Infinity UTIL utilities 4900 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity TEL telecom/cable 48,144,899 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity INS insurance 6300 1.5 S via Tata Neu bill pMayI,T cCa p+ 2ca,0r0d0a dNveisuoCroins/month
+HDFC Tata Neu Infinity RENT rent 6513 0 X excluded MITC + cardadvisor
+HDFC Tata Neu Infinity WALLET wallet load 65,406,541 0 X excluded MITC + cardadvisor
+HDFC Tata Neu Infinity EDU education 8211,8220,8241,8244,8249,82919.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity GOVT government/tax 931,193,999,222 0 X excluded MITC + cardadvisor
+HDFC Tata Neu Infinity GAME online gaming 581,679,937,994 0 X excluded MITC + cardadvisor
+HDFC Tata Neu Infinity JEWEL jewellery/gold 5944 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity RAIL rail 4112 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity AIR airlines direct 3000-3350,4511 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity HOTEL hotels direct 3501-3999,7011 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+HDFC Tata Neu Infinity GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 5 S Tata brand voucheMrsIT iCns +id cea Tradtaad Nviesour
+HDFC Tata Neu Infinity GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1.5 A base rate assumeMd I-T nCo +t c coanrfdiramdevdis oforr this MCC
+ICICI Emeralde Private GMEeNtal other offline retail5310,5399,5699,5732 etc. 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Emeralde Private OMNeLtaINl E general online reta5i9l64,5999,5691 (online) 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Emeralde Private GMReOtaCl grocery 5411 3 S cap 1,000 pts/cyccleardadvisor + CardExpert iShop
+ICICI Emeralde Private DMEePtaTl department stores 5311 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Emeralde Private DMINetEal dining & food delivery 58,125,814 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+
+--- Page 4 ---
+ICICI Emeralde Private MMOetVaIlE movies 7832 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Emeralde Private FMUeEtaLl fuel 5541,5542,5983,5172 0 X excluded cardadvisor + CardExpert iShop
+ICICI Emeralde Private UMTeItLal utilities 4900 3 S cap 1,000 pts/cyccleardadvisor + CardExpert iShop
+ICICI Emeralde Private TMEeLtal telecom/cable 48,144,899 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Emeralde Private IMNSetal insurance 6300 3 S cap 1,000 pts/cyccleardadvisor + CardExpert iShop
+ICICI Emeralde Private RMEeNtaTl rent 6513 0 X excluded cardadvisor + CardExpert iShop
+ICICI Emeralde Private WMAetLaLlET wallet load 65,406,541 0 X excluded; 1% fee c>aRrdsa5dk/vmisoonr t+h CardExpert iShop
+ICICI Emeralde Private EMDeUtal education 8211,8220,8241,8244,8249,82993 S cap 1,000 pts/cyccleardadvisor + CardExpert iShop
+ICICI Emeralde Private GMOeVtaTl government/tax 931,193,999,222 0 X excluded cardadvisor + CardExpert iShop
+ICICI Emeralde Private GMAeMtaEl online gaming 581,679,937,994 0 X 0; 2% fee cardadvisor + CardExpert iShop
+ICICI Emeralde Private JMEeWtaElL jewellery/gold 5944 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Emeralde Private RMAeItLal rail 4112 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Emeralde Private AMIRetal airlines direct 3000-3350,4511 18 S iShop 6X cardadvisor + CardExpert iShop
+ICICI Emeralde Private HMOeTtaElL hotels direct 3501-3999,7011 36 S iShop 12X cardadvisor + CardExpert iShop
+ICICI Emeralde Private GMVePtal gift voucher via bapnokr tpaol mrtaelrchant MCC 18 S iShop 6X; bonus ccaaprd 1a8d,v0i0s0o;r A+m CaazrodnE/xFplieprkta iSrt hvoopuchers Rs12,000/month (data early 2025)
+ICICI Emeralde Private GMVeDtal gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 3 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black GEN other offline retail5310,5399,5699,5732 etc. 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black ONLINE general online reta5i9l64,5999,5691 (online) 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black GROC grocery 5411 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black DEPT department stores 5311 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black DINE dining & food delivery 58,125,814 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black MOVIE movies 7832 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black FUEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor + CardExpert iShop
+ICICI Times Black UTIL utilities 4900 0.8 S shared cap 5,000 cRaPrd/caydcvlies owr it+h CINaSrd/EEDxpUe/rGt OiSVhTop
+ICICI Times Black TEL telecom/cable 48,144,899 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black INS insurance 6300 0.8 S shared cap cardadvisor + CardExpert iShop
+ICICI Times Black RENT rent 6513 0 X excluded cardadvisor + CardExpert iShop
+ICICI Times Black WALLET wallet load 65,406,541 0 X 1% fee >Rs5k/mocnathrdadvisor + CardExpert iShop
+ICICI Times Black EDU education 8211,8220,8241,8244,8249,82909.8 S shared cap cardadvisor + CardExpert iShop
+ICICI Times Black GOVT government/tax 931,193,999,222 0.8 S shared cap cardadvisor + CardExpert iShop
+ICICI Times Black GAME online gaming 581,679,937,994 0 X 0; 2% fee cardadvisor + CardExpert iShop
+ICICI Times Black JEWEL jewellery/gold 5944 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black RAIL rail 4112 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+ICICI Times Black AIR airlines direct 3000-3350,4511 12 S iShop 6X cardadvisor + CardExpert iShop
+ICICI Times Black HOTEL hotels direct 3501-3999,7011 24 S iShop 12X cardadvisor + CardExpert iShop
+ICICI Times Black GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 12 S iShop 6X; bonus ccaaprd 1a5d,v0i0s0or + CardExpert iShop
+ICICI Times Black GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.8 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoEr xtpheisr tM iSChCop
+
+--- Page 5 ---
+ICICI Sapphiro GEN other offline retail5310,5399,5699,5732 etc. 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro ONLINE general online reta5i9l64,5999,5691 (online) 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro GROC grocery 5411 0.5 S cap Rs40k spend/ccayrcdlaedvisor + Finology
+ICICI Sapphiro DEPT department stores 5311 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro DINE dining & food delivery 58,125,814 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro MOVIE movies 7832 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro FUEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor + Finology
+ICICI Sapphiro UTIL utilities 4900 0.25 S cap Rs80k spend/ccayrcdlaedvisor + Finology
+ICICI Sapphiro TEL telecom/cable 48,144,899 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro INS insurance 6300 0.25 S cap Rs80k spend/ccayrcdlaedvisor + Finology
+ICICI Sapphiro RENT rent 6513 0 X excluded cardadvisor + Finology
+ICICI Sapphiro WALLET wallet load 65,406,541 0 X excluded cardadvisor + Finology
+ICICI Sapphiro EDU education 8211,8220,8241,8244,8249,82909.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro GOVT government/tax 931,193,999,222 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro GAME online gaming 581,679,937,994 0 X 0; 2% fee cardadvisor + Finology
+ICICI Sapphiro JEWEL jewellery/gold 5944 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Sapphiro RAIL rail 4112 0.5 S transport cap Rs2c0akr/dmaodnvtihs;o 1r %+ Ffeineo >loRgsy50k
+ICICI Sapphiro AIR airlines direct 3000-3350,4511 3 S iShop 6X cardadvisor + Finology
+ICICI Sapphiro HOTEL hotels direct 3501-3999,7011 6 S iShop 12X cardadvisor + Finology
+ICICI Sapphiro GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 3 S iShop 6X; bonus ccaaprd 9a,d0v0i0sor + Finology
+ICICI Sapphiro GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx GEN other offline retail5310,5399,5699,5732 etc. 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx ONLINE general online reta5i9l64,5999,5691 (online) 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx GROC grocery 5411 0.5 S cap Rs40k spend/ccayrcdlaedvisor + Finology
+ICICI Rubyx DEPT department stores 5311 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx DINE dining & food delivery 58,125,814 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx MOVIE movies 7832 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx FUEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor + Finology
+ICICI Rubyx UTIL utilities 4900 0.25 S cap Rs80k spend/ccayrcdlaedvisor + Finology
+ICICI Rubyx TEL telecom/cable 48,144,899 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx INS insurance 6300 0.25 S cap Rs80k spend/ccayrcdlaedvisor + Finology
+ICICI Rubyx RENT rent 6513 0 X excluded cardadvisor + Finology
+ICICI Rubyx WALLET wallet load 65,406,541 0 X excluded cardadvisor + Finology
+ICICI Rubyx EDU education 8211,8220,8241,8244,8249,82909.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Rubyx GOVT government/tax 931,193,999,222 0.25 S billed as utility cardadvisor + Finology
+ICICI Rubyx GAME online gaming 581,679,937,994 0 X 0; 2% fee cardadvisor + Finology
+ICICI Rubyx JEWEL jewellery/gold 5944 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+
+--- Page 6 ---
+ICICI Rubyx RAIL rail 4112 0.5 S transport cap Rs2c0akr/dmaodnvtihsor + Finology
+ICICI Rubyx AIR airlines direct 3000-3350,4511 3 S iShop 6X cardadvisor + Finology
+ICICI Rubyx HOTEL hotels direct 3501-3999,7011 6 S iShop 12X cardadvisor + Finology
+ICICI Rubyx GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 3 S iShop 6X; bonus ccaaprd 9a,d0v0i0sor + Finology
+ICICI Rubyx GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m Feidn ofolorg tyhis MCC
+ICICI Amazon Pay ICICGIEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICOINLINE general online reta5i9l64,5999,5691 (online) 1 S Amazon 5% Primeca /r 3d%ad vniosno-rP +r imCaer;d AInmsaidzeorn Pay partners 2%
+ICICI Amazon Pay ICICGIROC grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICDIEPT department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICDIINE dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICMI OVIE movies 7832 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICFIUEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor + CardInsider
+ICICI Amazon Pay ICICUITIL utilities 4900 0 X 0 outside Amazonc sairndcaed v11is-oOr c+t- C20a2rd5I;n vsiiad eArmazon = 5%/3%
+ICICI Amazon Pay ICICTIEL telecom/cable 48,144,899 0 X 0 outside Amazonc; avridaa Admviasozor n+ =C a5r%dI/n3s%ider
+ICICI Amazon Pay ICICIINS insurance 6300 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICRIENT rent 6513 0 X excluded cardadvisor + CardInsider
+ICICI Amazon Pay ICICWI ALLET wallet load 65,406,541 U 1% fee >Rs5k; rewcaarrdda tdrevaistomr e+n Ct uanrdkInnoswidner
+ICICI Amazon Pay ICICEIDU education 8211,8220,8241,8244,8249,82990 X excluded cardadvisor + CardInsider
+ICICI Amazon Pay ICICGIOVT government/tax 931,193,999,222 0 X excluded cardadvisor + CardInsider
+ICICI Amazon Pay ICICGIAME online gaming 581,679,937,994 0 X 0; 2% fee cardadvisor + CardInsider
+ICICI Amazon Pay ICICJIEWEL jewellery/gold 5944 0 X gold/silver excludecdardadvisor + CardInsider
+ICICI Amazon Pay ICICRIAIL rail 4112 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICAIIR airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICHIOTEL hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrf ir+m Ceadr dfoInr sthidise rMCC
+ICICI Amazon Pay ICICGIVP gift voucher via bapnokr tpaol mrtaelrchant MCC 4 S iShop co-brand, ccaapr dRasd1v,1is0o0r + CardInsider
+ICICI Amazon Pay ICICGIVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator U gift card treatmenct aprednaddinvigs o- rc +h eCcakr TdI&nCsi dPeDrF
+SBI Cashback SBI GEN other offline retail5310,5399,5699,5732 etc. 1 S cap Rs2,000/moncthardadvisor + SBI KFS
+SBI Cashback SBI ONLINE general online reta5i9l64,5999,5691 (online) 5 S 5% online any mecrachrdaandt,v cisaopr R+ sS2B,0I 0K0F/mSonth
+SBI Cashback SBI GROC grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI Cashback SBI DEPT department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI Cashback SBI DINE dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI Cashback SBI MOVIE movies 7832 1 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI Cashback SBI FUEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI UTIL utilities 4900 0 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI TEL telecom/cable 48,144,899 0 X treated as utility - cvaerrdifaydvisor + SBI KFS
+SBI Cashback SBI INS insurance 6300 0 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI RENT rent 6513 0 X 0; Rs199 fee cardadvisor + SBI KFS
+
+--- Page 7 ---
+SBI Cashback SBI WALLET wallet load 65,406,541 0 X 0; 1% fee per loadc a>rRdsa1d,v0is0o0r + SBI KFS
+SBI Cashback SBI EDU education 8211,8220,8241,8244,8249,82990 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI GOVT government/tax 931,193,999,222 0 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI GAME online gaming 581,679,937,994 0 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI JEWEL jewellery/gold 5944 0 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI RAIL rail 4112 0 X excluded cardadvisor + SBI KFS
+SBI Cashback SBI AIR airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI Cashback SBI HOTEL hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI Cashback SBI GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI Cashback SBI GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 5 U online gift card noct ainrd eaxdcvluissoior n+ lSisBt I- KveFrSify before relying
+SBI SimplyCLICK GEN other offline retail5310,5399,5699,5732 etc. 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK ONLINE general online reta5i9l64,5999,5691 (online) 1.25 S 5X online; 10X (2.c5a%rd)a pdavritsnoerr +b rSaBnId KsFS
+SBI SimplyCLICK GROC grocery 5411 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK DEPT department stores 5311 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK DINE dining & food delivery 58,125,814 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK MOVIE movies 7832 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK FUEL fuel 5541,5542,5983,5172 0 X assumed - verify cardadvisor + SBI KFS
+SBI SimplyCLICK UTIL utilities 4900 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK TEL telecom/cable 48,144,899 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK INS insurance 6300 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK RENT rent 6513 0 X Rs199 fee cardadvisor + SBI KFS
+SBI SimplyCLICK WALLET wallet load 65,406,541 0 X 0; 1% fee per loadc a>rRdsa1d,v0is0o0r + SBI KFS
+SBI SimplyCLICK EDU education 8211,8220,8241,8244,8249,8209.295 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK GOVT government/tax 931,193,999,222 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK GAME online gaming 581,679,937,994 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK JEWEL jewellery/gold 5944 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK RAIL rail 4112 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK AIR airlines direct 3000-3350,4511 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK HOTEL hotels direct 3501-3999,7011 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI SimplyCLICK GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.25 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE GEN other offline retail5310,5399,5699,5732 etc. 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE ONLINE general online reta5i9l64,5999,5691 (online) 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE GROC grocery 5411 2.5 S 5X; Metro/Relianccea Mrdaardkveist/oWr a+lm SaBrIt KexFcSluded
+SBI ELITE DEPT department stores 5311 2.5 S 5X cardadvisor + SBI KFS
+SBI ELITE DINE dining & food delivery 58,125,814 2.5 S 5X cardadvisor + SBI KFS
+SBI ELITE MOVIE movies 7832 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+
+--- Page 8 ---
+SBI ELITE FUEL fuel 5541,5542,5983,5172 0 X assumed - verify cardadvisor + SBI KFS
+SBI ELITE UTIL utilities 4900 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE TEL telecom/cable 48,144,899 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE INS insurance 6300 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE RENT rent 6513 0 X Rs199 fee cardadvisor + SBI KFS
+SBI ELITE WALLET wallet load 65,406,541 0 X 0; 1% fee per loadc a>rRdsa1d,v0is0o0r + SBI KFS
+SBI ELITE EDU education 8211,8220,8241,8244,8249,82909.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE GOVT government/tax 931,193,999,222 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE GAME online gaming 581,679,937,994 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE JEWEL jewellery/gold 5944 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE RAIL rail 4112 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE AIR airlines direct 3000-3350,4511 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE HOTEL hotels direct 3501-3999,7011 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI ELITE GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME GEN other offline retail5310,5399,5699,5732 etc. 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME ONLINE general online reta5i9l64,5999,5691 (online) 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME GROC grocery 5411 2.5 S 10X; same grocercya erdxaclduvsiisoonrs + SBI KFS
+SBI PRIME DEPT department stores 5311 2.5 S 10X cardadvisor + SBI KFS
+SBI PRIME DINE dining & food delivery 58,125,814 2.5 S 10X cardadvisor + SBI KFS
+SBI PRIME MOVIE movies 7832 2.5 S 10X cardadvisor + SBI KFS
+SBI PRIME FUEL fuel 5541,5542,5983,5172 0 X assumed - verify cardadvisor + SBI KFS
+SBI PRIME UTIL utilities 4900 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME TEL telecom/cable 48,144,899 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME INS insurance 6300 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME RENT rent 6513 0 X Rs199 fee cardadvisor + SBI KFS
+SBI PRIME WALLET wallet load 65,406,541 0 X 0; 1% fee per loadc a>rRdsa1d,v0is0o0r + SBI KFS
+SBI PRIME EDU education 8211,8220,8241,8244,8249,82909.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME GOVT government/tax 931,193,999,222 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME GAME online gaming 581,679,937,994 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME JEWEL jewellery/gold 5944 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME RAIL rail 4112 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME AIR airlines direct 3000-3350,4511 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME HOTEL hotels direct 3501-3999,7011 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI PRIME GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.5 A base rate assumecda -r dnaodt vcisoonrf ir+m SeBdI fKorF tShis MCC
+SBI AURUM GEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+
+--- Page 9 ---
+SBI AURUM ONLINE general online reta5i9l64,5999,5691 (online) 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM GROC grocery 5411 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM DEPT department stores 5311 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM DINE dining & food delivery 58,125,814 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM MOVIE movies 7832 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM FUEL fuel 5541,5542,5983,5172 0 X excluded SBI Aurum portal T&C
+SBI AURUM UTIL utilities 4900 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM TEL telecom/cable 48,144,899 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM INS insurance 6300 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM RENT rent 6513 0 X excluded SBI Aurum portal T&C
+SBI AURUM WALLET wallet load 65,406,541 0 X excluded SBI Aurum portal T&C
+SBI AURUM EDU education 8211,8220,8241,8244,8249,82991 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM GOVT government/tax 931,193,999,222 0 X excluded SBI Aurum portal T&C
+SBI AURUM GAME online gaming 581,679,937,994 0 X excluded SBI Aurum portal T&C
+SBI AURUM JEWEL jewellery/gold 5944 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM RAIL rail 4112 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM AIR airlines direct 3000-3350,4511 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM HOTEL hotels direct 3501-3999,7011 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+SBI AURUM GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1 V Aurum portal: no aScBcIe Aleurrautmed p voorutaclh Te&r Cearn
+SBI AURUM GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumeSdB -I nAout rcuomn fpiromrteadl Tfo&rC this MCC
+Axis Magnus GEN other offline retail5310,5399,5699,5732 etc. 1.2 S 12 EDGE/Rs200 @AxRiss 0M.2IT0C; 3.5% above Rs1.5L monthly
+Axis Magnus ONLINE general online reta5i9l64,5999,5691 (online) 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus GROC grocery 5411 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus DEPT department stores 5311 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus DINE dining & food delivery 58,125,814 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus MOVIE movies 7832 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus FUEL fuel 5541,5542,5983,5172 0 X excluded Axis MITC
+Axis Magnus UTIL utilities 4900 0 X excluded Axis MITC
+Axis Magnus TEL telecom/cable 48,144,899 0 X utility MCC per AxAisx ifse eM lIiTstC
+Axis Magnus INS insurance 6300 0 X excluded Axis MITC
+Axis Magnus RENT rent 6513 0 X excluded Axis MITC
+Axis Magnus WALLET wallet load 65,406,541 0 X excluded Axis MITC
+Axis Magnus EDU education 8211,8220,8241,8244,8249,82919.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus GOVT government/tax 931,193,999,222 0 X excluded Axis MITC
+Axis Magnus GAME online gaming 581,679,937,994 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus JEWEL jewellery/gold 5944 0 X gold Axis MITC
+Axis Magnus RAIL rail 4112 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+
+--- Page 10 ---
+Axis Magnus AIR airlines direct 3000-3350,4511 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus HOTEL hotels direct 3501-3999,7011 1.2 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Magnus GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 0 X gift cards 0 from 2A8x-Aisu Mg-I2T0C26
+Axis Magnus GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0 X gift cards 0 from 2A8x-Aisu Mg-I2T0C26
+Axis Atlas GEN other offline retail5310,5399,5699,5732 etc. 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas ONLINE general online reta5i9l64,5999,5691 (online) 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas GROC grocery 5411 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas DEPT department stores 5311 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas DINE dining & food delivery 58,125,814 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas MOVIE movies 7832 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas FUEL fuel 5541,5542,5983,5172 0 X 1% fee >=Rs50k; craerwdaarddv aissosru +m Aexdi s0 M- IvTeCrify
+Axis Atlas UTIL utilities 4900 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas TEL telecom/cable 48,144,899 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas INS insurance 6300 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas RENT rent 6513 0 X 1% fee cardadvisor + Axis MITC
+Axis Atlas WALLET wallet load 65,406,541 0 X 0; 1% fee >=Rs10cka/crdyacdlev i(sboarn +k -Awxidise M) ITC
+Axis Atlas EDU education 8211,8220,8241,8244,8249,82992 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas GOVT government/tax 931,193,999,222 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas GAME online gaming 581,679,937,994 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas JEWEL jewellery/gold 5944 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas RAIL rail 4112 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas AIR airlines direct 3000-3350,4511 5 S 5 Miles/Rs100 up ctaor Rdasd2vLi/smoor n+t hAxis MITC
+Axis Atlas HOTEL hotels direct 3501-3999,7011 5 S 5 Miles/Rs100 cardadvisor + Axis MITC
+Axis Atlas GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Atlas GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 2 A base rate assumecda -r dnaodt vcisoonrf ir+m Aexdis f oMr ItThCis MCC
+Axis Select GEN other offline retail5310,5399,5699,5732 etc. 2 S 20/Rs200 on first ARxsi2s0 Mk/ImTConth retail
+Axis Select ONLINE general online reta5i9l64,5999,5691 (online) 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select GROC grocery 5411 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select DEPT department stores 5311 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select DINE dining & food delivery 58,125,814 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select MOVIE movies 7832 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select FUEL fuel 5541,5542,5983,5172 0 X excluded Axis MITC
+Axis Select UTIL utilities 4900 0 X excluded Axis MITC
+Axis Select TEL telecom/cable 48,144,899 0 X excluded Axis MITC
+Axis Select INS insurance 6300 0 X excluded Axis MITC
+Axis Select RENT rent 6513 0 X excluded Axis MITC
+Axis Select WALLET wallet load 65,406,541 0 X excluded Axis MITC
+
+--- Page 11 ---
+Axis Select EDU education 8211,8220,8241,8244,8249,82991 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select GOVT government/tax 931,193,999,222 0 X excluded Axis MITC
+Axis Select GAME online gaming 581,679,937,994 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select JEWEL jewellery/gold 5944 0 X gold Axis MITC
+Axis Select RAIL rail 4112 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select AIR airlines direct 3000-3350,4511 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select HOTEL hotels direct 3501-3999,7011 1 A base rate assumeAdx -i sn MotI TcoCnfirmed for this MCC
+Axis Select GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 0 X gift cards 0 from 2A8x-Aisu Mg-I2T0C26
+Axis Select GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0 X gift cards 0 from 2A8x-Aisu Mg-I2T0C26
+Axis Flipkart Axis GEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis ONLINE general online reta5i9l64,5999,5691 (online) 1 S 5% Flipkart/Myntrcaa/Crdleaadrvtrisipo;r 4% preferred merchants
+Axis Flipkart Axis GROC grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis DEPT department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis DINE dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis MOVIE movies 7832 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis FUEL fuel 5541,5542,5983,5172 0 X verify cardadvisor
+Axis Flipkart Axis UTIL utilities 4900 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis TEL telecom/cable 48,144,899 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis INS insurance 6300 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis RENT rent 6513 0 X 1% fee cardadvisor
+Axis Flipkart Axis WALLET wallet load 65,406,541 0 X bank-wide; verifycardadvisor
+Axis Flipkart Axis EDU education 8211,8220,8241,8244,8249,82991 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis GOVT government/tax 931,193,999,222 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis GAME online gaming 581,679,937,994 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis JEWEL jewellery/gold 5944 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis RAIL rail 4112 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis AIR airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis HOTEL hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Flipkart Axis GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis GEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis ONLINE general online reta5i9l64,5999,5691 (online) 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis GROC grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis DEPT department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis DINE dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis MOVIE movies 7832 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis FUEL fuel 5541,5542,5983,5172 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+
+--- Page 12 ---
+Axis Airtel Axis UTIL utilities 4900 1 S 10% via Airtel Thacnakrsd aadpvpisor
+Axis Airtel Axis TEL telecom/cable 48,144,899 1 S 25% on Airtel billsc vairad Aadirvteisl oTrhanks (cap 2x base earned)
+Axis Airtel Axis INS insurance 6300 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis RENT rent 6513 0 X 1% fee cardadvisor
+Axis Airtel Axis WALLET wallet load 65,406,541 0 X verify cardadvisor
+Axis Airtel Axis EDU education 8211,8220,8241,8244,8249,82991 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis GOVT government/tax 931,193,999,222 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis GAME online gaming 581,679,937,994 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis JEWEL jewellery/gold 5944 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis RAIL rail 4112 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis AIR airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis HOTEL hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Axis Airtel Axis GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak White Reserve GEN other offline retail5310,5399,5699,5732 etc. U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve ONLINE general online reta5i9l64,5999,5691 (online) U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve GROC grocery 5411 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve DEPT department stores 5311 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve DINE dining & food delivery 58,125,814 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve MOVIE movies 7832 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve FUEL fuel 5541,5542,5983,5172 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve UTIL utilities 4900 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve TEL telecom/cable 48,144,899 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve INS insurance 6300 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve RENT rent 6513 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve WALLET wallet load 65,406,541 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve EDU education 8211,8220,8241,8244,8249,8299 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve GOVT government/tax 931,193,999,222 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve GAME online gaming 581,679,937,994 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve JEWEL jewellery/gold 5944 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve RAIL rail 4112 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve AIR airlines direct 3000-3350,4511 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve HOTEL hotels direct 3501-3999,7011 U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve GVP gift voucher via bapnokr tpaol mrtaelrchant MCC U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak White Reserve GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator U base rate assumecda -r dnaodt vcisoonrf ir(minceodm foprl ethteis) MCC
+Kotak Solitaire GEN other offline retail5310,5399,5699,5732 etc. 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire ONLINE general online reta5i9l64,5999,5691 (online) 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+
+--- Page 13 ---
+Kotak Solitaire GROC grocery 5411 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire DEPT department stores 5311 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire DINE dining & food delivery 58,125,814 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire MOVIE movies 7832 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire FUEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor
+Kotak Solitaire UTIL utilities 4900 0 X excluded cardadvisor
+Kotak Solitaire TEL telecom/cable 48,144,899 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire INS insurance 6300 0 X excluded cardadvisor
+Kotak Solitaire RENT rent 6513 0 X excluded cardadvisor
+Kotak Solitaire WALLET wallet load 65,406,541 0 X excluded cardadvisor
+Kotak Solitaire EDU education 8211,8220,8241,8244,8249,82990 X excluded cardadvisor
+Kotak Solitaire GOVT government/tax 931,193,999,222 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire GAME online gaming 581,679,937,994 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire JEWEL jewellery/gold 5944 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire RAIL rail 4112 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire AIR airlines direct 3000-3350,4511 10 S via Kotak Unbox; ccaarpd a1d,0v0is,0o0r0 miles/cycle
+Kotak Solitaire HOTEL hotels direct 3501-3999,7011 10 S via Kotak Unbox cardadvisor
+Kotak Solitaire GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Solitaire GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 3 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature GEN other offline retail5310,5399,5699,5732 etc. 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature ONLINE general online reta5i9l64,5999,5691 (online) 1.67 S shopping 10/Rs15c0a;r dcaapd v6is,5o0r0 pts/cycle
+Kotak Zen Signature GROC grocery 5411 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature DEPT department stores 5311 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature DINE dining & food delivery 58,125,814 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature MOVIE movies 7832 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature FUEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor
+Kotak Zen Signature UTIL utilities 4900 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature TEL telecom/cable 48,144,899 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature INS insurance 6300 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature RENT rent 6513 0 X excluded cardadvisor
+Kotak Zen Signature WALLET wallet load 65,406,541 0 X excluded cardadvisor
+Kotak Zen Signature EDU education 8211,8220,8241,8244,8249,8209.893 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature GOVT government/tax 931,193,999,222 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature GAME online gaming 581,679,937,994 0 X excluded cardadvisor
+Kotak Zen Signature JEWEL jewellery/gold 5944 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature RAIL rail 4112 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature AIR airlines direct 3000-3350,4511 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+
+--- Page 14 ---
+Kotak Zen Signature HOTEL hotels direct 3501-3999,7011 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Zen Signature GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.83 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeGEN other offline retail5310,5399,5699,5732 etc. 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeONLINE general online reta5i9l64,5999,5691 (online) 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeGROC grocery 5411 5 S online grocery; shcaarerdda cdavpis oRrs750/cycle
+Kotak Cashback+ PrimeDEPT department stores 5311 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeDINE dining & food delivery 58,125,814 5 S food delivery; shacreadrd caadpvisor
+Kotak Cashback+ PrimeMOVIE movies 7832 5 S entertainment; shacarerdda cdavpisor
+Kotak Cashback+ PrimeFUEL fuel 5541,5542,5983,5172 3 S shared cap cardadvisor
+Kotak Cashback+ PrimeUTIL utilities 4900 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeTEL telecom/cable 48,144,899 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeINS insurance 6300 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeRENT rent 6513 0 X verify cardadvisor
+Kotak Cashback+ PrimeWALLET wallet load 65,406,541 0 X verify cardadvisor
+Kotak Cashback+ PrimeEDU education 8211,8220,8241,8244,8249,82909.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeGOVT government/tax 931,193,999,222 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeGAME online gaming 581,679,937,994 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeJEWEL jewellery/gold 5944 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeRAIL rail 4112 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeAIR airlines direct 3000-3350,4511 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeHOTEL hotels direct 3501-3999,7011 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeGVP gift voucher via bapnokr tpaol mrtaelrchant MCC 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak Cashback+ PrimeGVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.5 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferGenEtN other offline retail5310,5399,5699,5732 etc. 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferOenNtLINE general online reta5i9l64,5999,5691 (online) 0.4 S 2 pts/Rs100 @~Rcsa0r.d2a0d (veisstoimr ate)
+Kotak 811 #DreamDifferGenRtOC grocery 5411 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferDenEtPT department stores 5311 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferDenINtE dining & food delivery 58,125,814 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferMenOtVIE movies 7832 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferFenUtEL fuel 5541,5542,5983,5172 0 X excluded cardadvisor
+Kotak 811 #DreamDifferUenTtIL utilities 4900 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferTenEtL telecom/cable 48,144,899 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferIeNnSt insurance 6300 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferRenEtNT rent 6513 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferWenAtLLET wallet load 65,406,541 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferEenDtU education 8211,8220,8241,8244,8249,82909.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+
+--- Page 15 ---
+Kotak 811 #DreamDifferGenOtVT government/tax 931,193,999,222 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferGenAtME online gaming 581,679,937,994 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferJeEntWEL jewellery/gold 5944 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferRenAtIL rail 4112 0 X excluded cardadvisor
+Kotak 811 #DreamDifferAenIRt airlines direct 3000-3350,4511 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferHenOtTEL hotels direct 3501-3999,7011 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferGenVtP gift voucher via bapnokr tpaol mrtaelrchant MCC 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Kotak 811 #DreamDifferGenVtD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 0.2 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Gold Charge GEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge ONLINE general online reta5i9l64,5999,5691 (online) 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge GROC grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge DEPT department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge DINE dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge MOVIE movies 7832 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge FUEL fuel 5541,5542,5983,5172 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge UTIL utilities 4900 U conflicting info cardadvisor + LFAL
+Amex Gold Charge TEL telecom/cable 48,144,899 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge INS insurance 6300 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge RENT rent 6513 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge WALLET wallet load 65,406,541 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge EDU education 8211,8220,8241,8244,8249,82991 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge GOVT government/tax 931,193,999,222 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge GAME online gaming 581,679,937,994 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge JEWEL jewellery/gold 5944 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge RAIL rail 4112 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge AIR airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge HOTEL hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Gold Charge GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 5 S ShopWise e-voucchaerrdsa 5dXvisor + LFAL
+Amex Gold Charge GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumecda -r dnaodt vcisoonrf ir+m LeFdA fLor this MCC
+Amex Platinum Travel GEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel ONLINE general online reta5i9l64,5999,5691 (online) 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel GROC grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel DEPT department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel DINE dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel MOVIE movies 7832 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel FUEL fuel 5541,5542,5983,5172 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel UTIL utilities 4900 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+
+--- Page 16 ---
+Amex Platinum Travel TEL telecom/cable 48,144,899 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel INS insurance 6300 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel RENT rent 6513 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel WALLET wallet load 65,406,541 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel EDU education 8211,8220,8241,8244,8249,82991 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel GOVT government/tax 931,193,999,222 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel GAME online gaming 581,679,937,994 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel JEWEL jewellery/gold 5944 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel RAIL rail 4112 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel AIR airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel HOTEL hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum Travel GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewGarEdNs (MRCC) other offline retail5310,5399,5699,5732 etc. 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewOarNdsL I(NMERCC) general online reta5i9l64,5999,5691 (online) 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewGarRdsO (CMRCC) grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewDarEdPs T(MRCC) department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewDarIdNsE (MRCC) dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewMarOdsV (IEMRCC) movies 7832 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewFarUdEs L(MRCC) fuel 5541,5542,5983,5172 0 X excluded cardadvisor
+Amex Membership RewUarTdIsL (MRCC) utilities 4900 0 X excluded cardadvisor
+Amex Membership RewTarEdLs (MRCC) telecom/cable 48,144,899 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewIaNrdSs (MRCC) insurance 6300 0 X excluded cardadvisor
+Amex Membership RewRarEdNs T(MRCC) rent 6513 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewWardAsL L(METRCC) wallet load 65,406,541 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewEarDdUs (MRCC) education 8211,8220,8241,8244,8249,82991 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewGarOdsV T(MRCC) government/tax 931,193,999,222 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewGarAdMs (EMRCC) online gaming 581,679,937,994 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewJaErdWs E(MLRCC) jewellery/gold 5944 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewRarAdIsL (MRCC) rail 4112 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewAarIdRs (MRCC) airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewHarOdsT E(MLRCC) hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewGarVdPs (MRCC) gift voucher via bapnokr tpaol mrtaelrchant MCC 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Membership RewGarVdDs (MRCC) gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn GEN other offline retail5310,5399,5699,5732 etc. 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn ONLINE general online reta5i9l64,5999,5691 (online) 1 S 10X partners (Flipckaarrdt,a Mdvyinsotrra, Uber...) cap 500/month; 5X Amazon cap 250/month
+Amex SmartEarn GROC grocery 5411 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+
+--- Page 17 ---
+Amex SmartEarn DEPT department stores 5311 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn DINE dining & food delivery 58,125,814 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn MOVIE movies 7832 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn FUEL fuel 5541,5542,5983,5172 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn UTIL utilities 4900 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn TEL telecom/cable 48,144,899 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn INS insurance 6300 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn RENT rent 6513 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn WALLET wallet load 65,406,541 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn EDU education 8211,8220,8241,8244,8249,82991 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn GOVT government/tax 931,193,999,222 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn GAME online gaming 581,679,937,994 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn JEWEL jewellery/gold 5944 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn RAIL rail 4112 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn AIR airlines direct 3000-3350,4511 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn HOTEL hotels direct 3501-3999,7011 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn GVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex SmartEarn GVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeGEN other offline retail5310,5399,5699,5732 etc. 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeONLINE general online reta5i9l64,5999,5691 (online) 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeGROC grocery 5411 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeDEPT department stores 5311 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeDINE dining & food delivery 58,125,814 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeMOVIE movies 7832 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeFUEL fuel 5541,5542,5983,5172 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeUTIL utilities 4900 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeTEL telecom/cable 48,144,899 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeINS insurance 6300 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeRENT rent 6513 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeWALLET wallet load 65,406,541 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeEDU education 8211,8220,8241,8244,8249,8219.295 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeGOVT government/tax 931,193,999,222 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeGAME online gaming 581,679,937,994 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeJEWEL jewellery/gold 5944 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeRAIL rail 4112 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeAIR airlines direct 3000-3350,4511 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeHOTEL hotels direct 3501-3999,7011 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+
+--- Page 18 ---
+Amex Platinum ChargeGVP gift voucher via bapnokr tpaol mrtaelrchant MCC 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC
+Amex Platinum ChargeGVD gift card bought fr5o9m4 ,m75e9rc,9h9a5n,t3/a11ggregator 1.25 A base rate assumecda -r dnaodt vcisoonrfirmed for this MCC

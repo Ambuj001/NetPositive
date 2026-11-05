@@ -1,0 +1,210 @@
+--- Page 1 ---
+Voucher Route Card Research (India) — Buyer Side
+Prepared 5 Nov 2026 for the Voucher Rail buyer engine. Scope: cards and bank portals that
+give accelerated rewards when a buyer purchases brand gift vouchers. Rule: the engine
+recommends only what the issuer's official terms allow. Every number must be re-checked
+against the official source before it is shown to a user.
+Source grades
+- OFFICIAL — read on the bank's own page or PDF.
+- SECONDARY — reported by a review site that cites the bank; must be confirmed on the
+official page before going live.
+- PENDING — not yet researched.
+1. Channel summary
+Channel Bank What it does Status Source
+for vouchers
+SmartBuy HDFC Accelerated OFFICIAL SmartBuy offer
+(GyFTR / points on brand (Infinia), 15282, LFAL
+Woohoo vouchers; SECONDARY
+vouchers) voucher bonus (other cards)
+capped at 3,000
+RP/month for
+premium cards
+since 1 Jul 2026,
+inside the card's
+overall
+SmartBuy cap.
+InstaDeals
+excluded from
+accelerated
+points.
+GyFTR HDFC partner Instant discount OFFICIAL GyFTR Lifestyle
+InstaDeals (e.g. 7.5% (calculator, 4
+Lifestyle) + 1X Nov 2026)
+points. Cannot
+
+--- Page 2 ---
+Channel Bank What it does Status Source
+for vouchers
+be combined
+with accelerated
+points.
+iShop ICICI 6X on vouchers SECONDARY CardExpert,
+and flights, 12X (data from iShop
+on hotels; Feb–Mar 2025
+per-card monthly — stale)
+bonus caps;
+separate
+₹12,000/month
+cap on Amazon
+Pay, Amazon
+Shopping and
+Flipkart
+vouchers.
+Grab Deals Axis No voucher SECONDARY PickMyCard,
+multiplier found. Magnus
+Magnus gift-card Burgundy T&C
+purchases earn
+nothing from 28
+Aug 2026.
+Reward Amex India Ended 30 Sep SECONDARY LFAL, Amex
+Multiplier 2026. ShopWise
+e-vouchers still
+advertised at 5X
+on 200+ brands.
+Aurum reward SBI No accelerated OFFICIAL SBI Aurum T&C
+portal earning on
+buying
+vouchers; 4 RP
+per ₹100
+standard.
+
+--- Page 3 ---
+2. Card table (20 slots)
+Reward value assumes the best official redemption (flights/hotels at ₹1 per point unless stated).
+Multipliers include base points.
+# Card Best Voucher rate Monthly Status
+voucher voucher cap
+route
+1 HDFC Infinia SmartBuy ~16.5% (5 3,000 bonus OFFICIAL
+brand RP/₹150 × 5) RP
+vouchers 5X
+2 HDFC Infinia SmartBuy 5X ~16.5% 3,000 bonus OFFICIAL
+Metal RP (same terms)
+3 HDFC Diners SmartBuy multiplier not 3,000 bonus SECONDAR
+Club Black confirmed RP Y
+Metal
+4 HDFC Diners SmartBuy multiplier not 3,000 bonus SECONDAR
+Club Black confirmed RP Y
+5 HDFC SmartBuy multiplier not 3,000 bonus SECONDAR
+BizBlack confirmed RP Y
+Metal
+6 HDFC SmartBuy multiplier not 3,000 bonus SECONDAR
+Regalia Gold confirmed RP Y
+7 ICICI iShop 6X 18% 18,000 bonus SECONDAR
+Emeralde pts; Y (stale)
+Private Metal Amazon/Flipk
+art vouchers
+₹12,000
+8 ICICI Times iShop 6X 12% 15,000 bonus SECONDAR
+Black pts Y (stale)
+9 ICICI iShop 6X 6% 12,000 bonus SECONDAR
+Emeralde pts Y (stale)
+
+--- Page 4 ---
+# Card Best Voucher rate Monthly Status
+voucher voucher cap
+route
+10 ICICI iShop 6X 3% 9,000 bonus SECONDAR
+Sapphiro pts Y (stale)
+11 ICICI Rubyx iShop 6X 3% 9,000 bonus SECONDAR
+pts Y (stale)
+12 ICICI Coral iShop 6X 3% 9,000 bonus SECONDAR
+pts Y (stale)
+13 Amazon Pay iShop 4% ₹1,100 SECONDAR
+ICICI co-brand cashback Y (stale)
+(cashback)
+14 Axis Magnus none 0% on gift — SECONDAR
+cards from 28 Y
+Aug 2026
+15 Axis Magnus none 0% on gift — SECONDAR
+for Burgundy cards from 28 Y (official
+Aug 2026 PDF cited)
+16 Amex ShopWise 5X depends on not confirmed SECONDAR
+Platinum MR Y
+Charge redemption
+value
+17 SBI Aurum none 4 RP/₹100 — OFFICIAL
+base only, if
+vouchers
+earn at all
+18 SBI — — — PENDING
+Cashback
+19 Axis Ace / — — — PENDING
+Flipkart Axis
+(cashback)
+20 HSBC — — — PENDING
+Premier /
+IDFC First
+
+--- Page 5 ---
+# Card Best Voucher rate Monthly Status
+voucher voucher cap
+route
+Wealth /
+Kotak (pick
+one)
+Note: Amazon Pay ICICI's 5% (Prime) / 3% rate is for Amazon purchases. Its terms PDF has to
+be checked for whether gift cards and Amazon Pay balance loads earn. Terms PDF
+3. How the engine chooses (scenarios)
+The engine works out, for a voucher request of brand B and amount A:
+None
+value = sum over transactions of floor(txn / spend_unit) × base_points ×
+multiplier × point_value
+− fees, limited by remaining monthly caps
+then ranks every (card × channel) the buyer holds, and shows why each loser lost.
+Scenario Buyer holds Request Engine picks Why the others
+lose
+A. Bonus Infinia Lifestyle SmartBuy 5X, 2 InstaDeals
+available ₹10,000 × ₹5,000 → 10.5%; direct
+1,650 RP 3.3%
+(₹1,650 travel,
+16.5%)
+B. Bonus used Infinia, 3,000 Lifestyle InstaDeals 7.5% 5X no longer
+up bonus RP ₹10,000 off + 1X pays extra after
+already earned (~10.5%) the cap
+this month
+C. Two premium Infinia + Amazon Pay Compare Whichever has
+cards Emeralde ₹10,000 SmartBuy 5X less cap left or a
+Private Metal with iShop 6X lower point value
+
+--- Page 6 ---
+Scenario Buyer holds Request Engine picks Why the others
+lose
+(18%) inside the
+₹12,000 iShop
+Amazon/Flipkart
+cap — only after
+both are
+re-verified
+D. Excluded Axis Magnus any voucher Tell the buyer Magnus gift-card
+card only this card earns category earns 0
+nothing on gift
+cards; suggest
+the best card
+they hold that
+does
+E. Infinia, wants Lifestyle Show value at Travel value
+Statement-credit cash not travel ₹10,000 ₹0.30/RP = doesn't apply to
+user ₹495 (4.95%) their redemption
+choice
+Rules the engine always applies:
+- Per-transaction rounding (points per ₹150 or ₹200 are rounded down on each voucher).
+- Remaining monthly cap, reserved while an order is open.
+- Exclusion lists (InstaDeals vs accelerated; Magnus gift-card category; wallet loads).
+- Points posting delay (SmartBuy: up to 90 working days) shown as "expected", not
+"earned".
+- Source link and "checked on" date shown with every number.
+4. What this file deliberately leaves out
+Ways of earning on vouchers where the issuer's terms say you shouldn't (merchant-code tricks,
+splitting to dodge caps, routing through wallets) are not included. The engine only recommends
+routes the bank officially offers, because users who rely on workarounds risk losing points or
+having their card closed.
+
+--- Page 7 ---
+5. Next research steps
+1. Confirm rows 3–6 multipliers on the official SmartBuy page.
+2. Re-check ICICI iShop (rows 7–13) on the official iShop terms; the data above is from
+early 2025.
+3. Read the Axis Magnus (non-Burgundy) terms for the gift-card clause.
+4. Research rows 18–20 from official bank terms.
+5. Add the Europe card list once received.

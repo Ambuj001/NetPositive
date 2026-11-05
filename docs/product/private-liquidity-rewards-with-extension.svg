@@ -1,0 +1,384 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4800" height="5000" viewBox="0 0 4800 5000">
+<title>Private Liquidity and Rewards Router: detailed proposed architecture</title>
+<desc>Execution, liquidity, ZK eligibility, RPC privacy, 0G AI, funded rewards, and production boundaries. Public crypto settlement is not represented as confidential.</desc>
+<rect width="4800" height="5000" fill="#F2F3EF"/>
+<text x="100" y="148.90" font-family="Arial, Helvetica, sans-serif" font-size="90" font-weight="700" fill="#162D40">Private Liquidity &amp; Rewards Router</text>
+<text x="103" y="228.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="400" fill="#546676">Browser extension, selective disclosure, liquidity routing and funded incentives</text>
+<text x="3735" y="113.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#546676">SYSTEM ARCHITECTURE</text>
+<rect x="3735" y="145" width="965" height="64" rx="12" fill="#FFF5E9"/>
+<text x="3760" y="182.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#B86B23">PROPOSED DESIGN  /  NOT DEPLOYED</text>
+<rect x="100" y="300" width="1500" height="90" rx="14" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="125" y="343.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">UNISWAP</text>
+<text x="125" y="376.44" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#546676">Crypto liquidity &amp; execution</text>
+<rect x="1650" y="300" width="1500" height="90" rx="14" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="1675" y="343.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">0G</text>
+<text x="1675" y="376.44" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#546676">AI analysis &amp; plan explanation</text>
+<rect x="3200" y="300" width="1500" height="90" rx="14" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="3225" y="343.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#7452A5">ETHEREUM FOUNDATION</text>
+<text x="3225" y="376.44" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#546676">Private RPC reads via Anon-RPC</text>
+<rect x="100" y="455" width="3360" height="1530" rx="24" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="140" y="513.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#546676">01</text>
+<text x="205" y="517.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" fill="#162D40">EXECUTION &amp; LIQUIDITY</text>
+<text x="140" y="572.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#546676">Fast matching offchain • signed limits enforced onchain • fiat settlement remains asynchronous</text>
+<rect x="3500" y="455" width="1200" height="1530" rx="24" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="3540" y="513.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#546676">02</text>
+<text x="3605" y="517.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" fill="#162D40">PRIVACY BOUNDARIES</text>
+<text x="3540" y="572.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#546676">Protection depends on what each participant can observe.</text>
+<rect x="140" y="660" width="540" height="180" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="660" width="7" height="180" rx="3" fill="#2364AA"/>
+<text x="165" y="708.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">OFFICIAL TERMS</text>
+<text x="165" y="757.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Latest issuer / merchant sources</text>
+<text x="165" y="794.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Version, effective date &amp; expiry</text>
+<rect x="810" y="660" width="540" height="180" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="810" y="660" width="7" height="180" rx="3" fill="#2364AA"/>
+<text x="835" y="708.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">0G AI</text>
+<text x="835" y="757.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Interpret objective &amp; public terms</text>
+<text x="835" y="794.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Propose; deterministic checks rule</text>
+<rect x="1490" y="660" width="540" height="180" rx="17" fill="#F5F0FB" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="1490" y="660" width="7" height="180" rx="3" fill="#7452A5"/>
+<text x="1515" y="708.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#7452A5">LOCAL ZK PROVER</text>
+<text x="1515" y="757.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Hidden credential witnesses</text>
+<text x="1515" y="794.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Proof bound to policy &amp; intent</text>
+<rect x="2170" y="660" width="540" height="180" rx="17" fill="#F5F0FB" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2170" y="660" width="7" height="180" rx="3" fill="#7452A5"/>
+<text x="2195" y="708.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#7452A5">ELIGIBILITY GATE</text>
+<text x="2195" y="757.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Accepted roots, epoch &amp; policy</text>
+<text x="2195" y="794.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Verify proof; reject replay</text>
+<rect x="2850" y="660" width="570" height="180" rx="17" fill="#F5F0FB" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2850" y="660" width="7" height="180" rx="3" fill="#7452A5"/>
+<text x="2875" y="708.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#7452A5">IDENTITY PROVIDER</text>
+<text x="2875" y="757.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">KYC retained by provider</text>
+<text x="2875" y="794.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Credential issuer is trusted</text>
+<polyline points="680,750 810,750" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="810.00,750.00 795.00,742.00 795.00,758.00" fill="#2364AA"/>
+<rect x="688" y="713" width="92.0" height="34" rx="4" fill="#FFFFFF"/>
+<text x="696" y="734.01" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#546676">sources</text>
+<polyline points="2030,750 2170,750" fill="none" stroke="#7452A5" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2170.00,750.00 2155.00,742.00 2155.00,758.00" fill="#7452A5"/>
+<rect x="2035" y="713" width="65.0" height="34" rx="4" fill="#FFFFFF"/>
+<text x="2043" y="734.01" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#546676">proof</text>
+<polyline points="2850,750 2710,750" fill="none" stroke="#7452A5" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2710.00,750.00 2725.00,758.00 2725.00,742.00" fill="#7452A5"/>
+<rect x="2717" y="713" width="64.0" height="34" rx="4" fill="#FFFFFF"/>
+<text x="2725" y="734.01" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="400" fill="#546676">roots</text>
+<rect x="140" y="940" width="540" height="280" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="940" width="7" height="280" rx="3" fill="#2364AA"/>
+<text x="165" y="988.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">A + B · USERS</text>
+<text x="165" y="1037.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">A buys stablecoins with fiat</text>
+<text x="165" y="1074.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">B sells stablecoins for fiat</text>
+<text x="165" y="1111.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Choose amount &amp; outcome</text>
+<text x="165" y="1148.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">No shared card credentials</text>
+<rect x="810" y="940" width="540" height="280" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="810" y="940" width="7" height="280" rx="3" fill="#2364AA"/>
+<text x="835" y="988.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">EXTENSION + WALLET</text>
+<text x="835" y="1037.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Keys &amp; encrypted profile local</text>
+<text x="835" y="1074.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Review executable quote</text>
+<text x="835" y="1111.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Sign amount, min out &amp; fee</text>
+<text x="835" y="1148.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Nonce, recipient &amp; deadline</text>
+<rect x="1490" y="940" width="540" height="280" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="1490" y="940" width="7" height="280" rx="3" fill="#2364AA"/>
+<text x="1515" y="988.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">MATCH &amp; ROUTE</text>
+<text x="1515" y="1037.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Validate numeric constraints</text>
+<text x="1515" y="1074.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Compare compatible demand</text>
+<text x="1515" y="1111.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Reserve capacity; select route</text>
+<text x="1515" y="1148.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">AI cannot authorize funds</text>
+<rect x="2170" y="940" width="540" height="280" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2170" y="940" width="7" height="280" rx="3" fill="#2364AA"/>
+<text x="2195" y="988.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">ONCHAIN SETTLEMENT</text>
+<text x="2195" y="1037.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Check authorization &amp; nonce</text>
+<text x="2195" y="1074.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Enforce min output &amp; fee cap</text>
+<text x="2195" y="1111.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Execute or revert crypto leg</text>
+<text x="2195" y="1148.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Emit execution events [E1]</text>
+<rect x="2850" y="940" width="570" height="280" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2850" y="940" width="7" height="280" rx="3" fill="#2364AA"/>
+<text x="2875" y="988.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">RECEIVE &amp; TRACK</text>
+<text x="2875" y="1037.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Crypto to signed recipient</text>
+<text x="2875" y="1074.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Track confirmations separately</text>
+<text x="2875" y="1111.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Fiat payout tracked by provider</text>
+<text x="2875" y="1148.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Rewards remain pending</text>
+<polyline points="680,1080 810,1080" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="810.00,1080.00 795.00,1072.00 795.00,1088.00" fill="#2364AA"/>
+<rect x="689" y="1040" width="94.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="697" y="1062.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">request</text>
+<polyline points="1350,1080 1490,1080" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1490.00,1080.00 1475.00,1072.00 1475.00,1088.00" fill="#2364AA"/>
+<rect x="1359" y="1040" width="72.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="1367" y="1062.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">intent</text>
+<polyline points="2030,1080 2170,1080" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2170.00,1080.00 2155.00,1072.00 2155.00,1088.00" fill="#2364AA"/>
+<rect x="2039" y="1040" width="69.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="2047" y="1062.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">route</text>
+<polyline points="2710,1080 2850,1080" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2850.00,1080.00 2835.00,1072.00 2835.00,1088.00" fill="#2364AA"/>
+<rect x="2719" y="1040" width="80.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="2727" y="1062.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">crypto</text>
+<polyline points="1080,840 1080,940" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1080.00,940.00 1088.00,925.00 1072.00,925.00" fill="#2364AA"/>
+<rect x="1087" y="857" width="126.0" height="35" rx="4" fill="#FFFFFF"/>
+<text x="1095" y="878.82" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#546676">review plan</text>
+<polyline points="1300,940 1300,888 1760,888 1760,840" fill="none" stroke="#7452A5" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1760.00,840.00 1752.00,855.00 1768.00,855.00" fill="#7452A5"/>
+<rect x="1362" y="855" width="140.0" height="35" rx="4" fill="#FFFFFF"/>
+<text x="1370" y="876.82" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#546676">local witness</text>
+<polyline points="2440,840 2440,940" fill="none" stroke="#7452A5" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2440.00,940.00 2448.00,925.00 2432.00,925.00" fill="#7452A5"/>
+<rect x="2447" y="861" width="99.0" height="35" rx="4" fill="#FFFFFF"/>
+<text x="2455" y="882.82" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="400" fill="#546676">eligibility</text>
+<rect x="140" y="1390" width="940" height="210" rx="17" fill="#FFF5E9" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="1390" width="7" height="210" rx="3" fill="#B86B23"/>
+<text x="165" y="1438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#B86B23">FIAT PROVIDER &amp; BANK RAILS</text>
+<text x="165" y="1487.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Onboarding, fiat collection &amp; bank payout</text>
+<text x="165" y="1524.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Authenticated events + API confirmation [E2]</text>
+<text x="165" y="1561.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Provider handles reversals, disputes &amp; refunds</text>
+<rect x="1240" y="1390" width="790" height="210" rx="17" fill="#EEF8F6" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="1240" y="1390" width="7" height="210" rx="3" fill="#087E80"/>
+<text x="1265" y="1438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">MARKET-MAKER RFQ</text>
+<text x="1265" y="1487.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Firm quotes &amp; inventory-backed execution</text>
+<text x="1265" y="1524.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Private order distribution</text>
+<text x="1265" y="1561.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Matching operator sees order details in v1</text>
+<rect x="2170" y="1390" width="540" height="210" rx="17" fill="#EEF8F6" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2170" y="1390" width="7" height="210" rx="3" fill="#087E80"/>
+<text x="2195" y="1438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">UNISWAP POOLS</text>
+<text x="2195" y="1487.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Crypto conversions only</text>
+<text x="2195" y="1524.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Enforce output and fee limits</text>
+<text x="2195" y="1561.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Token movements are public</text>
+<rect x="2850" y="1390" width="570" height="210" rx="17" fill="#EEF8F6" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2850" y="1390" width="7" height="210" rx="3" fill="#087E80"/>
+<text x="2875" y="1438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">CAPITAL &amp; LIMITS</text>
+<text x="2875" y="1487.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Separate fiat / crypto balances</text>
+<text x="2875" y="1524.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Transactional reservations</text>
+<text x="2875" y="1561.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Provider, asset &amp; depeg limits</text>
+<polyline points="1080,1220 1080,1300 610,1300 610,1390" fill="none" stroke="#B86B23" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="610.00,1390.00 618.00,1375.00 602.00,1375.00" fill="#B86B23"/>
+<rect x="627" y="1263" width="286.0" height="37" rx="4" fill="#FFFFFF"/>
+<text x="635" y="1286.44" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#B86B23">provider quote + payment</text>
+<polyline points="1760,1220 1760,1390" fill="none" stroke="#087E80" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1760.00,1390.00 1768.00,1375.00 1752.00,1375.00" fill="#087E80"/>
+<polygon points="1760.00,1220.00 1752.00,1235.00 1768.00,1235.00" fill="#087E80"/>
+<rect x="1770" y="1291" width="67.0" height="37" rx="4" fill="#FFFFFF"/>
+<text x="1778" y="1314.44" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#087E80">RFQ</text>
+<polyline points="2440,1220 2440,1390" fill="none" stroke="#087E80" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2440.00,1390.00 2448.00,1375.00 2432.00,1375.00" fill="#087E80"/>
+<polygon points="2440.00,1220.00 2432.00,1235.00 2448.00,1235.00" fill="#087E80"/>
+<rect x="2450" y="1291" width="71.0" height="37" rx="4" fill="#FFFFFF"/>
+<text x="2458" y="1314.44" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#087E80">swap</text>
+<polyline points="2850,1500 2780,1500 2780,1680 1760,1680 1760,1600" fill="none" stroke="#087E80" stroke-width="5" stroke-linejoin="round" stroke-dasharray="12 10"/>
+<polygon points="1760.00,1600.00 1752.00,1615.00 1768.00,1615.00" fill="#087E80"/>
+<rect x="2192" y="1643" width="230.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="2200" y="1665.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#087E80">inventory constraints</text>
+<rect x="140" y="1755" width="3280" height="150" rx="14" fill="#F5F7F8"/>
+<text x="165" y="1796.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" fill="#546676">ORDER LIFECYCLE</text>
+<text x="165" y="1842.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#162D40">Created  →  Quoted  →  Signed  →  Reserved  →  Executed  →  Confirmed  →  Complete</text>
+<text x="165" y="1885.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#546676">Chain preconfirmation, bank payout and reward release are separate events.</text>
+<polyline points="150,1941 215,1941" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="215.00,1941.00 200.00,1933.00 200.00,1949.00" fill="#2364AA"/>
+<text x="235" y="1945.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#546676">Intent / execution</text>
+<polyline points="835,1941 900,1941" fill="none" stroke="#7452A5" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="900.00,1941.00 885.00,1933.00 885.00,1949.00" fill="#7452A5"/>
+<text x="920" y="1945.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#546676">Credential / proof</text>
+<polyline points="1600,1941 1665,1941" fill="none" stroke="#087E80" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1665.00,1941.00 1650.00,1933.00 1650.00,1949.00" fill="#087E80"/>
+<text x="1685" y="1945.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#546676">Liquidity / inventory</text>
+<polyline points="2450,1941 2515,1941" fill="none" stroke="#B86B23" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2515.00,1941.00 2500.00,1933.00 2500.00,1949.00" fill="#B86B23"/>
+<text x="2535" y="1945.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#546676">Fiat / external events</text>
+<rect x="3540" y="650" width="1120" height="170" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="3540" y="650" width="7" height="170" rx="3" fill="#2364AA"/>
+<text x="3565" y="698.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">USER DEVICE</text>
+<text x="3565" y="748.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Keys, encrypted profile and credential witnesses stay local.</text>
+<rect x="3540" y="850" width="1120" height="170" rx="17" fill="#F5F0FB" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="3540" y="850" width="7" height="170" rx="3" fill="#7452A5"/>
+<text x="3565" y="898.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#7452A5">RPC METADATA</text>
+<text x="3565" y="948.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Anon-RPC + real anonymizing transport. The RPC endpoint still sees the query.</text>
+<rect x="3540" y="1050" width="1120" height="170" rx="17" fill="#F5F0FB" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="3540" y="1050" width="7" height="170" rx="3" fill="#7452A5"/>
+<text x="3565" y="1098.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#7452A5">IDENTITY &amp; ELIGIBILITY</text>
+<text x="3565" y="1148.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Provider retains KYC. ZK reveals the accepted predicate and public inputs.</text>
+<rect x="3540" y="1250" width="1120" height="170" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="3540" y="1250" width="7" height="170" rx="3" fill="#2364AA"/>
+<text x="3565" y="1298.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">AI REQUESTS</text>
+<text x="3565" y="1348.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Minimize input data. Verify TeeML / TeeTLS mode; external APIs may see prompts.</text>
+<rect x="3540" y="1450" width="1120" height="170" rx="17" fill="#FFF5E9" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="3540" y="1450" width="7" height="170" rx="3" fill="#B86B23"/>
+<text x="3565" y="1498.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#B86B23">MATCHER &amp; PUBLIC CHAIN</text>
+<text x="3565" y="1548.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Operator sees orders in v1. Public swaps expose token amounts and addresses.</text>
+<rect x="3540" y="1690" width="1120" height="230" rx="15" fill="#FFF5E9" stroke="#B86B23" stroke-width="2"/>
+<text x="3570" y="1742.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#B86B23">ZK ELIGIBILITY ≠ CONFIDENTIAL SWAPS</text>
+<text x="3570" y="1798.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Stronger privacy needs a confidential matcher and shielded settlement. Timing,</text>
+<text x="3570" y="1838.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">public deposits and withdrawals can still leak relationships.</text>
+<rect x="100" y="2040" width="3360" height="700" rx="24" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="140" y="2098.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#546676">03</text>
+<text x="205" y="2102.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" fill="#162D40">ACCOUNTING &amp; FUNDED REWARDS</text>
+<rect x="140" y="2175" width="1000" height="140" rx="17" fill="#FFF5E9" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="2175" width="7" height="140" rx="3" fill="#B86B23"/>
+<text x="165" y="2221.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#B86B23">CRYPTO EXECUTION EVENTS [E1]</text>
+<text x="165" y="2272.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#162D40">Reconciled fills, fees &amp; chain confirmations</text>
+<rect x="1260" y="2175" width="1000" height="140" rx="17" fill="#FFF5E9" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="1260" y="2175" width="7" height="140" rx="3" fill="#B86B23"/>
+<text x="1285" y="2221.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#B86B23">PROVIDER PAYMENT EVENTS [E2]</text>
+<text x="1285" y="2272.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#162D40">Confirmed collections, payouts &amp; reversals</text>
+<rect x="2380" y="2175" width="1040" height="140" rx="17" fill="#FFF5E9" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2380" y="2175" width="7" height="140" rx="3" fill="#B86B23"/>
+<text x="2405" y="2221.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#B86B23">MERCHANT PURCHASE EVENTS</text>
+<text x="2405" y="2272.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#162D40">Approved commissions after purchase conditions</text>
+<polyline points="640,2315 640,2390" fill="none" stroke="#B86B23" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="640.00,2390.00 648.00,2375.00 632.00,2375.00" fill="#B86B23"/>
+<polyline points="1760,2315 1760,2355 640,2355" fill="none" stroke="#B86B23" stroke-width="5" stroke-linejoin="round"/>
+<polyline points="2900,2315 2900,2355 1760,2355" fill="none" stroke="#B86B23" stroke-width="5" stroke-linejoin="round"/>
+<rect x="140" y="2390" width="1000" height="220" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="2390" width="7" height="220" rx="3" fill="#2364AA"/>
+<text x="165" y="2438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">DOUBLE-ENTRY LEDGER</text>
+<text x="165" y="2487.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Assets, obligations, fees, reserves &amp; rewards</text>
+<text x="165" y="2524.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Idempotent events; reconcile to external truth</text>
+<text x="165" y="2561.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Principal and reward funding stay separate</text>
+<rect x="1360" y="2390" width="1000" height="220" rx="17" fill="#EEF8F6" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="1360" y="2390" width="7" height="220" rx="3" fill="#087E80"/>
+<text x="1385" y="2438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">FUNDED REWARDS TREASURY</text>
+<text x="1385" y="2487.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Collected fees + approved commission funding</text>
+<text x="1385" y="2524.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Reserve budget before promising rewards</text>
+<text x="1385" y="2561.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Claimable liabilities ≤ allocated backing</text>
+<rect x="2580" y="2390" width="840" height="220" rx="17" fill="#EEF8F6" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2580" y="2390" width="7" height="220" rx="3" fill="#087E80"/>
+<text x="2605" y="2438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">USER REWARD CLAIMS</text>
+<text x="2605" y="2487.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Unique, replay-safe entitlement</text>
+<text x="2605" y="2524.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Release after required conditions</text>
+<text x="2605" y="2561.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Each party receives its own benefit</text>
+<polyline points="1140,2500 1360,2500" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1360.00,2500.00 1345.00,2492.00 1345.00,2508.00" fill="#2364AA"/>
+<rect x="1149" y="2429" width="103.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="1157" y="2451.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">settled +</text>
+<rect x="1162" y="2459" width="88.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="1170" y="2481.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">eligible</text>
+<polyline points="2360,2500 2580,2500" fill="none" stroke="#087E80" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="2580.00,2500.00 2565.00,2492.00 2565.00,2508.00" fill="#087E80"/>
+<rect x="2378" y="2429" width="92.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="2386" y="2451.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">backed</text>
+<rect x="2384" y="2459" width="70.0" height="36" rx="4" fill="#FFFFFF"/>
+<text x="2392" y="2481.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#546676">claim</text>
+<text x="140" y="2683.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#546676">Reward states: Estimated → Pending → Earned → Claimable → Paid   |   Cancel or reverse when required</text>
+<rect x="3500" y="2040" width="1200" height="700" rx="24" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="3540" y="2098.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#546676">04</text>
+<text x="3605" y="2102.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" fill="#162D40">TWO-SIDED VALUE</text>
+<text x="3540" y="2158.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#546676">ILLUSTRATIVE MATCH: 1,000 USDC</text>
+<rect x="3540" y="2190" width="1120" height="112" rx="12" fill="#EFF5FD"/>
+<text x="3565" y="2233.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">Buyer: $1,008 → $1,004</text>
+<text x="3565" y="2278.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#2364AA">Seller: $992 → $996</text>
+<text x="3540" y="2355.92" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#162D40">$8 margin before route costs</text>
+<text x="3540" y="2413.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Costs $4  +  A rebate $1  +  B rebate $1</text>
+<text x="3540" y="2460.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">+  platform contribution $2  =  $8</text>
+<rect x="3540" y="2500" width="1120" height="107" rx="12" fill="#EEF8F6"/>
+<text x="3565" y="2543.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">After rebates: A pays $1,003</text>
+<text x="3565" y="2584.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">B receives $997</text>
+<text x="3540" y="2651.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#546676">Assumptions only. No live rate or guaranteed reward. A single benefit cannot be duplicated.</text>
+<rect x="100" y="2790" width="4600" height="540" rx="24" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="140" y="2848.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#546676">05</text>
+<text x="205" y="2852.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" fill="#162D40">BUILD BOUNDARIES &amp; PRODUCTION PATH</text>
+<rect x="140" y="2890" width="2160" height="280" rx="14" fill="#EFF5FD"/>
+<text x="170" y="2939.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#2364AA">HACKATHON BUILD</text>
+<text x="170" y="2995.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Wallet + signed intents · deterministic matching</text>
+<text x="170" y="3038.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Uniswap testnet swaps · local demo-credential proof</text>
+<text x="170" y="3081.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Actual 0G calls · Anon-RPC · prefunded test rewards</text>
+<text x="170" y="3124.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Sandbox fiat events · explicit failures · measured latency</text>
+<rect x="2340" y="2890" width="2320" height="280" rx="14" fill="#F5F7F8"/>
+<text x="2370" y="2939.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#546676">PRODUCTION / CONFIDENTIAL PHASE</text>
+<text x="2370" y="2995.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Approved ramp corridors · real credential issuer</text>
+<text x="2370" y="3038.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Audited adapters · capital controls · reconciliation &amp; recovery</text>
+<text x="2370" y="3081.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">Confidential matcher + shielded notes for stronger privacy</text>
+<text x="2370" y="3124.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">External review + load testing before production funds</text>
+<rect x="140" y="3200" width="4520" height="90" rx="12" fill="#FFF5E9"/>
+<text x="167" y="3248.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#B86B23">ADDITIONAL REVENUE STREAM</text>
+<text x="780" y="3250.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="400" fill="#162D40">Merchant checkout → funded user cashback + agreed platform commission</text>
+<rect x="100" y="3380" width="4600" height="1440" rx="24" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<text x="140" y="3438.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#546676">06</text>
+<text x="205" y="3442.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" fill="#162D40">BROWSER EXTENSION · BEST CARD &amp; BEST RATE</text>
+<text x="140" y="3497.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="400" fill="#546676">Shopping • travel / tickets • subscriptions • supported ramp and swap pages | Active tab or explicitly approved sites</text>
+<rect x="140" y="3565" width="2100" height="165" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="3565" width="7" height="165" rx="3" fill="#2364AA"/>
+<text x="165" y="3614.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#2364AA">1  READ CHECKOUT CONTEXT</text>
+<text x="165" y="3663.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Merchant, cart amount and currency from approved page metadata.</text>
+<text x="165" y="3700.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Use active-tab / optional site permission; ignore payment fields.</text>
+<rect x="140" y="3750" width="2100" height="165" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="3750" width="7" height="165" rx="3" fill="#2364AA"/>
+<text x="165" y="3799.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#2364AA">2  LOAD LOCAL CARD PROFILE</text>
+<text x="165" y="3848.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Exact card variant, network and user-confirmed remaining caps.</text>
+<text x="165" y="3885.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Encrypted local profile; never collect PAN, CVV, PIN or OTP.</text>
+<rect x="140" y="3935" width="2100" height="165" rx="17" fill="#F5F0FB" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="3935" width="7" height="165" rx="3" fill="#7452A5"/>
+<text x="165" y="3984.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#7452A5">3  REFRESH TERMS &amp; EXECUTABLE QUOTES</text>
+<text x="165" y="4033.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Official issuer circulars + merchant offer terms, version and source date.</text>
+<text x="165" y="4070.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Approved provider APIs supply total fees, net output and quote expiry.</text>
+<rect x="140" y="4120" width="2100" height="165" rx="17" fill="#EEF8F6" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="4120" width="7" height="165" rx="3" fill="#087E80"/>
+<text x="165" y="4169.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#087E80">4  CALCULATE &amp; RANK DETERMINISTICALLY</text>
+<text x="165" y="4218.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Net value = eligible discount + estimated reward value − extra fees.</text>
+<text x="165" y="4255.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Check minimum spend, caps, stacking, redemption value and exclusions.</text>
+<rect x="140" y="4305" width="2100" height="165" rx="17" fill="#EFF5FD" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="140" y="4305" width="7" height="165" rx="3" fill="#2364AA"/>
+<text x="165" y="4354.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#2364AA">5  EXPLAIN, REVIEW &amp; HAND OFF</text>
+<text x="165" y="4403.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">0G explains the validated choice with source links and uncertainty.</text>
+<text x="165" y="4440.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">User chooses card or route; merchant / provider / wallet authorizes payment.</text>
+<polyline points="1190,3730 1190,3750" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1190.00,3750.00 1198.00,3735.00 1182.00,3735.00" fill="#2364AA"/>
+<polyline points="1190,3915 1190,3935" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1190.00,3935.00 1198.00,3920.00 1182.00,3920.00" fill="#2364AA"/>
+<polyline points="1190,4100 1190,4120" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1190.00,4120.00 1198.00,4105.00 1182.00,4105.00" fill="#2364AA"/>
+<polyline points="1190,4285 1190,4305" fill="none" stroke="#2364AA" stroke-width="5" stroke-linejoin="round"/>
+<polygon points="1190.00,4305.00 1198.00,4290.00 1182.00,4290.00" fill="#2364AA"/>
+<rect x="140" y="4510" width="2100" height="245" rx="15" fill="#F5F7F8"/>
+<text x="168" y="4561.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#162D40">PRIVACY, FRESHNESS &amp; USER CONTROL</text>
+<text x="168" y="4621.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#546676">No bank-login cookies or hidden payment-field capture. Page content is untrusted input. Expired quotes need refresh; uncertain eligibility is labelled.</text>
+<text x="168" y="4661.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#546676">Sponsorship or commission must not silently alter ranking.</text>
+<rect x="2340" y="3565" width="1100" height="1190" rx="20" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="2340" y="3565" width="1100" height="66" rx="17" fill="#162D40"/>
+<text x="2364" y="3605.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#FFFFFF">BROWSER EXTENSION</text>
+<text x="3250" y="3602.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#C9D7E2">SIDE PANEL</text>
+<rect x="2364" y="3660" width="1052" height="50" rx="9" fill="#FFF5E9"/>
+<text x="2384" y="3692.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#B86B23">ILLUSTRATIVE DATA · NOT LIVE OFFERS</text>
+<text x="2368" y="3783.88" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#162D40">Best card</text>
+<text x="2368" y="3833.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#546676">INR 10,000 purchase · sample merchant</text>
+<rect x="2368" y="3872" width="1044" height="245" rx="15" fill="#EEF8F6" stroke="#087E80" stroke-width="2"/>
+<text x="2392" y="3919.30" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#087E80">01  CARD A · CASHBACK</text>
+<text x="2392" y="3976.59" font-family="Arial, Helvetica, sans-serif" font-size="39" font-weight="700" fill="#087E80">INR 600 estimated net savings</text>
+<text x="2392" y="4026.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">INR 500 instant discount + INR 100 estimated reward</text>
+<text x="2392" y="4071.68" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#162D40">Cash due INR 9,500 · effective cost INR 9,400</text>
+<rect x="2368" y="4143" width="1044" height="145" rx="13" fill="#F5F7F8"/>
+<text x="2392" y="4189.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#162D40">02  CARD B · POINTS</text>
+<text x="2392" y="4236.92" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#162D40">INR 451 estimated net savings</text>
+<text x="2392" y="4275.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#546676">INR 300 discount + INR 200 point value − INR 49 fee</text>
+<rect x="2368" y="4312" width="1044" height="125" rx="13" fill="#F5F7F8"/>
+<text x="2392" y="4357.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#162D40">03  CARD C · BASE CASHBACK</text>
+<text x="2392" y="4407.92" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="700" fill="#162D40">INR 250 estimated net savings</text>
+<text x="2368" y="4492.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#546676">Live view: remaining cap, eligibility confidence, source links and checked-at time.</text>
+<rect x="2368" y="4580" width="1044" height="68" rx="12" fill="#2364AA"/>
+<text x="2605" y="4625.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#FFFFFF">Review chosen card →</text>
+<text x="2368" y="4706.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#546676">You authorize payment with the merchant.</text>
+<rect x="3520" y="3565" width="1140" height="1190" rx="20" fill="#FFFFFF" stroke="#D5DEE3" stroke-width="2"/>
+<rect x="3520" y="3565" width="1140" height="66" rx="17" fill="#162D40"/>
+<text x="3544" y="3605.06" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#FFFFFF">BROWSER EXTENSION</text>
+<text x="4470" y="3602.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="400" fill="#C9D7E2">SIDE PANEL</text>
+<rect x="3544" y="3660" width="1092" height="50" rx="9" fill="#FFF5E9"/>
+<text x="3564" y="3692.63" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700" fill="#B86B23">ILLUSTRATIVE DATA · NOT LIVE OFFERS</text>
+<text x="3548" y="3783.88" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#162D40">Best rate</text>
+<text x="3548" y="3833.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#546676">Buy  |  Sell  |  Swap</text>
+<rect x="3548" y="3872" width="1084" height="245" rx="15" fill="#EFF5FD" stroke="#2364AA" stroke-width="2"/>
+<text x="3572" y="3918.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#2364AA">01  PROVIDER A · SAMPLE QUOTE</text>
+<text x="3572" y="3974.35" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" fill="#2364AA">Pay $1,004 → receive 1,000 USDC</text>
+<text x="3572" y="4028.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="400" fill="#162D40">All-in cost: $1.004 / USDC</text>
+<text x="3572" y="4071.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Fees included · quote expiry shown in live view</text>
+<rect x="3548" y="4143" width="1084" height="145" rx="13" fill="#F5F7F8"/>
+<text x="3572" y="4189.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#162D40">02  PROVIDER B</text>
+<text x="3572" y="4236.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#162D40">Pay $1,008 → receive 1,000 USDC</text>
+<text x="3572" y="4275.25" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="400" fill="#546676">Compare like-for-like network and payment rail</text>
+<rect x="3548" y="4312" width="1084" height="125" rx="13" fill="#EEF8F6"/>
+<text x="3572" y="4357.49" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#087E80">SELLING / OFF-RAMPING?</text>
+<text x="3572" y="4403.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#162D40">Rank by net fiat received and payout conditions</text>
+<text x="3548" y="4492.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#546676">Live view: fee breakdown, payout timing, price impact and provider availability.</text>
+<rect x="3548" y="4580" width="1084" height="68" rx="12" fill="#2364AA"/>
+<text x="3865" y="4625.11" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="700" fill="#FFFFFF">Review route →</text>
+<text x="3548" y="4706.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#546676">Provider or wallet authorization is required.</text>
+<text x="100" y="4911.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#546676">PROPOSED ARCHITECTURE  •  A = buyer; B = seller  •  No deployment or throughput claim</text>
+<text x="100" y="4957.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="400" fill="#546676">Demo chain: Unichain Sepolia  |  Public swaps remain observable  |  Preconfirmation ≠ finality</text>
+<text x="3780" y="4911.87" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700" fill="#546676">PNG + EDITABLE SVG</text>
+<text x="3780" y="4955.44" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="#546676">Includes browser extension</text>
+</svg>

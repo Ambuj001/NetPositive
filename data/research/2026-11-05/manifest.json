@@ -1,0 +1,52 @@
+[
+  {
+    "filename": "card-mcc-reward-matrix - card-mcc-reward-matrix.csv.pdf",
+    "sha256": "84a1da41bc679a55092f0d4b4ab55c6952beb545eb18c196fa61e02b48dbe2a1",
+    "verification": "user-supplied research; claims not independently reverified during import",
+    "pages": 18,
+    "extracted_file": "extracted/card-mcc-reward-matrix - card-mcc-reward-matrix.csv.txt",
+    "empty_pages": [],
+    "extraction_warning": "PDF table columns overlap in extracted text. Not a validated CSV; do not import parsed rows into the reward engine."
+  },
+  {
+    "filename": "card-rewards-dataset-india.md.pdf",
+    "sha256": "114b81836b55433c8bd10d1054acd1d69c67e9e6bb099589d41f19c441f89d7d",
+    "verification": "user-supplied research; claims not independently reverified during import",
+    "pages": 16,
+    "extracted_file": "extracted/card-rewards-dataset-india.md.txt",
+    "empty_pages": []
+  },
+  {
+    "filename": "Claude 223.pdf",
+    "sha256": "5864a3d62cc85299a805114ee287bedbe12b71bd6f493ff33334c3c57201fd96",
+    "verification": "user-supplied research; claims not independently reverified during import",
+    "pages": 7,
+    "extracted_file": "extracted/Claude 223.txt",
+    "empty_pages": [
+      7
+    ],
+    "extraction_warning": "Image-heavy walkthrough: text extraction is incomplete; original PDF is authoritative."
+  },
+  {
+    "filename": "Claude.pdf",
+    "sha256": "6c0bc41378cfdf2b297859b8148f4657ffc956cf7e3200b4c9117c80a94522cc",
+    "verification": "user-supplied research; claims not independently reverified during import",
+    "pages": 5,
+    "extracted_file": "extracted/Claude.txt",
+    "empty_pages": [],
+    "extraction_warning": "Image-heavy walkthrough: text extraction is incomplete; original PDF is authoritative."
+  },
+  {
+    "filename": "top-20-crypto-cards-category-rewards-2026-11-05.md",
+    "sha256": "89ac4aba422a33f03b24af162ef2742f915edb91d561ae130344580ab62f4c2a",
+    "verification": "user-supplied research; claims not independently reverified during import"
+  },
+  {
+    "filename": "voucher-route-card-research.md.pdf",
+    "sha256": "d78780dd103011e4a98650b0b15cd609c5965c283bef4571e4e27b80c432e7d6",
+    "verification": "user-supplied research; claims not independently reverified during import",
+    "pages": 7,
+    "extracted_file": "extracted/voucher-route-card-research.md.txt",
+    "empty_pages": []
+  }
+]

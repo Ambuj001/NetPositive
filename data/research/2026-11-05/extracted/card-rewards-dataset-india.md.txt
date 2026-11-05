@@ -1,0 +1,542 @@
+--- Page 1 ---
+Card Rewards Dataset — India Top 5 Issuers +
+Amex + International
+Prepared 5 Nov 2026 for the Voucher Rail agent. Purpose: the numbers the agent shows a
+buyer when it picks the card and route for a voucher. Every row carries a source grade; the
+agent must re-check the official page before displaying a number to a user.
+Source grades
+- OFFICIAL — bank MITC / terms PDF / product page read directly.
+- SECONDARY — card-review site dated Oct–Nov 2026 citing bank terms. Use for the
+build; confirm on the official page before going live.
+- PENDING — not found yet.
+How % is computed: points per spend unit ÷ spend unit × best official
+point value. Example: Infinia 5 RP per ₹150 × ₹1 = 3.33%. "Cashback" cards are already in
+%.
+1. MCC reference (what the agent matches against)
+MCCs are set by the network and acquirer; banks state many as "best effort". A voucher bought
+on a bank portal is coded by the portal's merchant, not the brand, so the agent records the MCC
+seen on the user's statement after the first purchase.
+Category MCCs Typical treatment in India
+(2026)
+Wallet / stored value load 6540, 6541 No rewards on all five banks;
+fees above thresholds
+(section 4)
+Rent 6513 No rewards (HDFC since 1
+Jan 2023); fee 1% (HDFC,
+Axis) or ₹199 (SBI)
+Fuel 5541, 5542, 5983, 5172 Mostly no rewards; surcharge
+waiver only; Axis 1% fee ≥
+₹50k/cycle
+
+--- Page 2 ---
+Category MCCs Typical treatment in India
+(2026)
+Utilities 4900 Capped or excluded; HDFC
+2,000 RP/month cap; fees
+above thresholds
+Telecom / cable 4814, 4899 HDFC 2,000 RP/month cap;
+Axis treats as utility
+Insurance 6300 HDFC caps: Infinia 10,000 /
+DCB 5,000 / others 2,000 RP
+per month
+Education 8211, 8220, 8241, 8244, 1% fee via third-party apps
+8249, 8299 (HDFC, SBI, Axis); HDFC: no
+points via apps
+Government / tax 9311, 9399, 9222 No rewards on most cards
+Online skill gaming 5816 (+ 7993, 7994 at SBI) No rewards; fees: HDFC 1%
+> ₹10k/month, Axis 1% ≥
+₹10k/cycle, ICICI 2% all
+Jewellery / gold 5944 Excluded on SBI Cashback,
+Flipkart SBI, Axis premium
+(gold), Amazon Pay ICICI
+Gift cards / vouchers 5947, 5999, 5311 (varies by Earn only via official
+portal) accelerated portals; Axis
+premium cards earn 0 from
+28 Aug 2026; Flipkart SBI
+excludes vouchers
+Grocery / departmental 5411, 5311 HDFC cap 2,000 / 1,000 RP
+per month; SBI ELITE/PRIME
+5X–10X
+Dining 5812, 5814 SBI ELITE/PRIME
+accelerated; HDFC DCB 2X
+weekends
+Airlines / hotels / rail / bus 4511, 7011, 4112, 4131 Travel portals give the
+highest multipliers
+
+--- Page 3 ---
+2. Card table — 25 cards (5 issuers × 5)
+Columns: base %, best category %, voucher route, caps, key exclusions, fee, grade.
+HDFC Bank
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+Infinia / 3.33% (5 SmartBu SmartBu Voucher Rent, ₹12,500 OFFICIA
+Infinia RP/₹150 y hotels y brand bonus fuel, + GST L
+Metal @ ₹1) 10X vouchers 3,000 govt, (SmartBu
+(33.3%), 5X RP/mont wallet, y 15282,
+flights 5X (16.7%) h (from 1 EMI, MITC 31
+(16.7%) Jul gaming, Oct
+2026); educatio 2026)
+grocery n via
+2,000, apps
+utilities
+2,000,
+telecom
+2,000,
+insuranc
+e 10,000
+RP/mont
+h
+Diners 3.33% (5 SmartBu SmartBu Voucher As above ₹10,000 SECOND
+Club RP/₹150 y y bonus + fuel + GST ARY
+Black @ ₹1) hotels/pa vouchers 3,000 (cardadvi
+Metal rtners 3X RP/mont sor) +
+10X (~10%) h; OFFICIA
+(33%), insuranc L caps
+flights/My e 5,000
+ntra 5X RP/mont
+(16.5%), h
+weekend
+dining 2X
+
+--- Page 4 ---
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+Regalia 1.25% (5 Partner SmartBu SmartBu As Infinia ₹2,500 + SECOND
+Gold RP/₹200 brands y y 4,000 GST ARY
+@ ₹0.50) 25 (multiplie RP/mont (base
+RP/₹200 r not h; revised
+(6.25%); confirme voucher 15 May
+SmartBu d) bonus 2026)
+y hotels 3,000
+10X RP/mont
+(12.5%), h;
+flights 5X redempti
+(6.25%) ons
+50,000
+RP/mont
+h
+Millennia 1% 5% on 10 Partner 5% tier Fuel, ₹1,000 + OFFICIA
+CashPoi partner brands 1,000 rent, GST L T&C
+nts brands via CP/mont EMI, (20 Jul
+PayZapp/ h; 1% tier wallet, 2026) +
+SmartBu 1,000 govt SECOND
+y drop to CP/mont ARY
+1% h
+Tata Neu 1.5% 5% on Tata Insuranc Wallet, ₹1,499 + SECOND
+Infinity NeuCoin Tata brand e via Neu rent, fuel GST ARY
+s brands (+ vouchers 2,000
+up to 5% inside NeuCoin
+NeuPass Tata Neu s/month;
+) non-Neu
+UPI 0.5%
+capped
+500/mont
+h
+
+--- Page 5 ---
+ICICI Bank
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+Emeralde ~3% at iShop iShop 6X iShop Rent, ₹12,499 SECOND
+Private ₹1/pt (6 hotels vouchers bonus fuel, tax, ARY
+Metal RP/₹200) 12X (18%) 18,000 govt (iShop
+; 1.2% as (36%), pts; data
+statemen flights/vo Amazon/ early
+t uchers Flipkart 2025 —
+6X (18%) vouchers stale)
+₹12,000/
+month;
+educatio
+n/grocery
+/utilities/i
+nsurance
+1,000 pts
+per cycle
+(2026)
+Times ~0.8% iShop 6X iShop 6X iShop Fuel, ₹20,000 SECOND
+Black domestic vouchers bonus rent, EMI ARY
+@ ₹0.40; (12% per 15,000
+~1% intl iShop pts;
+table) shared
+5,000
+RP/cycle
+on utility,
+insuranc
+e,
+educatio
+n, govt
+Sapphiro ~0.5% iShop 6X iShop 6X iShop Fuel, ₹3,500 SECOND
+domestic; (3%) bonus rent, ARY
+~1% intl 9,000 wallet
+pts; utility
+₹80k,
+
+--- Page 6 ---
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+insuranc
+e ₹80k,
+grocery
+₹40k per
+cycle;
+transport
+₹20k/mo
+nth (Feb
+2026)
+Rubyx ~0.5% iShop 6X iShop 6X Same as Fuel, ₹2,000 SECOND
+domestic; (3%) Sapphiro rent, ARY
+~1% intl wallet
+Amazon 1% 5% iShop — Fuel, Lifetime SECOND
+Pay ICICI Amazon co-brand rent, free ARY;
+(Prime), 4% (cap EMI, gift-card
+3% ₹1,100) educatio treatment
+non-Prim n, tax, PENDIN
+e, 2% intl, G (terms
+Amazon gold/silve PDF)
+Pay r; utilities
+partners outside
+Amazon
+since 11
+Oct 2025
+SBI Card
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+Cashbac 1% 5% on Online 5% leg Utility, ₹999 SECOND
+k SBI offline any voucher ₹2,000/m insuranc ARY
+online purchase onth e, fuel,
+merchant — check (₹40k rent,
+
+--- Page 7 ---
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+exclusion spend); wallet,
+list 1% leg educatio
+before ₹2,000/m n,
+use onth; jewellery,
+₹48,000/ railways,
+year EMI,
+gaming,
+toll, govt
+(Apr
+2026)
+SimplyCL 0.25% 10X — none none ₹499 SECOND
+ICK (2.5%) listed listed ARY
+partner
+brands;
+5X
+(1.25%)
+other
+online
+ELITE 0.5% (2 5X — none Metro, ₹4,999 SECOND
+RP/₹100 (2.5%) listed Reliance ARY
+@ ₹0.25) dining, Market,
+grocery, Walmart
+departme excluded
+ntal from
+grocery
+rate
+PRIME 0.5% 10X — none Same as ₹2,999 SECOND
+(2.5%) listed ELITE ARY
+dining,
+grocery,
+departme
+ntal,
+movies
+
+--- Page 8 ---
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+AURUM ~1% (4 none Aurum none Fuel, ₹9,999 OFFICIA
+RP/₹100 portal: no listed rent, L (portal
+@ ₹0.25) accelerat govt, T&C)
+ed wallet
+voucher (6540/65
+earn 41),
+gaming
+(5816,
+7993,
+7994)
+Note: Flipkart SBI (1%; 7.5% Myntra; 5% Flipkart/Cleartrip; ₹4,000 per quarter per tier) excludes
+voucher purchases.
+Axis Bank
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+Magnus 12 35 None — 5,00,000 Rent, ₹12,500 OFFICIA
+EDGE/₹2 EDGE/₹2 gift pts/year; wallet, + GST L (MITC)
+00 00 above cards 1,00,000 utilities,
+(~1.2–2.4 ₹1.5L earn 0 to Group govt, EMI
+% at monthly from 28 A (Sep
+₹0.20–0. spend Aug 2023);
+40) 2026 insuranc
+e, gold,
+fuel (Apr
+2024);
+gift cards
+(Aug
+2026)
+
+--- Page 9 ---
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+Atlas 2 EDGE 5 — 1,50,000 Not ₹5,000 + SECOND
+Miles/₹10 Miles/₹10 Miles/yea stated GST ARY
+0 0 travel r; 30,000 (applicati
+(up to Group A ons
+₹2L/mont paused)
+h)
+Select 10 20/₹200 None — 20/₹200 Same list ₹3,000 + OFFICIA
+EDGE/₹2 (~2%) gift only first as GST L (MITC
+00 (~1% retail on cards ₹20k/mo Magnus exclusion
+@ ₹0.20) first earn 0 nth s)
+₹20k/mo from 28
+nth Aug
+2026
+Flipkart 1% 5% — not PENDIN ₹500 SECOND
+Axis Flipkart, stated G ARY
+Myntra,
+Cleartrip;
+4%
+preferred
+merchant
+s
+Airtel 1% 25% — 25% Active ₹500 SECOND
+Axis Airtel bills capped Airtel ARY
+in Airtel at 2× connectio
+Thanks; base n
+10% earned in required
+other cycle (12
+Thanks Apr
+utilities 2026)
+Note: Axis ACE (5% Google Pay bills, 4% Swiggy/Zomato/Ola, 1.5% other) is closed to new
+applicants.
+
+--- Page 10 ---
+Kotak Mahindra Bank
+Card Base Accelera Voucher Caps Exclusio Annual Grade
+ted route ns fee
+categori
+es
+White ~1.6–2.5 not — not not ₹12,500 SECOND
+Reserve % via published published published ARY
+milestone (incompl
+s ete)
+Solitaire 3 Air 10/₹100 — 1,00,000 Rent, Nil while SECOND
+(invite) Miles/₹10 Kotak miles/cyc wallet, member ARY
+0 Unbox le fuel,
+flights & accelerat utilities,
+hotels ed insuranc
+e,
+educatio
+n, EMI,
+intl
+Zen ~0.83% 10/₹150 — 6,500 pts Wallet, ₹1,500 SECOND
+Signature (5/₹150 shopping per cycle fuel, rent, ARY
+@ ₹0.25) (~1.67%) gaming,
+EMI
+Cashbac 0.5% 5% — 750 pts Rent, ₹750 SECOND
+k+ Prime online (₹750) wallet, ARY
+grocery, per cycle utility,
+food across educatio
+delivery, accelerat n,
+entertain ed transport
+ment, (from
+auto waiver)
+dealers;
+3% fuel
+811 2 — — — Fuel, Nil SECOND
+#DreamD pts/₹100 railway ARY
+ifferent online, 1
+offline
+(~0.4%)
+
+--- Page 11 ---
+3. American Express India
+Reward Multiplier brand links closed 30 Sep 2026. ShopWise e-vouchers still advertised at 5X.
+Card Base Accelerat Milestone Exclusion Fee Status
+ed s s
+Gold 1 MR/₹50 ShopWise 1,000 MR Utilities ₹4,500 + Application
+Charge (~1% @ e-vouchers monthly for (conflicting GST s paused
+₹0.50) 5X (~5%) six info)
+₹1,000+
+transaction
+s
+Platinum 1 MR/₹50 — From 10 — ₹5,000 + Application
+Travel Sep 2026: GST s paused
+10,000 MR
+at ₹4L;
+₹20,000
+Taj
+voucher at
+₹7L
+MRCC 1 MR/₹50 — 1,000 MR Fuel, ₹4,500 + Application
+for four insurance, GST s paused
+₹1,500+ utilities
+txns; 1,000
+MR at
+₹20k/mont
+h
+SmartEarn 1 MR/₹50 10X ₹500 — ₹495 Application
+Flipkart, voucher at s paused
+Uber, ₹1.2L,
+Myntra etc. ₹1.8L,
+(500/mont ₹2.4L
+h); 10X
+EaseMyTri
+p, Zomato
+(500/mont
+
+--- Page 12 ---
+Card Base Accelerat Milestone Exclusion Fee Status
+ed s s
+h); 5X
+Amazon
+(250/mont
+h)
+Platinum 1 MR/₹40 — Welcome not ₹66,000 + Application
+Charge up to specified GST s paused
+₹60,000
+Grade: SECONDARY (cardadvisor, LFAL).
+4. Wallet top-up structure
+Bank fees on loading wallets by credit card
+Bank Fee Threshold MCC Effective Grade
+HDFC 1% of > ₹10,000 6540 1 Jul 2025 OFFICIAL
+month's per calendar
+wallet loads, month
+max (PayZapp
+₹4,999/month excluded)
+ICICI 1% > ₹5,000 per — 15 Jan 2026 SECONDAR
+month Y
+(Amazon
+Pay, Paytm,
+MobiKwik,
+Freecharge,
+OlaMoney)
+SBI 1% of each each load > 6540, 6541 1 Nov 2025 OFFICIAL
+load ₹1,000
+Axis 1% cumulative ≥ 6540 20 Dec 2024 OFFICIAL
+₹10,000 per
+
+--- Page 13 ---
+Bank Fee Threshold MCC Effective Grade
+statement
+cycle
+Kotak — — — — PENDING
+All five banks give no rewards on wallet loads.
+Regulatory limits (RBI PPI rules)
+Wallet type Limit Status
+Full-KYC PPI ₹2,00,000 outstanding In force (RBI notification
+balance 12094); 2026 draft keeps ₹2
+lakh with equal monthly debit
+cap, P2P ₹25,000/month
+Small (min-KYC) PPI ₹10,000 balance 2026 draft
+Gift PPI (e.g. Amazon Pay ₹10 to ₹10,000 per card, not Amazon Pay terms (Pine
+gift card) reloadable, monthly Labs)
+redemption caps set by
+issuer
+The 2026 PPI direction was a draft (comments closed 22 May 2026); confirm whether it has
+been finalised.
+5. International cards (gift-card relevant)
+US cards from UpgradedPoints (8 Aug 2026). Amex US terms exclude "purchases of gift cards"
+from eligible purchases.
+Card Country Where gift Rate Cap Fee Gift-card
+cards can caveat
+earn
+Chase Ink US Office 5% $25,000/yr $0 No
+Business supply combined exclusion
+Cash stores stated
+
+--- Page 14 ---
+Card Country Where gift Rate Cap Fee Gift-card
+cards can caveat
+earn
+U.S. Bank US Chosen 5% $2,000/qua $0 None
+Cash+ 5% rter stated
+categories
+Huntington US Rotating 4% $7,000/qua $0 None
+Voice category rter stated
+Business incl. office
+supply
+Costco US Costco 2% — $0 + Explicitly
+Anywhere in-store gift Costco earns
+Visa (Citi) cards membershi
+p
+Amex Gold US Supermark 4x / 6% / $25k / $6k $325 / $95 Gift cards
+/ Blue ets 3% / $6k per / $0 excluded
+Cash year by Amex
+Preferred / terms
+Everyday
+Crypto.co EEA Any 4.5% First US$500k Verified 4
+m Visa eligible (token) US$5,000/ stake Nov 2026
+Private/Ob merchant month,
+sidian (card then 1%
+terms
+prohibit
+buying
+crypto)
+Revolut France, — — — — PENDING
+(RevPoints Poland
+) (terms
+differ by
+country)
+Europe list: waiting for the user's card list.
+
+--- Page 15 ---
+6. Agent rules
+1. Rank only (card × official channel) pairs the user holds; never suggest an excluded MCC
+route.
+2. Subtract each card's remaining monthly/cycle cap before showing %; reserve the cap
+while an order is open.
+3. Apply per-transaction rounding (floor of spend ÷ unit).
+4. Show "expected" until points post (SmartBuy: up to 90 working days).
+5. Show source link + "checked on" date next to every number; block the number if the
+source is older than 30 days.
+6. For wallet routes, add the bank fee and zero reward before ranking.
+7. Open items
+- Kotak wallet fee; Kotak White Reserve details.
+- Confirm SECONDARY rows on official pages (priority: ICICI iShop 2026 terms, HDFC
+DCB/Regalia Gold voucher multipliers, Amazon Pay ICICI gift-card treatment).
+- Europe card list.
+Sources
+- HDFC MITC (31 Oct 2026):
+https://www.hdfc.bank.in/content/dam/hdfcbankpws/in/en/personal-banking/discover-pro
+ducts/cards/credit-cards/personal-mitc/mitc-in-english.pdf
+- HDFC SmartBuy offer 15282:
+https://offers.smartbuy.hdfc.bank.in/offer_details/smartbuy/15282
+- HDFC Millennia T&C:
+https://www.hdfc.bank.in/content/dam/hdfcbankpws/in/en/personal-banking/discover-pro
+ducts/cards/credit-cards/millennia-credit-card/pdf/millennia-tnc-20th-jul26.pdf
+- Axis MITC:
+https://www.axis.bank.in/docs/default-source/default-document-library/mitc-credit-cards.p
+df
+- SBI Key Fact Statement:
+https://www.sbicard.com/sbi-card-en/assets/docs/pdf/key-fact-statement.pdf
+- SBI Aurum portal T&C:
+https://www.sbicard.com/sbi-card-en/assets/docs/pdf/tandc-aurum-reward-portal.pdf
+- CardAdvisor HDFC / ICICI / SBI / Kotak / Amex pages and Axis ladder (Sep–Nov 2026)
+- Finology, ICICI 2026 changes:
+https://select.finology.in/articles/credit-card/icici-bank-credit-card-changes-2026
+- CardExpert, ICICI iShop: https://www.cardexpert.in/icici-bank-ishop/
+- LiveFromALounge, HDFC voucher cap and Amex Reward Multiplier
+- RBI PPI notification 12094; Business Today on 2026 draft
+
+--- Page 16 ---
+- Pine Labs Amazon Pay gift card terms
+- UpgradedPoints, best cards for gift cards (8 Aug 2026)
