@@ -54,6 +54,18 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(res["redirect"]["url"], "https://www.gyftr.com/instantvouchers")
         self.assertEqual(res["redirect"]["second_option"]["name"], "CRED")
 
+    def test_request_flow_endpoints(self):
+        st, r, _ = self.call("POST", "/merchants/suggest", {"query": "shoes"})
+        self.assertEqual((st, r["mode"], r["tiles"][0]["name"]), (200, "tiles", "Amazon"))
+        d = self.call("POST", "/request/draft", {"merchant": "amazon", "amount": 10000, "item": "shoes"})[1]
+        self.assertEqual(d["request"]["voucher_brand"], "Amazon")
+        self.call("POST", "/portfolio/add", {"user_id": "buyer1", "card": "Infinia"})
+        f = self.call("POST", "/request/fulfil", {"user_id": "buyer1", "brand": "Amazon", "amount": 10000})[1]
+        self.assertTrue(f["options"][0]["best"])
+        self.assertEqual(f["options"][0]["link"], "https://www.gyftr.com/instantvouchers")
+        self.assertEqual(self.call("POST", "/request/fulfil", {"brand": "Amazon", "amount": 1})[0], 400)  # user_id required
+        self.assertIn("error", self.call("POST", "/merchants/suggest", {})[1])
+
     def test_bad_inputs(self):
         self.assertEqual(self.call("POST", "/recommend", {"user_id": "../etc", "url": "amazon.in"})[0], 400)
         self.assertEqual(self.call("POST", "/recommend", {"url": "amazon.in"})[0], 400)

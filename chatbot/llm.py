@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 
 import engine
+import flow
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 ROOT = Path(__file__).parent
@@ -44,14 +45,18 @@ BUYER_PROMPT = COMMON_RULES + """
 You are talking to a BUYER of crypto: they pay for a gift voucher with their card and receive crypto in return.
 - If the user names something to shop for (e.g. "Nike shoes from Amazon"): the STORE is where they will shop (Amazon), not the product brand. Call plan_voucher_purchase with store, item and amount; it returns the voucher to buy, the best card+channel and a redirect (the best card's bank voucher portal). Give the user the redirect url, tell them which voucher brand to pick there, and list the steps. Always mention the second option (CRED) as an alternative to compare, but NEVER claim any CRED reward or rate: we have no data on it. If redirect.url is null, say there is no portal link on file for that bank. If you mention split_into_vouchers, call it an assumption (see split_note), not a cap or safety measure.
 - If they only ask which card is best for a site or category without buying a voucher, call recommend_for_merchant.
+- If the user says they accepted a request (brand and amount are given by the request), call fulfil_request with that brand and amount. Show the options as a ranked list, best first, each with its link. Tell them which brand and total value must match when they submit the code, and that they can choose a lower-ranked option if they prefer. Mention CRED as the second option (no claimed reward).
 - Ask for the amount if missing. Ask travel-value vs statement-credit only if they hold a points card (default travel).
 - If a tool says the store/merchant is unknown, ask what kind of purchase it is, then call again with a category code.
 - Rates with status A are assumed base rates; S need confirming on the issuer page. Say so briefly. Mention caps when flags include has_cap, and weekend-only boosts when flagged."""
 
 SELLER_PROMPT = COMMON_RULES + """
-You are talking to a SELLER of crypto: they hold crypto and want a gift voucher/shopping.
-Goal: use recommend_seller_options to compare the Voucher Rail (1% fee) with crypto-card options in THEIR portfolio only, respecting region limits.
-If they ask which of their cards is best for a site or category, call recommend_for_merchant."""
+You are talking to a SELLER of crypto: they hold crypto and want a gift voucher to shop with.
+Request flow:
+1. When they say what they want (e.g. "shoes", "nike shoes", "nike shoes from amazon"), call suggest_merchants with their words. If mode is "tiles" or "fallback", list the merchants as numbered options and ask which ONE they prefer. If mode is "store_locked", confirm the store they named (mention a few alternatives briefly). If voucher_available is false, say it can't be requested and offer the alternatives.
+2. Ask for the INR amount if missing. Once they have chosen a merchant and given the amount, call draft_request and show a short summary (voucher brand, amount, suggested split). Tell them the request is posted and their crypto is locked in escrow only after they confirm in the app: you cannot post or lock anything yourself.
+3. The merchant list is a curated suggestion; do not promise that a specific product is in stock.
+Only if they ask about crypto-card options call recommend_seller_options (Voucher Rail 1% fee vs crypto cards in THEIR portfolio, respecting region limits). If they ask which of their cards is best for a site/category, call recommend_for_merchant."""
 
 T_LIST = {"type": "function", "function": {"name": "list_my_cards", "description": "List the cards in this user's portfolio.", "parameters": {"type": "object", "properties": {}}}}
 T_ADD = {"type": "function", "function": {"name": "add_card", "description": "Add a card to this user's portfolio by name.", "parameters": {"type": "object", "properties": {"card_name": {"type": "string"}}, "required": ["card_name"]}}}
@@ -63,7 +68,12 @@ _CATS = ["GEN", "ONLINE", "GROC", "DEPT", "DINE", "MOVIE", "FUEL", "UTIL", "TEL"
 T_MERCH = {"type": "function", "function": {"name": "recommend_for_merchant", "description": "Rank the user's own cards for a direct purchase at a website/merchant/category (no vouchers).", "parameters": {"type": "object", "properties": {"merchant": {"type": "string", "description": "URL, domain, store name or category phrase"}, "amount": {"type": "number", "description": "INR, optional"}, "prime": {"type": "boolean", "description": "Amazon Prime member, if known"}, "category": {"type": "string", "enum": _CATS, "description": "Only if the merchant is unknown: the spend category"}}, "required": ["merchant"]}}}
 T_PLAN = {"type": "function", "function": {"name": "plan_voucher_purchase", "description": "User wants to shop at a store (e.g. Nike shoes from Amazon): returns which voucher to buy, a redirect link, and the best of THEIR cards/channels to buy it.", "parameters": {"type": "object", "properties": {"store": {"type": "string", "description": "The store they will shop at, e.g. Amazon"}, "amount": {"type": "number", "description": "INR"}, "item": {"type": "string", "description": "What they want, e.g. Nike shoes"}, "value_mode": {"type": "string", "enum": ["travel", "statement"]}}, "required": ["store", "amount"]}}}
 
-TOOLS = {"buyer": [T_LIST, T_ADD, T_REM, T_PLAN, T_BUY, T_MERCH], "seller": [T_LIST, T_ADD, T_REM, T_SELL, T_MERCH]}
+T_SUGGEST = {"type": "function", "function": {"name": "suggest_merchants", "description": "Seller side: turn what the seller wants to shop for into merchant options (or lock the store if they named one).", "parameters": {"type": "object", "properties": {"query": {"type": "string", "description": "The seller's own words, e.g. 'nike shoes from amazon'"}}, "required": ["query"]}}}
+T_DRAFT = {"type": "function", "function": {"name": "draft_request", "description": "Seller side: build the request summary for the chosen merchant and amount (does not post anything).", "parameters": {"type": "object", "properties": {"merchant": {"type": "string", "description": "merchant_id or name from the suggestions"}, "amount": {"type": "number", "description": "INR"}, "item": {"type": "string"}}, "required": ["merchant", "amount"]}}}
+T_FULFIL = {"type": "function", "function": {"name": "fulfil_request", "description": "Buyer side, after accepting a request: ranked options (best first, each with a link) from the buyer's own cards for the fixed voucher brand and amount.", "parameters": {"type": "object", "properties": {"brand": {"type": "string", "description": "voucher brand of the accepted request"}, "amount": {"type": "number", "description": "INR"}, "value_mode": {"type": "string", "enum": ["travel", "statement"]}}, "required": ["brand", "amount"]}}}
+
+TOOLS = {"buyer": [T_LIST, T_ADD, T_REM, T_FULFIL, T_PLAN, T_BUY, T_MERCH],
+         "seller": [T_LIST, T_ADD, T_REM, T_SUGGEST, T_DRAFT, T_SELL, T_MERCH]}
 
 
 def run_tool(user_id, name, args):
@@ -79,6 +89,12 @@ def run_tool(user_id, name, args):
         return engine.recommend_for_merchant(user_id, args.get("merchant", ""), args.get("amount"), args.get("prime"), args.get("category"))
     if name == "plan_voucher_purchase":
         return engine.plan_voucher_purchase(user_id, args.get("store", ""), args.get("amount"), args.get("item"), args.get("value_mode", "travel"))
+    if name == "suggest_merchants":
+        return flow.suggest_merchants(args.get("query", ""))
+    if name == "draft_request":
+        return flow.draft_request(args.get("merchant", ""), args.get("amount"), args.get("item"))
+    if name == "fulfil_request":
+        return flow.fulfil_request(user_id, args.get("brand", ""), args.get("amount"), args.get("value_mode", "travel"))
     if name == "recommend_seller_options":
         return engine.recommend_seller_options(user_id, args.get("amount_inr"))
     return {"error": f"unknown tool {name}"}

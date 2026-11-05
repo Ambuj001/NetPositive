@@ -9,6 +9,9 @@ POST /portfolio/add     {"user_id","card"}
 POST /portfolio/remove  {"user_id","card"}
 POST /recommend         {"user_id","url" | "query", "amount"?, "prime"?, "category"?}   <- extension
 POST /plan              {"user_id","store","amount","item"?,"value_mode"?}               <- website, no LLM
+POST /merchants/suggest {"query"}                                      <- seller: "shoes" -> merchant tiles
+POST /request/draft     {"merchant","amount","item"?}                  <- seller: summary of the request to post
+POST /request/fulfil    {"user_id","brand","amount","value_mode"?}     <- buyer: ranked options, best first, each with a link
 POST /chat              {"user_id","role":"buyer|seller","message"}                       <- website chatbot
 """
 import json
@@ -19,6 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import engine
+import flow
 
 MAX_BODY = 64 * 1024
 MAX_TURNS = 50
@@ -97,6 +101,12 @@ def route(method, path, query, body):
     if path == "/plan":
         return engine.plan_voucher_purchase(_user(body), str(body.get("store", "")), body.get("amount"),
                                             body.get("item"), body.get("value_mode", "travel"))
+    if path == "/merchants/suggest":
+        return flow.suggest_merchants(body.get("query"))
+    if path == "/request/draft":
+        return flow.draft_request(body.get("merchant"), body.get("amount"), body.get("item"))
+    if path == "/request/fulfil":
+        return flow.fulfil_request(_user(body), body.get("brand"), body.get("amount"), body.get("value_mode", "travel"))
     if path == "/chat":
         if body.get("reset"):
             with _sessions_lock:
