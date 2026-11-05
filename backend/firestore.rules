@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// All writes go through the Express backend (Admin SDK bypasses these rules).
+// Clients may only *read* public request state, e.g. for real-time onSnapshot status updates.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /requests/{requestId} {
+      allow read: if true;
+      allow write: if false;
+
+      // Encrypted voucher codes and the audit trail are backend-only.
+      match /{sub=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
