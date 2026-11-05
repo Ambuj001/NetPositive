@@ -130,7 +130,7 @@ try {
 
   console.log('== 1. Firestore reachable ==');
   await check('read/write access to the database works', async () => {
-    const r = await col.users.doc('__connectivity_probe__').get();
+    const r = await col.users.doc('np-connectivity-probe').get(); // note: ids like __x__ are reserved by Firestore
     assert.equal(r.exists, false);
   });
 

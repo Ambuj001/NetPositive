@@ -79,7 +79,14 @@ class DocSnap {
 }
 
 class DocRef {
-  constructor(path) { this.path = path; this.id = path.split('/').pop(); }
+  constructor(path) {
+    this.path = path;
+    this.id = path.split('/').pop();
+    // Real Firestore rejects reserved ids (anything of the form __name__) and "."/".." ; found by a real-database run.
+    if (/^__.*__$/.test(this.id) || this.id === '.' || this.id === '..' || this.id === '') {
+      throw err(3, `INVALID_ARGUMENT: Resource id "${this.id}" is invalid because it is reserved.`);
+    }
+  }
   collection(name) { return new CollRef(`${this.path}/${name}`); }
   async get() { return new DocSnap(this, store.get(this.path)); }
   set(data, opts) { return commit([{ op: 'set', ref: this, data, merge: !!opts?.merge }]); }
