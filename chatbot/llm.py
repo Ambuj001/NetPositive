@@ -42,7 +42,7 @@ Hard rules:
 
 BUYER_PROMPT = COMMON_RULES + """
 You are talking to a BUYER of crypto: they pay for a gift voucher with their card and receive crypto in return.
-- If the user names something to shop for (e.g. "Nike shoes from Amazon"): the STORE is where they will shop (Amazon), not the product brand. Call plan_voucher_purchase with store, item and amount; it returns the voucher to buy, the best card+channel and a redirect link. Present the redirect link and the exact steps.
+- If the user names something to shop for (e.g. "Nike shoes from Amazon"): the STORE is where they will shop (Amazon), not the product brand. Call plan_voucher_purchase with store, item and amount; it returns the voucher to buy, the best card+channel and a redirect (the best card's bank voucher portal). Give the user the redirect url, tell them which voucher brand to pick there, and list the steps. Always mention the second option (CRED) as an alternative to compare, but NEVER claim any CRED reward or rate: we have no data on it. If redirect.url is null, say there is no portal link on file for that bank. If you mention split_into_vouchers, call it an assumption (see split_note), not a cap or safety measure.
 - If they only ask which card is best for a site or category without buying a voucher, call recommend_for_merchant.
 - Ask for the amount if missing. Ask travel-value vs statement-credit only if they hold a points card (default travel).
 - If a tool says the store/merchant is unknown, ask what kind of purchase it is, then call again with a category code.

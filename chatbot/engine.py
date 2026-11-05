@@ -19,6 +19,8 @@ DATA = json.loads((ROOT / "data" / "cards.json").read_text(encoding="utf-8"))
 CARDS = {c["id"]: c for c in DATA["cards"]}
 ROUTES = DATA["routes"]
 MAX_DENOM = DATA["_meta"]["max_voucher_denomination"]
+PORTALS_DATA = json.loads((ROOT / "data" / "portals.json").read_text(encoding="utf-8"))
+PORTALS = PORTALS_DATA["portals"]
 STATE_FILE = ROOT / "state" / "portfolios.json"
 MATRIX_CHECKED_ON = "2026-11-05"
 MAX_AMOUNT = 100_000_000  # Rs 10 crore sanity cap
@@ -47,6 +49,18 @@ def _clean_amount(amount, required=False):
 
 def _norm(text):
     return re.sub(r"[^a-z0-9. ]", " ", str(text).lower()).strip()
+
+
+def _portal(card):
+    """Bank voucher portal for this card's issuer, or None (e.g. SBI: no link on file)."""
+    p = PORTALS.get(card.get("issuer"))
+    return {"name": p["name"], "url": p["url"], "note": p["note"]} if p else None
+
+
+def _cred():
+    c = dict(PORTALS_DATA["cred"])
+    c["url"] = os.environ.get("CRED_URL", c["url"])
+    return c
 
 
 # ---------- portfolio (per user) ----------
@@ -278,7 +292,7 @@ def _matrix_voucher_rows(card, amount):
             continue
         base = {"card": card["name"], "channel": _GROUP_CHANNEL[g], "grade": matrix.STATUS_LABEL[r["status"]],
                 "source": f"MCC matrix v2: {r['source']}", "checked_on": MATRIX_CHECKED_ON,
-                "note": r["note"], "steps": []}
+                "note": r["note"], "steps": [], "portal": _portal(card)}
         if r["status"] == "X":
             rows.append(("excluded", {**base, "reason": r["note"] or "excluded"}))
         elif r["status"] == "U" or r["reward_pct"] is None:
@@ -315,7 +329,7 @@ def recommend_voucher_routes(user_id, brand, amount, value_mode="travel"):
             covered.add(cid)
             base = {"card": card["name"], "channel": r["channel"], "grade": r["status"],
                     "source": r["source"], "checked_on": r["checked"], "note": r.get("note", ""),
-                    "steps": r.get("steps", [])}
+                    "steps": r.get("steps", []), "portal": _portal(card)}
             if r["kind"] == "excluded":
                 excluded.append({**base, "reason": r["note"]})
                 continue
@@ -339,7 +353,9 @@ def recommend_voucher_routes(user_id, brand, amount, value_mode="travel"):
     return {"brand": brand, "amount": amount, "value_mode": value_mode,
             "recommended": ranked, "needs_reverification": unverified,
             "not_recommended": excluded, "no_data_for_cards": uncovered,
-            "split_into_vouchers": _split(amount)}
+            "split_into_vouchers": _split(amount), "second_option": _cred(),
+            "split_note": f"Assumes a maximum voucher size of Rs {MAX_DENOM} (taken from the Lifestyle example). "
+                          "Real denominations differ by brand and portal, and this split only affects per-voucher point rounding."}
 
 
 def plan_voucher_purchase(user_id, store, amount, item=None, value_mode="travel", prime=None):
@@ -361,10 +377,19 @@ def plan_voucher_purchase(user_id, store, amount, item=None, value_mode="travel"
     routes = recommend_voucher_routes(user_id, m["voucher_brand"], amt, value_mode)
     if "error" in routes:
         return {**out, **routes}
+    best = (routes["recommended"] or routes["needs_reverification"] or [None])[0]
     template = os.environ.get("VOUCHER_RAIL_URL", "/voucher-rail?brand={brand}&amount={amount}")
-    out.update(voucher_available=True, voucher_brand=m["voucher_brand"],
-               redirect={"url": template.format(brand=quote(m["voucher_brand"]), amount=int(amt)),
-                         "note": "Placeholder route into the Voucher Rail request flow; set VOUCHER_RAIL_URL."},
+    redirect = {"voucher_brand": m["voucher_brand"], "second_option": routes["second_option"]}
+    if best:
+        portal = best.get("portal")
+        redirect.update(via_card=best["card"], channel=best["channel"], portal=portal["name"] if portal else None,
+                        url=portal["url"] if portal else None,
+                        note=(f"Opens the {portal['name']} landing page: pick the {m['voucher_brand']} voucher there. {portal['note']}".strip()
+                              if portal else f"No portal link on file for {best['card']}'s bank: follow the steps, or try the second option."))
+    else:
+        redirect.update(via_card=None, url=None, note="None of the user's cards has a usable voucher route: send them to the second option.")
+    out.update(voucher_available=True, voucher_brand=m["voucher_brand"], redirect=redirect,
+               voucher_rail_url=template.format(brand=quote(m["voucher_brand"]), amount=int(amt)),
                routes=routes, disclaimers=[matrix.VOUCHER_DISCLAIMER, matrix.MCC_DISCLAIMER])
     return out
 

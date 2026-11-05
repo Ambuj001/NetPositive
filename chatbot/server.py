@@ -145,6 +145,13 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError:
                     raise ApiError(400, "bad Content-Length")
                 if n > MAX_BODY:
+                    left = min(n, 1024 * 1024)  # drain (bounded) so the client sees the 413 instead of a connection reset
+                    while left > 0:
+                        chunk = self.rfile.read(min(65536, left))
+                        if not chunk:
+                            break
+                        left -= len(chunk)
+                    self.close_connection = True
                     raise ApiError(413, "body too large")
                 raw = self.rfile.read(n) if n else b"{}"
                 try:

@@ -50,7 +50,9 @@ class ServerTests(unittest.TestCase):
         self.call("POST", "/portfolio/add", {"user_id": "p1", "card": "Infinia"})
         res = self.call("POST", "/plan", {"user_id": "p1", "store": "Nike shoes from Amazon", "amount": 10000, "item": "Nike shoes"})[1]
         self.assertEqual(res["voucher_brand"], "Amazon")
-        self.assertTrue(res["redirect"]["url"].startswith("/voucher-rail?"))
+        self.assertTrue(res["voucher_rail_url"].startswith("/voucher-rail?"))
+        self.assertEqual(res["redirect"]["url"], "https://www.gyftr.com/instantvouchers")
+        self.assertEqual(res["redirect"]["second_option"]["name"], "CRED")
 
     def test_bad_inputs(self):
         self.assertEqual(self.call("POST", "/recommend", {"user_id": "../etc", "url": "amazon.in"})[0], 400)

@@ -215,13 +215,16 @@ class VoucherFallbackAndPlan(Base):
         p = engine.plan_voucher_purchase("saad", "Nike shoes from Amazon", 10000, item="Nike shoes")
         self.assertEqual((p["store"], p["voucher_brand"], p["voucher_available"]), ("Amazon", "Amazon", True))
         self.assertEqual(p["category"], "general online retail")
-        self.assertEqual(p["redirect"]["url"], "/voucher-rail?brand=Amazon&amount=10000")
+        self.assertEqual(p["voucher_rail_url"], "/voucher-rail?brand=Amazon&amount=10000")
         self.assertEqual(p["routes"]["recommended"][0]["channel"], "HDFC SmartBuy (accelerated 5X)")
+        self.assertEqual(p["redirect"]["url"], "https://www.gyftr.com/instantvouchers")  # best card is HDFC -> HDFC portal
+        self.assertEqual(p["redirect"]["via_card"], "HDFC Infinia")
+        self.assertEqual(p["redirect"]["voucher_brand"], "Amazon")
 
     def test_plan_redirect_is_url_encoded(self):
         self.cards("u", "Infinia")
         p = engine.plan_voucher_purchase("u", "Tata CLiQ", 5000)
-        self.assertIn("brand=Tata%20CLiQ", p["redirect"]["url"])
+        self.assertIn("brand=Tata%20CLiQ", p["voucher_rail_url"])
 
     def test_plan_without_voucher_falls_back_to_direct(self):
         self.cards("u", "Infinia")
@@ -235,6 +238,72 @@ class VoucherFallbackAndPlan(Base):
         self.assertIn("error", engine.plan_voucher_purchase("u", "amazon", None))
         self.assertIn("error", engine.plan_voucher_purchase("u", "amazon", -1))
         self.assertIn("error", engine.plan_voucher_purchase("nobody", "amazon", 1000))
+
+
+class PortalsAndCred(Base):
+    URLS = {
+        "Infinia": "https://www.gyftr.com/instantvouchers",
+        "Emeralde": "https://www.ishoprewards.com/shopping-vouchers",
+        "Axis Atlas": "https://www.gyftr.com/edgerewards",
+        "Platinum Charge": "https://global.americanexpress.com/rewards/gift-cards",
+        "Zen Signature": "https://www.gyftr.com/kotak-instantvouchers/",
+    }
+
+    def test_each_issuer_gets_its_own_portal(self):
+        for card, url in self.URLS.items():
+            engine.STATE_FILE = Path(tempfile.mkdtemp()) / "pf.json"
+            self.cards("u", card)
+            p = engine.plan_voucher_purchase("u", "amazon", 10000)
+            self.assertEqual(p["redirect"]["url"], url, card)
+
+    def test_redirect_follows_the_best_card_in_the_portfolio(self):
+        self.cards("u", "Emeralde", "Infinia")  # Infinia verified 16.5% beats stale iShop
+        self.assertEqual(engine.plan_voucher_purchase("u", "amazon", 10000)["redirect"]["via_card"], "HDFC Infinia")
+        self.cards("v", "Emeralde")  # only ICICI -> ICICI portal
+        self.assertIn("ishoprewards", engine.plan_voucher_purchase("v", "amazon", 10000)["redirect"]["url"])
+
+    def test_sbi_has_no_link_and_says_so(self):
+        self.cards("u", "SBI Aurum")
+        r = engine.plan_voucher_purchase("u", "amazon", 10000)["redirect"]
+        self.assertIsNone(r["url"])
+        self.assertIn("No portal link", r["note"])
+
+    def test_cred_is_second_option_with_no_reward_claim(self):
+        self.cards("u", "Infinia", "Magnus")
+        res = engine.recommend_voucher_routes("u", "Lifestyle", 10000)
+        self.assertEqual(res["second_option"]["name"], "CRED")
+        self.assertNotIn("reward_pct", res["second_option"])
+        self.assertIn("Assumes a maximum voucher size", res["split_note"])
+        self.assertEqual(engine.plan_voucher_purchase("u", "amazon", 10000)["redirect"]["second_option"]["name"], "CRED")
+
+    def test_excluded_card_still_gets_cred_and_portal_not_a_reward(self):
+        self.cards("u", "Magnus")
+        p = engine.plan_voucher_purchase("u", "amazon", 10000)
+        self.assertEqual(p["routes"]["recommended"], [])
+        self.assertEqual(p["redirect"]["second_option"]["name"], "CRED")
+        self.assertIn("none of the user", p["redirect"]["note"].lower())
+
+    def test_no_card_name_leaks_for_any_single_card(self):
+        import re
+        cards = list(engine.CARDS.values())
+        for c in cards:
+            uid = "leak_" + c["id"]
+            engine.add_card(uid, c["name"])
+            outs = [engine.recommend_for_merchant(uid, q, 1000, True) for q in
+                    ("amazon.in", "flipkart.com", "croma.com", "swiggy.com", "petrol", "electricity", "example.com", "makemytrip.com")]
+            outs += [engine.recommend_voucher_routes(uid, b, 10000) for b in ("Amazon", "Lifestyle")]
+            outs += [engine.plan_voucher_purchase(uid, s, 10000) for s in ("amazon", "blinkit", "Tata CLiQ")]
+            outs += [engine.recommend_seller_options(uid, 10000)]
+            blob = json.dumps(outs).lower()
+            own = engine._norm(c["name"])
+            for o in cards:
+                if o["id"] == c["id"] or {o["id"], c["id"]} == {"hdfc_infinia", "hdfc_infinia_metal"}:
+                    continue
+                for n in [o["name"]] + o["aliases"]:
+                    n = engine._norm(n)
+                    if len(n) <= 3 or n in own:  # short aliases are ambiguous words; own-name substrings are not leaks
+                        continue
+                    self.assertIsNone(re.search(r"(?<![a-z0-9])" + re.escape(n) + r"(?![a-z0-9])", blob), (c["name"], "sees", n))
 
 
 class FindCard(unittest.TestCase):
