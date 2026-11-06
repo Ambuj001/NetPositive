@@ -214,7 +214,7 @@ try {
     assert.ok(byBrand.body.requests.some((x) => x.id === reqOpen.id));
     const mine = await api('GET', '/requests/mine', { token: ta });
     assert.equal(mine.status, 200, mine.text);
-    assert.equal(mine.body.asRequester.length, 2);
+    assert.equal(mine.body.asCryptoSpender.length, 2);
   });
 } finally {
   backend.close();

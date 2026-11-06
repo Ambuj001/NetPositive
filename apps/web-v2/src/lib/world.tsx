@@ -51,11 +51,28 @@ const CANCELLED: WorldNotice = {
   detail: "You closed World ID before it finished. You can keep browsing. Posting or accepting an order stays locked until Proof of Human succeeds.",
 };
 
-const INELIGIBLE: WorldNotice = {
-  outcome: "ineligible",
-  title: "This person already has an account",
-  detail: "This World ID is linked to another wallet. One human, one account, so a banned trader can't start over. This wallet can browse, but it can't post or accept.",
-};
+const shortAddr = (a: string) => (a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a);
+
+/** "Already linked" tells the person exactly which wallet holds their World ID and which one they are using now. */
+function alreadyLinked(error: ApiError, connected?: string): WorldNotice {
+  const d = (error.details ?? {}) as { linkedWallet?: string };
+  const linked = typeof d.linkedWallet === "string" ? d.linkedWallet : null;
+  const here = connected ? shortAddr(connected) : null;
+  return {
+    outcome: "ineligible",
+    title: "This person already has an account",
+    detail: linked
+      ? `This World ID is already linked to ${shortAddr(linked)}${here ? `, and you're connected as ${here}` : ""}. It's one person, one account: switch to ${shortAddr(linked)}, or use a different World ID. This wallet can browse, but it can't post or accept.`
+      : "This World ID is already linked to another wallet. It's one person, one account. This wallet can browse, but it can't post or accept.",
+  };
+}
+
+/**
+ * LOCAL DEVELOPMENT ONLY. With VITE_WORLD_ID_BYPASS=true the app skips the World ID widget and asks the backend to register the
+ * wallet directly (the backend must also run WORLD_ID_DEV_BYPASS=true). `import.meta.env.DEV` is false in a production build,
+ * so this can never be switched on in a deployed app.
+ */
+const BYPASS = import.meta.env.DEV && (import.meta.env.VITE_WORLD_ID_BYPASS as string | undefined) === "true";
 
 function readAppId(): `app_${string}` {
   const id = ((import.meta.env.VITE_WORLD_ID_APP_ID as string | undefined) ?? "").trim() || "app_ee3eaaf80b272b3dff6854c30744dd65";
@@ -73,7 +90,7 @@ function isWalletReject(error: unknown) {
   return e?.code === 4001 || /reject|denied|cancel/i.test(e?.message ?? "");
 }
 
-function toNotice(error: unknown): WorldNotice {
+function toNotice(error: unknown, connected?: string): WorldNotice {
   if (!(error instanceof ApiError)) {
     return { outcome: "rejected", title: "Couldn't verify", detail: "World ID didn't finish. You can try again, or keep browsing." };
   }
@@ -84,7 +101,7 @@ function toNotice(error: unknown): WorldNotice {
       detail: "You declined the wallet signature. Nothing was checked. You can keep browsing. Posting and accepting stay locked.",
     };
   }
-  if (error.code === "world_id_already_used") return INELIGIBLE;
+  if (error.code === "world_id_already_used") return alreadyLinked(error, connected);
   if (error.code === "wallet_already_verified") {
     return {
       outcome: "ineligible",
@@ -221,6 +238,12 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
       const session = await ensureSession();
       tokenRef.current = session.token;
       if (session.already) return true;
+      if (BYPASS) {
+        await api("/world-id/verify", { token: session.token, body: {} });
+        appRef.current.applySession(appRef.current.fullAddress, session.token, true);
+        appRef.current.toast({ title: "Registered (dev bypass)", body: "World ID was skipped for local testing. This wallet counts as a verified human.", tone: "amber" });
+        return true;
+      }
       const rp = await fetchSignature(session.token);
       requestRef.current = rp;
       setRequest(rp);
@@ -260,7 +283,7 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
       appRef.current.applySession(address, token, true);
       succeededRef.current = true;
     } catch (error) {
-      const next = toNotice(error);
+      const next = toNotice(error, address);
       noticeRef.current = next;
       throw new Error(next.detail);
     }

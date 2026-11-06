@@ -5,7 +5,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { validate, txHash } from '../middleware/validate.js';
 import { HttpError } from '../lib/errors.js';
 import * as svc from '../services/disputes.js';
-import { getRequest } from '../services/requests.js';
+import { getRequest, spenderOf } from '../services/requests.js';
 
 const router = Router();
 const isAdmin = (req) => config.ADMIN_ADDRESSES.includes(req.user.address);
@@ -79,7 +79,7 @@ router.post(
     if (!verdict) {
       const r = await getRequest(req.params.id);
       const disputer = r.dispute?.by ?? r.disputedBy;
-      verdict = (req.body.outcome === 'refund') === (disputer === r.requester) ? 'disputer_right' : 'disputer_wrong';
+      verdict = (req.body.outcome === 'refund') === (disputer === spenderOf(r)) ? 'disputer_right' : 'disputer_wrong';
     }
     res.json({ request: await svc.resolveDispute(req.params.id, req.user.address, { verdict, note: req.body.note }) });
   },

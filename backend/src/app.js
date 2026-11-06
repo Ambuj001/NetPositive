@@ -16,7 +16,7 @@ export function createApp() {
   app.use(cors({ origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : false }));
   app.use(express.json({ limit: '256kb' }));
 
-  app.get('/health', (_req, res) => res.json({ ok: true, escrowMode: config.ESCROW_MODE, worldIdMock: config.WORLD_ID_MOCK, worldIdReady: worldIdReady() }));
+  app.get('/health', (_req, res) => res.json({ ok: true, escrowMode: config.ESCROW_MODE, worldIdMock: config.WORLD_ID_MOCK, worldIdBypass: config.WORLD_ID_DEV_BYPASS, worldIdReady: worldIdReady() }));
 
   app.use('/auth', authRoutes);
   app.use('/world-id', worldIdRoutes);

@@ -25,9 +25,12 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Aurora, BrandMark, Button, Card, Pill, Row, cx } from "../components/ui";
+import { api, brandIdFromApi, type ApiRequest } from "../lib/api";
 import { brand } from "../lib/data";
 import { effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
+import { ledgerFromRequest, toOrder } from "../lib/orderbook";
 import { useApp } from "../lib/store";
+import { shortAddr } from "../lib/wallet";
 import { useWorldId } from "../lib/world";
 
 type Role = "seller" | "buyer";
@@ -49,9 +52,18 @@ export default function Trade() {
   const { id = "VR-24817" } = useParams();
   const { orders, address, humanVerified, openWallet, toast } = useApp();
   const { verifyHuman, phase } = useWorldId();
-  const order = orders.find((o) => o.id === id) ?? orders[0];
+  const [request, setRequest] = useState<ApiRequest | null>(null);
+  useEffect(() => {
+    let stop = false;
+    api.get(id).then(({ request: next }) => { if (!stop) setRequest(next); }).catch(() => { if (!stop) setRequest(null); });
+    return () => { stop = true };
+  }, [id]);
+  const local = orders.find((o) => o.id === id);
+  const order = request
+    ? { ...toOrder(request), rate: ledgerFromRequest(request).rate }
+    : local ?? (id.startsWith("VR-") ? orders[0] : { id, brandId: brandIdFromApi("amazon"), amount: 0, rate: 0, seller: "", sellerTrades: 0, city: "", postedMin: 0, expiresMin: 30 });
   const b = brand(order.brandId);
-  const q = quote(order.amount, order.rate);
+  const q = request ? ledgerFromRequest(request) : quote(order.amount || 0, order.rate || 1);
   const routes = useMemo(() => routesFor(order.amount), [order.amount]);
   const nCodes = Math.max(1, Math.ceil(order.amount / 5000));
   const denom = Math.round(order.amount / nCodes);
@@ -67,10 +79,15 @@ export default function Trade() {
   const [revealed, setRevealed] = useState(false);
   const [recheck, setRecheck] = useState<"idle" | "busy" | "ok">("idle");
   const [dispute, setDispute] = useState(false);
-  const [log, setLog] = useState<{ t: string; e: string; tone: string }[]>([
-    { t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" },
-  ]);
+  const [log, setLog] = useState<{ t: string; e: string; tone: string }[]>([]);
   const [clock, setClock] = useState(30 * 60);
+
+  useEffect(() => {
+    if (!request && !local && !id.startsWith("VR-")) return;
+    const when = request?.fundedAt || request?.createdAt;
+    const t = when ? new Date(when).toTimeString().slice(0, 8) : "14:00:02";
+    setLog([{ t, e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" }]);
+  }, [request, local, id, order.id, q.sellerLocks]);
 
   const push = (e: string, tone = "mint") => {
     const d = new Date();
@@ -129,7 +146,8 @@ export default function Trade() {
     setRevealed(false);
     setRecheck("idle");
     setClock(30 * 60);
-    setLog([{ t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" }]);
+    const when = request?.fundedAt || request?.createdAt;
+    setLog([{ t: when ? new Date(when).toTimeString().slice(0, 8) : "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" }]);
   };
 
   // Verifier runs by itself
@@ -479,9 +497,11 @@ export default function Trade() {
                 <Row k="Buyer gets" v={usdt(q.buyerReceives)} />
                 <Row k="Dispute reserve" v={usdt(q.reserveShare)} />
                 <Row k="Platform" v={usdt(q.platformShare)} />
-                <Row k="Rate" v={`₹${order.rate}`} />
+                <Row k="Rate" v={`₹${order.rate.toFixed(2)}`} />
               </div>
-              <div className="mt-3 truncate font-mono text-[10.5px] text-dim">contract 0xE5c7…41aB · Base Sepolia</div>
+              <div className="mt-3 truncate font-mono text-[10.5px] text-dim">
+                {request ? `escrow ${shortAddr(request.escrowId)} · Arc${request.escrowTxHash ? ` · ${shortAddr(request.escrowTxHash)}` : ""}` : "contract 0xE5c7…41aB · Base Sepolia"}
+              </div>
             </Card>
             <Card className="p-5">
               <div className="label mb-3">Contract events</div>
