@@ -2,6 +2,17 @@
 
 Payment and rewards optimisation research for credit, debit and crypto cards, including direct payment and voucher routes.
 
+## Frontend preview
+
+The first frontend is in `apps/web` on the `frontend` branch. See [setup and implementation details](docs/frontend/README.md).
+
+```sh
+npm ci
+npm run dev
+```
+
+Requires Node 22.12+ and npm 10+. Run `npm test` and `npm run build` to check it. Wallet access uses Arc Testnet; voucher exchanges remain previews.
+
 ## Research archive
 
 See [the research index](data/research/2026-11-05/README.md) for six original attachments, searchable PDF extracts and a source manifest with SHA-256 hashes.
