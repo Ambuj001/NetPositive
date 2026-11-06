@@ -1,0 +1,24 @@
+{
+  "network": "Arc testnet",
+  "chainId": 5042002,
+  "escrow": "0x96456Edda0DEAd356EB8c97c2865FEBb693E0888",
+  "keyRegistry": {
+    "address": "0x00f8924768D9b8019E6ba2878E8F55d321b98312",
+    "txHash": "0xa010f6d0605c27e4aaf145229efab3951374ee779add8fdf32833939ae43a3c7",
+    "block": 71044499,
+    "gasUsed": 234922
+  },
+  "codeMailbox": {
+    "address": "0xA8243e92A89de7F62D3023EB68EEB4f4e40e88B1",
+    "txHash": "0x3d92db54a85dbd511a0bf3c02ce4563c663134580411e55be58df6939ad44ae2",
+    "block": 71044502,
+    "gasUsed": 1027650
+  },
+  "deployer": "0xd0a8192Fc3b99644DEc54D2E0420D4B4a71135a4",
+  "compiler": {
+    "solc": "0.8.24",
+    "evmVersion": "paris",
+    "optimizerRuns": 200
+  },
+  "deployedAt": "2026-11-06T14:42:29.344Z"
+}
