@@ -153,6 +153,16 @@ export function routesFor(voucherInr: number, cards: Card[] = CARDS): Route[] {
   return out.sort((a, b) => b.pctTravel - a.pctTravel);
 }
 
+export type RewardValue = "cash" | "travel";
+
+/** Best route for a voucher across the given cards, valued as statement credit (cash) or travel. */
+export function bestReward(voucherInr: number, cards: Card[], value: RewardValue = "cash") {
+  if (!(voucherInr > 0) || !cards.length) return { route: undefined as Route | undefined, rewardInr: 0 };
+  const route = routesFor(voucherInr, cards).sort((a, b) => (value === "cash" ? b.statementInr - a.statementInr : b.travelInr - a.travelInr))[0];
+  const raw = route ? (value === "cash" ? route.statementInr : route.travelInr) : 0;
+  return { route, rewardInr: Math.min(voucherInr, raw) };
+}
+
 export function effectivePrice(voucherInr: number, rewardInr: number, usdt: number) {
   return round2((voucherInr - rewardInr) / usdt);
 }
