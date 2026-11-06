@@ -42,6 +42,7 @@ const card = (id = 'infinia', over = {}) => ({
   channels: [{ id: 'smartbuy', name: 'SmartBuy 5X', multiplier: 5, denomination: 10000, note: 'Accelerated' }, { id: 'direct', name: 'Direct', multiplier: 1, denomination: 10000, note: '' }],
   ...over,
 });
+const { CATALOG } = await import('../../apps/web-v2/src/lib/cardCatalog.ts'); // the cards the app's picker offers
 const list = async (w) => (await call('GET', '/cards', { token: w.token })).body;
 
 console.log('\nCards tests (in-memory Firestore stand-in)\n');
@@ -156,6 +157,29 @@ await check('a valid minimal card and the boundary values are accepted', async (
   const edge = card('edge', { pointsPer: 0, spendUnit: 0.01, travelValue: 100, statementValue: 0, bonusCap: 10_000_000, bonusUsed: 10_000_000, last: '', gradient: 'g'.repeat(300), channels: [{ id: 'a', name: 'n', multiplier: 100, denomination: 10_000_000, note: '', instantDiscount: 1 }] });
   assert.equal((await call('PUT', '/cards/edge', { token: A.token, body: edge })).status, 200);
   await call('DELETE', '/cards/edge', { token: A.token });
+});
+
+console.log('\n== 4b. Every card the picker offers is accepted ==');
+await check("each card in the app's card list saves, comes back identical, and stays under the 30-card limit per wallet", async () => {
+  assert.ok(CATALOG.length >= 30, `catalog has ${CATALOG.length}`);
+  const half = Math.ceil(CATALOG.length / 2);
+  for (const part of [CATALOG.slice(0, half), CATALOG.slice(half)]) {
+    const W = await wallet();
+    for (const c of part) {
+      const r = await call('PUT', `/cards/${c.id}`, { token: W.token, body: c.profile });
+      assert.equal(r.status, 200, `${c.id}: ${r.text}`);
+    }
+    const saved = (await list(W)).cards;
+    assert.equal(saved.length, part.length);
+    for (const c of part) assert.deepEqual(saved.find((x) => x.id === c.id), c.profile, c.id);
+  }
+});
+await check('picking several cards at once (as the picker does) saves them all', async () => {
+  const W = await wallet();
+  const picks = CATALOG.slice(0, 6);
+  const rs = await Promise.all(picks.map((c) => call('PUT', `/cards/${c.id}`, { token: W.token, body: c.profile })));
+  assert.ok(rs.every((r) => r.status === 200));
+  assert.deepEqual((await list(W)).cards.map((c) => c.id).sort(), picks.map((c) => c.id).sort());
 });
 
 console.log('\n== 5. The 30-card limit ==');
