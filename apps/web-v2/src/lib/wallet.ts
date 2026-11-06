@@ -154,6 +154,29 @@ export function walletMessage(error: unknown) {
 
 type Session = { id: string; name: string; icon?: string; provider: Provider; kind: "injected" | Fallback };
 
+/* ------------------------------------------------- remember last wallet */
+
+// Only which wallet was used (id + extension rdns). The wallet itself decides if the site is still approved.
+const SAVED_KEY = "netpositive:wallet";
+type Saved = { id: string; rdns?: string };
+function readSaved(): Saved | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(SAVED_KEY) ?? "null");
+    return v && typeof v.id === "string" ? { id: v.id, rdns: typeof v.rdns === "string" ? v.rdns : undefined } : null;
+  } catch {
+    return null;
+  }
+}
+function writeSaved(v: Saved | null) {
+  try {
+    if (v) localStorage.setItem(SAVED_KEY, JSON.stringify(v));
+    else localStorage.removeItem(SAVED_KEY);
+  } catch {
+    /* storage blocked: reconnect just won't persist */
+  }
+}
+const toHexChain = (c: unknown) => (typeof c === "string" ? c : typeof c === "number" ? "0x" + c.toString(16) : "");
+
 export function useWallet() {
   const [announced, setAnnounced] = useState<Announced[]>([]);
   const [session, setSession] = useState<Session | null>(null);
@@ -162,6 +185,11 @@ export function useWallet() {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState("");
   const attemptRef = useRef(0);
+  /** True while discovery runs, so installed extensions are known before restoring. */
+  const [discovered, setDiscovered] = useState(false);
+  /** True while silently restoring the last wallet after a reload. */
+  const [restoring, setRestoring] = useState(() => readSaved() !== null);
+  const restoreTried = useRef(false);
 
   // Discover installed extensions (EIP-6963), with a legacy window.ethereum fallback.
   useEffect(() => {
@@ -173,6 +201,7 @@ export function useWallet() {
     window.addEventListener("eip6963:announceProvider", onAnnounce);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
     const t = setTimeout(() => {
+      setDiscovered(true);
       const provider = window.ethereum;
       if (!provider) return;
       setAnnounced((prev) =>
@@ -212,6 +241,44 @@ export function useWallet() {
     return [...rows.filter((r) => r.status === "installed"), ...others, ...rows.filter((r) => r.status !== "installed")];
   }, [announced]);
 
+  // After a reload, reconnect the last wallet silently. eth_accounts never opens a popup and
+  // returns [] if the user revoked the site in the wallet, so nothing is forced.
+  useEffect(() => {
+    if (!discovered || restoreTried.current) return;
+    restoreTried.current = true;
+    const saved = readSaved();
+    const choice = saved && (choices.find((c) => c.id === saved.id) ?? (saved.rdns ? choices.find((c) => c.announced?.info.rdns === saved.rdns) : undefined));
+    const sdk = choice && !choice.announced && (choice.fallback === "base-sdk" || choice.fallback === "coinbase-sdk" || (choice.fallback === "walletconnect" && !!WC_PROJECT_ID));
+    if (!choice || (!choice.announced && !sdk)) {
+      setRestoring(false);
+      return;
+    }
+    const attempt = ++attemptRef.current;
+    (async () => {
+      try {
+        const kind: Session["kind"] = choice.announced ? "injected" : choice.fallback;
+        const provider = choice.announced
+          ? choice.announced.provider
+          : choice.fallback === "walletconnect"
+            ? await loadWalletConnect()
+            : await loadSdk(choice.fallback as "base-sdk" | "coinbase-sdk");
+        const accounts = await provider.request({ method: "eth_accounts" });
+        const first = Array.isArray(accounts) ? accounts[0] : undefined;
+        if (attempt !== attemptRef.current) return;
+        if (!isAddress(first)) return writeSaved(null);
+        const chain = await provider.request({ method: "eth_chainId" }).catch(() => "");
+        if (attempt !== attemptRef.current) return;
+        setSession({ id: choice.id, name: choice.name, icon: choice.icon, provider, kind });
+        setAddress(first);
+        setChainId(toHexChain(chain));
+      } catch {
+        /* wallet locked or unavailable: stay disconnected */
+      } finally {
+        if (attempt === attemptRef.current) setRestoring(false);
+      }
+    })();
+  }, [discovered, choices]);
+
   // Follow account / network changes made inside the wallet.
   useEffect(() => {
     const p = session?.provider;
@@ -220,6 +287,7 @@ export function useWallet() {
       const first = Array.isArray(accounts) ? accounts[0] : undefined;
       if (isAddress(first)) setAddress(first);
       else {
+        writeSaved(null);
         setAddress("");
         setChainId("");
         setSession(null);
@@ -231,6 +299,7 @@ export function useWallet() {
     };
     const onDisconnect = () => {
       attemptRef.current++;
+      writeSaved(null);
       setAddress("");
       setChainId("");
       setSession(null);
@@ -259,6 +328,7 @@ export function useWallet() {
       return false;
     }
     const attempt = ++attemptRef.current;
+    setRestoring(false);
     setPending(choice.id);
     setError("");
     try {
@@ -282,7 +352,8 @@ export function useWallet() {
       if (attempt !== attemptRef.current) return false;
       setSession({ id: choice.id, name: choice.name, icon: choice.icon, provider, kind });
       setAddress(first);
-      setChainId(typeof chain === "string" ? chain : typeof chain === "number" ? "0x" + chain.toString(16) : "");
+      setChainId(toHexChain(chain));
+      writeSaved({ id: choice.id, rdns: choice.announced?.info.rdns || undefined });
       return true;
     } catch (e) {
       if (attempt === attemptRef.current) setError(walletMessage(e));
@@ -294,6 +365,8 @@ export function useWallet() {
 
   const disconnect = useCallback(async () => {
     attemptRef.current++;
+    writeSaved(null);
+    setRestoring(false);
     const s = session;
     setSession(null);
     setAddress("");
@@ -312,7 +385,22 @@ export function useWallet() {
     }
   }, [session]);
 
+  /** personal_sign with the connected wallet (used for backend sign-in). */
+  const signMessage = useCallback(
+    async (message: string) => {
+      const p = session?.provider;
+      if (!p || !address) throw new Error("Connect a wallet first");
+      const hexMsg = "0x" + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, "0")).join("");
+      const sig = await p.request({ method: "personal_sign", params: [hexMsg, address] });
+      if (typeof sig !== "string" || !/^0x[0-9a-fA-F]+$/.test(sig)) throw new Error("Wallet returned no signature");
+      return sig;
+    },
+    [session, address],
+  );
+
   return {
+    restoring,
+    signMessage,
     choices,
     address,
     chainId,

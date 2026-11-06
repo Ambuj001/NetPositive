@@ -44,14 +44,14 @@ export default function Market() {
         <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div>
             <Pill tone="amber">Buyer · wants crypto</Pill>
-            <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Buy USDT below market</h1>
+            <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Buy USDC below market</h1>
             <p className="mt-3 max-w-xl text-[15.5px] text-mute">
-              Every request is already locked in escrow. We rank each one against the cards saved on your device, so you see your real price per USDT.
+              Every request is already locked in escrow. We rank each one against the cards saved on your device, so you see your real price per USDC.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/[0.06]">
             {[
-              { k: "In escrow", v: <Counter value={totalUsdt} format={(n) => `${Math.round(n).toLocaleString("en-US")}`} />, s: "USDT" },
+              { k: "In escrow", v: <Counter value={totalUsdt} format={(n) => `${Math.round(n).toLocaleString("en-US")}`} />, s: "USDC" },
               { k: "Open orders", v: <Counter value={rows.length} />, s: "live" },
               { k: "Median fill", v: "4m 12s", s: "" },
             ].map((x) => (
@@ -135,13 +135,13 @@ export default function Market() {
                           </div>
                           <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-dim">
                             <ShieldCheck className="size-3 text-mint" />
-                            <span className="font-mono">{o.seller}</span>· {o.sellerTrades} trades · ₹{o.rate}/USDT
+                            <span className="font-mono">{o.seller}</span>· {o.sellerTrades} trades · ₹{o.rate}/USDC
                           </div>
                         </div>
                       </div>
                       <div>
                         <div className="label md:hidden">You receive</div>
-                        <div className="text-[15px] font-semibold tabular">{usdt(qt.buyerReceives)} <span className="text-[11px] text-dim">USDT</span></div>
+                        <div className="text-[15px] font-semibold tabular">{usdt(qt.buyerReceives)} <span className="text-[11px] text-dim">USDC</span></div>
                       </div>
                       <div>
                         <div className="label md:hidden">Best route</div>
@@ -206,8 +206,8 @@ export default function Market() {
                 <BadgeCheck className="size-4 text-mint" /> Why it's safe to fill
               </div>
               <ul className="mt-3 space-y-2.5 text-[12.5px] leading-relaxed text-mute">
-                <li>Seller's USDT is already in escrow before you see the order.</li>
-                <li>You only spend on your card after accepting, and the contract holds the USDT for you.</li>
+                <li>Seller's USDC is already in escrow before you see the order.</li>
+                <li>You only spend on your card after accepting, and the contract holds the USDC for you.</li>
                 <li>Payout follows the verifier's signed pass, or 30 min after it automatically.</li>
               </ul>
             </Card>

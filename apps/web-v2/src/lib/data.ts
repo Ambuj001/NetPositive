@@ -20,7 +20,17 @@ export const BRANDS: Brand[] = [
   { id: "nykaa", name: "Nykaa", category: "Beauty", color: "#fc2779", glyph: "N", domains: ["nykaa.com"] },
   { id: "kalyan", name: "Kalyan Jewellers", category: "Jewellery", color: "#b8862b", glyph: "K", domains: ["kalyanjewellers.net"], merchantPortal: true },
   { id: "bookmyshow", name: "BookMyShow", category: "Entertainment", color: "#e5373f", glyph: "B", domains: ["bookmyshow.com"] },
+  { id: "flipkart", name: "Flipkart", category: "Everything", color: "#2874f0", glyph: "F", domains: ["flipkart.com"] },
+  { id: "ajio", name: "AJIO", category: "Fashion", color: "#2c4152", glyph: "A", domains: ["ajio.com"] },
+  { id: "nike", name: "Nike", category: "Fashion", color: "#111111", glyph: "N", domains: ["nike.com"] },
+  { id: "tatacliq", name: "Tata CLiQ", category: "Everything", color: "#da1c5c", glyph: "T", domains: ["tatacliq.com"] },
+  { id: "bigbasket", name: "BigBasket", category: "Groceries", color: "#84c225", glyph: "b", domains: ["bigbasket.com"] },
+  { id: "zomato", name: "Zomato", category: "Food", color: "#e23744", glyph: "Z", domains: ["zomato.com"] },
+  { id: "tajhotels", name: "Taj Hotels", category: "Travel", color: "#a0815c", glyph: "T", domains: ["tajhotels.com"] },
 ];
+
+/** Exact lookup; undefined when the brand isn't in the list. */
+export const findBrand = (id: string) => BRANDS.find((b) => b.id === id);
 
 export const brand = (id: string) => BRANDS.find((b) => b.id === id) ?? BRANDS[0];
 
@@ -48,12 +58,12 @@ export const ORDERS: Order[] = [
 ];
 
 export const FEED = [
-  "Myntra ₹5,000 → 55.31 USDT · settled 41s ago",
-  "Amazon Pay ₹25,000 → 279.02 USDT · settled 2m ago",
-  "Croma ₹40,000 → 448.43 USDT · verifying",
-  "Lifestyle ₹10,000 → 111.11 USDT · settled 4m ago",
-  "MakeMyTrip ₹15,000 → 166.85 USDT · settled 6m ago",
-  "Nykaa ₹3,000 → 33.04 USDT · in escrow",
-  "Tanishq ₹50,000 → 563.06 USDT · merchant-portal check",
-  "Swiggy ₹2,000 → 21.97 USDT · settled 9m ago",
+  "Myntra ₹5,000 → 55.31 USDC · settled 41s ago",
+  "Amazon Pay ₹25,000 → 279.02 USDC · settled 2m ago",
+  "Croma ₹40,000 → 448.43 USDC · verifying",
+  "Lifestyle ₹10,000 → 111.11 USDC · settled 4m ago",
+  "MakeMyTrip ₹15,000 → 166.85 USDC · settled 6m ago",
+  "Nykaa ₹3,000 → 33.04 USDC · in escrow",
+  "Tanishq ₹50,000 → 563.06 USDC · merchant-portal check",
+  "Swiggy ₹2,000 → 21.97 USDC · settled 9m ago",
 ];

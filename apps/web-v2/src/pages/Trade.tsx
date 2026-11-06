@@ -37,12 +37,43 @@ const STAGES = [
   { k: "Vouchers bought on best route", who: "Buyer", icon: CreditCard },
   { k: "Codes verified live", who: "Verifier", icon: ScanLine },
   { k: "Delivered to seller", who: "Seller", icon: KeyRound },
-  { k: "USDT released", who: "Contract", icon: Unlock },
+  { k: "USDC released", who: "Contract", icon: Unlock },
 ];
 
 const ACTOR: Record<number, Role | "verifier" | null> = { 0: "buyer", 1: "buyer", 2: "buyer", 3: "verifier", 4: "seller", 5: null };
 
 const DEMO_CODES = ["LFS-7Q2K-91XA-3M8D", "LFS-4HWE-22PL-0Z6R", "LFS-9TBC-55MN-1K3Q", "LFS-2RJD-08VX-6P4S", "LFS-6YGF-73QW-8L2T"];
+const DEMO_PINS = ["482913", "907126", "315840", "628457", "174093"];
+
+/** One gift voucher as the buyer types it in: redeem code, PIN and expiry (MM/YY). */
+type Voucher = { code: string; pin: string; expiry: string };
+const blankVouchers = (n: number): Voucher[] => Array.from({ length: n }, () => ({ code: "", pin: "", expiry: "" }));
+/** Demo expiry: 12 months from today, as MM/YY. */
+const demoExpiry = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(2)}`;
+};
+const demoVouchers = (n: number): Voucher[] => DEMO_CODES.slice(0, n).map((code, i) => ({ code, pin: DEMO_PINS[i], expiry: demoExpiry() }));
+/** Formats typed digits as MM/YY. */
+const formatExpiry = (raw: string) => {
+  const d = raw.replace(/\D/g, "").slice(0, 4);
+  return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+};
+/** True when MM/YY is a real month that hasn't passed yet. */
+const expiryOk = (e: string) => {
+  const m = /^(\d{2})\/(\d{2})$/.exec(e);
+  if (!m) return false;
+  const month = Number(m[1]);
+  const year = 2000 + Number(m[2]);
+  if (month < 1 || month > 12) return false;
+  const now = new Date();
+  return year > now.getFullYear() || (year === now.getFullYear() && month >= now.getMonth() + 1);
+};
+const voucherOk = (v: Voucher) => v.code.trim().length >= 6 && /^\d{4,8}$/.test(v.pin) && expiryOk(v.expiry);
+
+/** Index used for the buyer's own "Custom" route in step 1. */
+const CUSTOM = -1;
 
 export default function Trade() {
   const { id = "VR-24817" } = useParams();
@@ -60,14 +91,23 @@ export default function Trade() {
   const [route, setRoute] = useState(0);
   const [verifying, setVerifying] = useState(false);
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
-  const [codes, setCodes] = useState<string[]>(Array(nCodes).fill(""));
+  const [vouchers, setVouchers] = useState<Voucher[]>(() => blankVouchers(nCodes));
+  const setVoucher = (i: number, patch: Partial<Voucher>) => setVouchers((all) => all.map((v, j) => (j === i ? { ...v, ...patch } : v)));
+  const [custom, setCustom] = useState({ card: "", portal: "", rewardPct: "" });
+  const customPct = Math.min(Math.max(Number(custom.rewardPct) || 0, 0), 50);
+  const customOk = custom.card.trim().length >= 2 && custom.portal.trim().length >= 2;
+  /** The route the buyer picked, ranked or custom, in one shape for steps 1 and 2. */
+  const sel =
+    route === CUSTOM
+      ? { cardLabel: custom.card.trim() || "Your card", channelName: custom.portal.trim() || "Your store", channelId: "custom", note: "" }
+      : { cardLabel: routes[route].cardLabel, channelName: routes[route].channel.name, channelId: routes[route].channel.id, note: routes[route].channel.note };
   const [encrypting, setEncrypting] = useState(false);
   const [vn, setVn] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [recheck, setRecheck] = useState<"idle" | "busy" | "ok">("idle");
   const [dispute, setDispute] = useState(false);
   const [log, setLog] = useState<{ t: string; e: string; tone: string }[]>([
-    { t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDT)`, tone: "mint" },
+    { t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" },
   ]);
   const [clock, setClock] = useState(30 * 60);
 
@@ -88,7 +128,7 @@ export default function Trade() {
     const go = () => {
       setStage(1);
       push(`Accepted(${order.id}, buyer, nullifier 0x2d…be)`, "fg");
-      toast({ title: "Order accepted", body: `Buy via ${routes[route].cardLabel} · ${routes[route].channel.name}`, tone: "amber" });
+      toast({ title: "Order accepted", body: `Buy via ${sel.cardLabel} · ${sel.channelName}`, tone: "amber" });
     };
     if (humanVerified) return go();
     setVerifying(true);
@@ -114,19 +154,19 @@ export default function Trade() {
     setStage(5);
     push(`Released(${usdt(q.buyerReceives)} → buyer)`, "mint");
     push(`FeeSplit(reserve ${usdt(q.reserveShare)}, platform ${usdt(q.platformShare)})`, "fg");
-    toast({ title: `${usdt(q.buyerReceives)} USDT sent to buyer`, body: "Trade settled on-chain", tone: "mint" });
+    toast({ title: `${usdt(q.buyerReceives)} USDC sent to buyer`, body: "Trade settled on-chain", tone: "mint" });
   };
   const reset = () => {
     setStage(0);
     setRole("buyer");
     setAuto(false);
     setChecks([false, false, false, false]);
-    setCodes(Array(nCodes).fill(""));
+    setVouchers(blankVouchers(nCodes));
     setVn(0);
     setRevealed(false);
     setRecheck("idle");
     setClock(30 * 60);
-    setLog([{ t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDT)`, tone: "mint" }]);
+    setLog([{ t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" }]);
   };
 
   // Verifier runs by itself
@@ -174,7 +214,7 @@ export default function Trade() {
       [0, 1, 2, 3].forEach((i) => at(600 + i * 550, () => setChecks((c) => c.map((v, j) => (j === i ? true : v)))));
       at(3200, bought);
     } else if (stage === 2) {
-      at(700, () => setCodes(DEMO_CODES.slice(0, nCodes)));
+      at(700, () => setVouchers(demoVouchers(nCodes)));
       at(1700, submitCodes);
     } else if (stage === 4) {
       at(1200, () => setRevealed(true));
@@ -205,7 +245,7 @@ export default function Trade() {
                 / {order.id}
               </div>
               <h1 className="mt-1 font-display text-3xl font-semibold tracking-[-0.03em] md:text-4xl">
-                {b.name} {inr(order.amount)} <span className="text-mute">→</span> {usdt(q.buyerReceives)} USDT
+                {b.name} {inr(order.amount)} <span className="text-mute">→</span> {usdt(q.buyerReceives)} USDC
               </h1>
             </div>
           </div>
@@ -307,17 +347,68 @@ export default function Trade() {
                           </div>
                           <div className="text-right">
                             <div className="text-[16px] font-semibold tabular">{r.pctTravel.toFixed(1)}%</div>
-                            <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(order.amount, r.travelInr, q.buyerReceives).toFixed(2)}/USDT</div>
+                            <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(order.amount, r.travelInr, q.buyerReceives).toFixed(2)}/USDC</div>
                           </div>
                         </button>
                       ))}
+
+                      {/* Custom: the buyer's own card and store, for cards not in the ranked list */}
+                      <div className={cx("rounded-2xl ring-1 transition", route === CUSTOM ? "bg-amber/[0.07] ring-amber/50" : "bg-white/[0.02] ring-white/[0.07] hover:ring-white/15")}>
+                        <button onClick={() => setRoute(CUSTOM)} aria-expanded={route === CUSTOM} className="flex w-full items-center gap-4 p-4 text-left">
+                          <span className={cx("grid size-5 place-items-center rounded-full ring-1", route === CUSTOM ? "bg-amber ring-amber" : "ring-white/20")}>
+                            {route === CUSTOM && <span className="size-2 rounded-full bg-ink" />}
+                          </span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 text-[14px] font-medium">
+                              Custom <Pill tone="mute">your own route</Pill>
+                            </div>
+                            <div className="mt-0.5 text-[12px] text-mute">Use any card and store you like to buy the voucher and order the USDC.</div>
+                          </div>
+                          {route === CUSTOM && customPct > 0 && (
+                            <div className="text-right">
+                              <div className="text-[16px] font-semibold tabular">{customPct.toFixed(1)}%</div>
+                              <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(order.amount, (order.amount * customPct) / 100, q.buyerReceives).toFixed(2)}/USDC</div>
+                            </div>
+                          )}
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {route === CUSTOM && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                              <div className="grid gap-2 px-4 pb-4 sm:grid-cols-[1fr_1fr_120px]">
+                                {(
+                                  [
+                                    ["card", "Card", "e.g. SBI Cashback", "text"],
+                                    ["portal", "Where you'll buy", "e.g. amazon.in, Gyftr", "text"],
+                                    ["rewardPct", "Reward % (optional)", "e.g. 5", "decimal"],
+                                  ] as const
+                                ).map(([key, label, ph, mode]) => (
+                                  <label key={key} className="block">
+                                    <span className="mb-1 block text-[11.5px] text-mute">{label}</span>
+                                    <input
+                                      value={custom[key]}
+                                      onChange={(e) => setCustom((c) => ({ ...c, [key]: key === "rewardPct" ? e.target.value.replace(/[^\d.]/g, "").slice(0, 5) : e.target.value.slice(0, 60) }))}
+                                      placeholder={ph}
+                                      inputMode={mode}
+                                      className="h-10 w-full rounded-xl bg-white/[0.04] px-3 text-[13.5px] ring-1 ring-white/10 outline-none placeholder:text-dim focus:ring-amber/45"
+                                      aria-label={label}
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                              <p className="px-4 pb-4 text-[11.5px] text-dim">
+                                You get the same {usdt(q.buyerReceives)} USDC. Buy {nCodes} × {inr(denom)} {b.name} vouchers; the verifier checks the codes, not the route.
+                              </p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                       <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint" : "text-mute")}>
                         {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
                         {humanVerified ? "Verified human via World ID" : "World ID check runs once on accept"}
                       </div>
-                      <Button variant="amber" size="lg" onClick={accept} disabled={verifying}>
+                      <Button variant="amber" size="lg" onClick={accept} disabled={verifying || (route === CUSTOM && !customOk)}>
                         {verifying ? (
                           <>
                             <LoaderCircle className="size-4 animate-spin" /> Verifying in World App…
@@ -329,14 +420,27 @@ export default function Trade() {
                     </div>
                   </Panel>
                 ) : stage === 1 ? (
-                  <Panel tone="amber" title="Buy it this way" sub={`${routes[route].cardLabel} · ${routes[route].channel.name}. You check out on the bank portal yourself.`} right={<span className="font-mono text-[11px] text-dim">smartbuy.hdfcbank.com</span>}>
+                  <Panel
+                    tone="amber"
+                    title="Buy it this way"
+                    sub={`${sel.cardLabel} · ${sel.channelName}. You check out ${sel.channelId === "custom" ? "on that store" : "on the bank portal"} yourself.`}
+                    right={<span className="font-mono text-[11px] text-dim">{sel.channelId === "custom" ? sel.channelName : "smartbuy.hdfcbank.com"}</span>}
+                  >
                     <ol className="space-y-2">
-                      {[
-                        `Open SmartBuy → Gift Vouchers → ${b.name}`,
-                        routes[route].channel.id === "smartbuy" ? "Choose the accelerated rewards tab, not InstaDeals" : `Choose ${routes[route].channel.name} (${routes[route].channel.note})`,
-                        `${nCodes} × ${inr(denom)} (largest denomination)`,
-                        `Pay with ${routes[route].cardLabel}`,
-                      ].map((s, i) => (
+                      {(sel.channelId === "custom"
+                        ? [
+                            `Open ${sel.channelName} → Gift Vouchers → ${b.name}`,
+                            `Pick a ${b.name} gift voucher (e-voucher with code and PIN)`,
+                            `${nCodes} × ${inr(denom)} (largest denomination)`,
+                            `Pay with ${sel.cardLabel}`,
+                          ]
+                        : [
+                            `Open SmartBuy → Gift Vouchers → ${b.name}`,
+                            sel.channelId === "smartbuy" ? "Choose the accelerated rewards tab, not InstaDeals" : `Choose ${sel.channelName} (${sel.note})`,
+                            `${nCodes} × ${inr(denom)} (largest denomination)`,
+                            `Pay with ${sel.cardLabel}`,
+                          ]
+                      ).map((s, i) => (
                         <li key={s}>
                           <button
                             onClick={() => setChecks((c) => c.map((v, j) => (j === i ? !v : v)))}
@@ -354,10 +458,14 @@ export default function Trade() {
                       ))}
                     </ol>
                     <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="text-[12px] text-dim">Points post within 90 working days, per SmartBuy terms.</span>
+                      <span className="text-[12px] text-dim">{sel.channelId === "custom" ? "Rewards depend on your card and that store's terms." : "Points post within 90 working days, per SmartBuy terms."}</span>
                       <div className="flex gap-2">
-                        <Button variant="outline" icon={<ArrowUpRight className="size-3.5" />} onClick={() => toast({ title: "Opening SmartBuy", body: "Demo: portal link opens in a new tab", tone: "amber" })}>
-                          Open SmartBuy
+                        <Button
+                          variant="outline"
+                          icon={<ArrowUpRight className="size-3.5" />}
+                          onClick={() => toast({ title: `Opening ${sel.channelId === "custom" ? sel.channelName : "SmartBuy"}`, body: "Demo: portal link opens in a new tab", tone: "amber" })}
+                        >
+                          Open {sel.channelId === "custom" ? sel.channelName : "SmartBuy"}
                         </Button>
                         <Button variant="amber" disabled={!checks.every(Boolean)} onClick={bought}>
                           I've bought them
@@ -366,44 +474,85 @@ export default function Trade() {
                     </div>
                   </Panel>
                 ) : stage === 2 ? (
-                  <Panel tone="amber" title="Paste your voucher codes" sub="They're encrypted on this device to the verifier's key. The seller only sees them after they pass.">
+                  <Panel tone="amber" title="Paste your voucher codes" sub="Redeem code, PIN and expiry for each voucher. They're encrypted on this device to the verifier's key. The seller only sees them after they pass.">
+                    <div className="mb-2 hidden grid-cols-[28px_minmax(0,1fr)_84px_76px] gap-2 px-2 font-mono text-[10px] tracking-[0.12em] text-dim uppercase sm:grid">
+                      <span />
+                      <span className="pl-3">
+                        Redeem code <span className="normal-case tracking-normal">· {inr(denom)} each</span>
+                      </span>
+                      <span className="pl-3">PIN</span>
+                      <span className="pl-3">Expiry</span>
+                    </div>
                     <div className="space-y-2.5">
-                      {codes.map((c, i) => (
-                        <div key={i} className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-2 pl-4 ring-1 ring-white/[0.08] focus-within:ring-amber/40">
-                          <span className="font-mono text-[11px] text-dim">#{i + 1}</span>
-                          <input
-                            value={encrypting ? "" : c}
-                            onChange={(e) => setCodes((all) => all.map((x, j) => (j === i ? e.target.value.toUpperCase() : x)))}
-                            placeholder="XXXX-XXXX-XXXX-XXXX"
-                            className="h-10 flex-1 bg-transparent font-mono text-[14px] tracking-wider outline-none placeholder:text-dim"
-                            aria-label={`Voucher code ${i + 1}`}
-                          />
-                          {encrypting && <Scramble className="flex-1" />}
-                          <span className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 font-mono text-[11px] text-mute">{inr(denom)}</span>
-                        </div>
-                      ))}
+                      {vouchers.map((v, i) => {
+                        const expBad = v.expiry.length === 5 && !expiryOk(v.expiry);
+                        const field = "h-10 w-full min-w-0 rounded-xl bg-white/[0.04] px-3 font-mono text-[13px] tracking-wide ring-1 outline-none placeholder:text-dim focus:ring-amber/45";
+                        return (
+                          <div key={i} className="grid grid-cols-[28px_minmax(0,1fr)] items-center gap-2 rounded-2xl bg-white/[0.02] p-2 ring-1 ring-white/[0.08] sm:grid-cols-[28px_minmax(0,1fr)_84px_76px]">
+                            <span className="pl-1 font-mono text-[11px] text-dim">#{i + 1}</span>
+                            {encrypting ? (
+                              <Scramble className="h-10 sm:col-span-3" />
+                            ) : (
+                              <>
+                                <input
+                                  value={v.code}
+                                  onChange={(e) => setVoucher(i, { code: e.target.value.toUpperCase().slice(0, 40) })}
+                                  placeholder="XXXX-XXXX-XXXX-XXXX"
+                                  className={cx(field, "ring-white/10")}
+                                  aria-label={`Voucher ${i + 1} redeem code`}
+                                />
+                                <input
+                                  value={v.pin}
+                                  onChange={(e) => setVoucher(i, { pin: e.target.value.replace(/\D/g, "").slice(0, 8) })}
+                                  placeholder="PIN"
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                  className={cx(field, "col-start-2 ring-white/10 sm:col-start-auto")}
+                                  aria-label={`Voucher ${i + 1} PIN`}
+                                />
+                                <input
+                                  value={v.expiry}
+                                  onChange={(e) => setVoucher(i, { expiry: formatExpiry(e.target.value) })}
+                                  placeholder="MM/YY"
+                                  inputMode="numeric"
+                                  className={cx(field, "col-start-2 sm:col-start-auto", expBad ? "ring-rose/60" : "ring-white/10")}
+                                  aria-label={`Voucher ${i + 1} expiry`}
+                                  aria-invalid={expBad}
+                                  title={expBad ? "Expiry must be a future month (MM/YY)" : undefined}
+                                />
+                              </>
+                            )}
+                            <span className="col-start-2 w-fit rounded-lg bg-white/[0.04] px-2.5 py-1.5 font-mono text-[11px] text-mute sm:hidden">{inr(denom)}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <button onClick={() => setCodes(DEMO_CODES.slice(0, nCodes))} className="text-left text-[12.5px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
+                      <button onClick={() => setVouchers(demoVouchers(nCodes))} className="text-left text-[12.5px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
                         Fill demo codes
                       </button>
-                      <Button variant="amber" disabled={codes.some((c) => c.length < 6) || encrypting} onClick={submitCodes} icon={encrypting ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-4" />}>
+                      <Button variant="amber" disabled={!vouchers.every(voucherOk) || encrypting} onClick={submitCodes} icon={encrypting ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-4" />}>
                         {encrypting ? "Encrypting…" : "Encrypt & send to verifier"}
                       </Button>
                     </div>
                   </Panel>
                 ) : stage === 3 ? (
-                  <VerifierPanel n={vn} nCodes={nCodes} denom={denom} brandName={b.name} merchantPortal={!!b.merchantPortal} orderId={order.id} amount={order.amount} />
+                  <VerifierPanel n={vn} nCodes={nCodes} denom={denom} brandName={b.name} merchantPortal={!!b.merchantPortal} orderId={order.id} amount={order.amount} expiry={[...new Set(vouchers.map((v) => v.expiry))].join(", ")} />
                 ) : stage === 4 ? (
                   <Panel tone="mint" title={`${nCodes} × ${b.name} ${inr(denom)}`} sub="Codes visible to you only. Re-checked against the issuer the moment you open them.">
                     <div className="space-y-2">
-                      {DEMO_CODES.slice(0, nCodes).map((c) => (
-                        <div key={c} className="flex items-center justify-between rounded-2xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-white/[0.08]">
-                          <span className={cx("font-mono text-[15px] tracking-[0.12em] transition-all duration-700", revealed ? "blur-0" : "select-none blur-[6px]")}>{c}</span>
+                      {(vouchers.every(voucherOk) ? vouchers : demoVouchers(nCodes)).map((v, i) => (
+                        <div key={i} className="flex items-center justify-between gap-3 rounded-2xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-white/[0.08]">
+                          <div className={cx("min-w-0 transition-all duration-700", revealed ? "blur-0" : "select-none blur-[6px]")}>
+                            <div className="truncate font-mono text-[15px] tracking-[0.12em]">{v.code}</div>
+                            <div className="mt-1 font-mono text-[11.5px] text-mute">
+                              PIN <span className="text-fg/85">{v.pin}</span> · Exp <span className="text-fg/85">{v.expiry}</span>
+                            </div>
+                          </div>
                           <button
                             onClick={() => {
                               if (revealed) {
-                                navigator.clipboard?.writeText(c);
+                                navigator.clipboard?.writeText(`${v.code} PIN ${v.pin} EXP ${v.expiry}`);
                                 toast({ title: "Code copied", tone: "mint" });
                               } else setRevealed(true);
                             }}
@@ -464,7 +613,7 @@ export default function Trade() {
                 <motion.span key={stage === 5 ? "z" : "l"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl font-semibold tracking-tight tabular">
                   {stage === 5 ? "0.00" : usdt(q.sellerLocks)}
                 </motion.span>
-                <span className="text-[13px] text-mute">USDT held</span>
+                <span className="text-[13px] text-mute">USDC held</span>
               </div>
               <div className="mt-3 divide-y divide-white/[0.06]">
                 <Row k="Buyer gets" v={usdt(q.buyerReceives)} />
@@ -534,10 +683,10 @@ function Panel({ title, sub, children, tone, right }: { title: string; sub?: str
 
 function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number; onSwitch: () => void; clock: number }) {
   const msg: Record<number, [string, string]> = {
-    0: ["Waiting for a buyer", "Your USDT is locked in escrow and visible to verified buyers. If nobody fills it in 30 minutes, it comes back to you automatically."],
-    1: ["The buyer is buying your vouchers", "They're checking out on SmartBuy with their own card. Your USDT stays locked the whole time."],
+    0: ["Waiting for a buyer", "Your USDC is locked in escrow and visible to verified buyers. If nobody fills it in 30 minutes, it comes back to you automatically."],
+    1: ["The buyer is buying your vouchers", "They're checking out on SmartBuy with their own card. Your USDC stays locked the whole time."],
     2: ["The buyer is submitting codes", "Codes go encrypted to the verifier first. You'll see them only after they pass."],
-    4: ["The seller is checking the codes", `USDT is released when they confirm, or automatically in ${fmt(clock)}.`],
+    4: ["The seller is checking the codes", `USDC is released when they confirm, or automatically in ${fmt(clock)}.`],
   };
   const [t, s] = msg[stage] ?? ["Waiting", ""];
   const tone = actor === "buyer" ? "amber" : "mint";
@@ -560,11 +709,29 @@ function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number
   );
 }
 
-function VerifierPanel({ n, nCodes, denom, brandName, merchantPortal, orderId, amount }: { n: number; nCodes: number; denom: number; brandName: string; merchantPortal: boolean; orderId: string; amount: number }) {
+function VerifierPanel({
+  n,
+  nCodes,
+  denom,
+  brandName,
+  merchantPortal,
+  orderId,
+  amount,
+  expiry,
+}: {
+  n: number;
+  nCodes: number;
+  denom: number;
+  brandName: string;
+  merchantPortal: boolean;
+  orderId: string;
+  amount: number;
+  expiry: string;
+}) {
   const items = [
     ...Array.from({ length: nCodes }, (_, i) => `Code ${i + 1}: live, ${inr(denom)} balance, not redeemed`),
     `Brand matches: ${brandName} (in-store)`,
-    "Expiry: 6 months from issue",
+    `PIN matches each code · expiry ${expiry || "valid"}`,
   ];
   const done = n >= items.length;
   return (
@@ -624,7 +791,7 @@ function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<ty
       <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 14 }} className="relative mx-auto grid size-20 place-items-center rounded-full bg-mint text-ink shadow-[0_0_60px_-5px_rgba(61,220,151,0.8)]">
         <Check className="size-9" strokeWidth={2.5} />
       </motion.div>
-      <h2 className="relative mt-6 font-display text-3xl font-semibold tracking-tight">{role === "buyer" ? `${usdt(q.buyerReceives)} USDT is yours` : `Enjoy ${brandName} on Saturday`}</h2>
+      <h2 className="relative mt-6 font-display text-3xl font-semibold tracking-tight">{role === "buyer" ? `${usdt(q.buyerReceives)} USDC is yours` : `Enjoy ${brandName} on Saturday`}</h2>
       <p className="relative mx-auto mt-2 max-w-md text-[14px] text-mute">
         {role === "buyer" ? "Plus 1,650 reward points from HDFC, posting within 90 working days." : "Codes are live and yours. The escrow paid the buyer and split the 1% fee."}
       </p>
@@ -640,7 +807,7 @@ function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<ty
               <span className="flex items-center gap-2 text-mute">
                 <span className={cx("size-2 rounded-full", b.c)} /> {b.k}
               </span>
-              <span className="tabular">{usdt(b.v)} USDT</span>
+              <span className="tabular">{usdt(b.v)} USDC</span>
             </div>
           ))}
         </div>
@@ -754,7 +921,7 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-mint/[0.07] p-4 ring-1 ring-mint/30">
                   <div className="text-[14px] font-medium">Code 2 was redeemed 3 min before your first use</div>
                   <div className="mt-1 text-[12.5px] text-mute">
-                    {usdt(q.sellerLocks / 2)} USDT refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.
+                    {usdt(q.sellerLocks / 2)} USDC refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.
                   </div>
                 </motion.div>
               )}
