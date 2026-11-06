@@ -5,6 +5,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "../lib/store";
 import { usdt } from "../lib/engine";
 import { Button, Logo, cx } from "./ui";
+import { WalletLogo } from "./WalletLogos";
 
 const LINKS = [
   { to: "/market", label: "Market" },
@@ -33,7 +34,7 @@ export function Shell() {
 }
 
 function Nav() {
-  const { address, balance, humanVerified, openWallet, walletIcon } = useApp();
+  const { address, balance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -88,11 +89,7 @@ function Nav() {
               onClick={openWallet}
               className="flex items-center gap-2.5 rounded-full bg-white/[0.04] py-1.5 pl-1.5 pr-3.5 ring-1 ring-white/10 transition hover:bg-white/[0.08]"
             >
-              {walletIcon && /^data:image\//.test(walletIcon) ? (
-                <img src={walletIcon} alt="" className="size-7 rounded-full bg-white/5 p-0.5" />
-              ) : (
-                <span className="size-7 rounded-full bg-gradient-to-br from-mint to-iris" aria-hidden />
-              )}
+              <WalletLogo id={walletId} icon={walletIcon} name={walletName || "W"} className="size-7" />
               <span className="hidden text-left leading-tight sm:block">
                 <span className="block font-mono text-[11px] text-mute">{address}</span>
                 <span className="tabular block text-[12.5px] font-medium">{usdt(balance)} USDT</span>
@@ -175,14 +172,14 @@ function Footer() {
 }
 
 function WalletModal() {
-  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, wallets, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast, balance } =
+  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast, balance } =
     useApp();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const doConnect = async (w: (typeof wallets)[number]) => {
+  const doConnect = async (w: (typeof choices)[number]) => {
     const ok = await connect(w);
-    if (ok) toast({ title: "Wallet connected", body: `${w.info.name} approved this site`, tone: "mint" });
+    if (ok) toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
   };
   const doVerify = () => {
     setBusy("world");
@@ -224,61 +221,72 @@ function WalletModal() {
               </div>
 
               {!address ? (
-                <div className="mt-6 space-y-2">
-                  {wallets.length > 0 && <div className="label mb-2">Detected in this browser</div>}
-                  {wallets.map((w) => {
-                    const waiting = pending === w.info.uuid;
-                    return (
-                      <button
-                        key={w.info.uuid}
-                        disabled={!!pending}
-                        onClick={() => doConnect(w)}
-                        className={cx(
-                          "flex w-full items-center gap-3 rounded-2xl bg-white/[0.03] p-3 ring-1 transition hover:bg-white/[0.07] hover:ring-white/15 disabled:cursor-wait",
-                          waiting ? "ring-mint/40" : "ring-white/[0.06]",
-                          pending && !waiting && "opacity-40",
-                        )}
-                      >
-                        <WalletIcon icon={w.info.icon} name={w.info.name} />
-                        <span className="flex-1 text-left">
-                          <span className="block text-[14.5px] font-medium">{w.info.name}</span>
-                          {waiting && <span className="block text-[12px] text-mint">Approve the request in {w.info.name}…</span>}
-                        </span>
-                        {waiting ? <LoaderCircle className="size-4 animate-spin text-mint" /> : <ChevronRight className="size-4 text-dim" />}
-                      </button>
-                    );
-                  })}
-
-                  {wallets.length === 0 && (
-                    <div className="rounded-2xl bg-white/[0.03] p-5 text-center ring-1 ring-white/[0.06]">
-                      <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-white/[0.05] text-mute">
-                        <Wallet className="size-5" />
-                      </span>
-                      <div className="mt-3 text-[15px] font-medium">No wallet extension found</div>
-                      <p className="mt-1 text-[12.5px] leading-relaxed text-mute">Install a browser wallet like MetaMask, then reload this page.</p>
-                      <a
-                        href="https://metamask.io/download/"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-5 text-[13.5px] font-medium text-ink transition hover:bg-white/90"
-                      >
-                        Get MetaMask <ArrowUpRight className="size-3.5" />
-                      </a>
-                    </div>
-                  )}
+                <div className="mt-5">
+                  <div className="-mr-2 max-h-[min(440px,60vh)] space-y-1.5 overflow-y-auto pr-2">
+                    {choices.map((w, i) => {
+                      const waiting = pending === w.id;
+                      const prev = choices[i - 1];
+                      const header =
+                        i === 0 && w.status === "installed"
+                          ? "Installed in this browser"
+                          : w.status !== "installed" && (!prev || prev.status === "installed")
+                            ? "More wallets"
+                            : null;
+                      const tag =
+                        w.status === "installed"
+                          ? { t: "Installed", c: "text-mint bg-mint/10 ring-mint/25" }
+                          : w.status === "popup"
+                            ? { t: "Popup", c: "text-iris bg-iris/10 ring-iris/25" }
+                            : w.status === "qr"
+                              ? { t: "QR code", c: "text-iris bg-iris/10 ring-iris/25" }
+                              : w.status === "install"
+                                ? { t: "Get", c: "text-mute bg-white/[0.04] ring-white/10" }
+                                : { t: "Setup", c: "text-amber bg-amber/10 ring-amber/25" };
+                      return (
+                        <div key={w.id}>
+                          {header && <div className={cx("label mb-2", i > 0 && "mt-4")}>{header}</div>}
+                          <button
+                            disabled={!!pending}
+                            onClick={() => doConnect(w)}
+                            className={cx(
+                              "flex w-full items-center gap-3 rounded-2xl bg-white/[0.03] p-2.5 pr-3 ring-1 transition hover:bg-white/[0.07] hover:ring-white/15 disabled:cursor-wait",
+                              waiting ? "ring-mint/40" : "ring-white/[0.06]",
+                              pending && !waiting && "opacity-40",
+                            )}
+                          >
+                            <WalletLogo id={w.id} name={w.name} icon={w.icon} />
+                            <span className="min-w-0 flex-1 text-left">
+                              <span className="block text-[14px] font-medium">{w.name}</span>
+                              <span className={cx("block truncate text-[11.5px]", waiting ? "text-mint" : "text-dim")}>
+                                {waiting ? (w.status === "qr" ? "Scan the QR code with your phone…" : `Approve the request in ${w.name}…`) : w.hint}
+                              </span>
+                            </span>
+                            {waiting ? (
+                              <LoaderCircle className="size-4 animate-spin text-mint" />
+                            ) : (
+                              <span className={cx("flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider uppercase ring-1", tag.c)}>
+                                {tag.t}
+                                {w.status === "install" && <ArrowUpRight className="size-2.5" />}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
 
                   {walletError && (
-                    <p role="alert" className="rounded-xl bg-rose/[0.08] px-3.5 py-2.5 text-[12.5px] text-rose ring-1 ring-rose/25">
+                    <p role="alert" className="mt-3 rounded-xl bg-rose/[0.08] px-3.5 py-2.5 text-[12.5px] text-rose ring-1 ring-rose/25">
                       {walletError}
                     </p>
                   )}
-                  <p className="pt-3 text-center text-[12px] text-dim">Your wallet asks you to approve. Keys never leave the extension.</p>
+                  <p className="pt-4 text-center text-[12px] text-dim">Your wallet asks you to approve. Keys never leave your wallet.</p>
                 </div>
               ) : (
                 <div className="mt-6 space-y-4">
                   <div className="rounded-2xl bg-white/[0.03] p-4 ring-1 ring-white/[0.06]">
                     <div className="flex items-center gap-3">
-                      <WalletIcon icon={walletIcon} name={walletName} />
+                      <WalletLogo id={walletId} icon={walletIcon} name={walletName} />
                       <div className="min-w-0 flex-1">
                         <div className="text-[14.5px] font-medium">{walletName}</div>
                         <div className="truncate font-mono text-[12px] text-mute" title={fullAddress}>
@@ -363,18 +371,6 @@ function WalletModal() {
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-/** Wallet icon from EIP-6963 (a data: URI), or a neutral fallback. */
-function WalletIcon({ icon, name }: { icon?: string; name: string }) {
-  const safe = icon && /^data:image\/(svg\+xml|png|webp|jpeg|gif)[;,]/.test(icon) ? icon : "";
-  return safe ? (
-    <img src={safe} alt="" className="size-9 shrink-0 rounded-xl" />
-  ) : (
-    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#f6851b] to-[#e2761b] text-[13px] font-bold text-white" aria-hidden>
-      {name.slice(0, 1)}
-    </span>
   );
 }
 

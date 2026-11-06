@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { ORDERS, type Order } from "./data";
-import { chainName, shortAddr, useWallet, type WalletOption } from "./wallet";
+import { chainName, preloadConnectors, shortAddr, useWallet, type WalletChoice } from "./wallet";
 
 type Toast = { id: number; title: string; body?: string; tone?: "mint" | "amber" | "iris" | "rose" };
 
@@ -11,7 +11,8 @@ type Ctx = {
   chain: string;
   walletName: string;
   walletIcon: string;
-  wallets: WalletOption[];
+  walletId: string;
+  choices: WalletChoice[];
   pending: string | null;
   walletError: string;
   /** Demo USDT balance used by the simulated escrow (not read from chain). */
@@ -22,7 +23,7 @@ type Ctx = {
   toasts: Toast[];
   openWallet: () => void;
   closeWallet: () => void;
-  connect: (w: WalletOption) => Promise<boolean>;
+  connect: (w: WalletChoice) => Promise<boolean>;
   disconnect: () => void;
   verifyHuman: () => void;
   postOrder: (o: Omit<Order, "id" | "postedMin" | "expiresMin" | "seller" | "sellerTrades" | "city">, lock: number) => Order;
@@ -57,7 +58,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       chain: chainName(wallet.chainId),
       walletName: wallet.walletName,
       walletIcon: wallet.walletIcon,
-      wallets: wallet.wallets,
+      walletId: wallet.walletId,
+      choices: wallet.choices,
       pending: wallet.pending,
       walletError: wallet.error,
       balance,
@@ -67,6 +69,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toasts,
       openWallet: () => {
         wallet.clearError();
+        preloadConnectors();
         setWalletOpen(true);
       },
       closeWallet: () => setWalletOpen(false),
