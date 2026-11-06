@@ -123,7 +123,7 @@ try {
   if (REAL) await check('negative: funding with a tx that is NOT a deposit to the escrow is rejected', async () => {
     const approveHash = await tx(requester, { address: USDC, abi: erc20, functionName: 'approve', args: [contract, 0n] });
     const r = await api('POST', `/requests/${reqA.id}/fund`, { token: tReq, body: { txHash: approveHash } });
-    assert.equal(r.status, 400, r.text); assert.equal(r.body.error?.code ?? r.body.code, 'tx_wrong_contract');
+    assert.equal(r.status, 400, r.text); assert.equal(r.body.error, 'tx_wrong_contract');
   });
   await check('POST /requests/:id/fund verifies the deposit -> open', async () => {
     const r = await api('POST', `/requests/${reqA.id}/fund`, { token: tReq, body: { txHash: depositTx } });

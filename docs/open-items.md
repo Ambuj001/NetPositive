@@ -13,7 +13,7 @@ We use **only** `contracts/src/VoucherEscrow.sol` from `backend-integration`, de
 | `feeBps` | **0** | no fee is charged on-chain today; fee is immutable, so a fee needs a redeploy |
 | `claimDelay` | 604,800 s (7 days) | anyone can refund the depositor after 7 days |
 
-If `feeBps` were set, the fee is taken **out of** the amount (fulfiller gets `amount - fee`), not added on top as the walkthrough says (seller locks amount + fee). Bytecode was not compared with the source (not source-verified). Voucher validity is not checked on-chain: the seller checks with the extension and confirms, and the operator releases.
+If `feeBps` were set, the fee is taken **out of** the amount (fulfiller gets `amount - fee`), not added on top as the walkthrough says (seller locks amount + fee). Bytecode was not compared with the source (not source-verified). **Real on-chain run (6 Nov 2026, `backend/scripts/chain-e2e.mjs`, 14/14):** the Express backend, against this deployed contract, verified a real deposit, released to a fulfiller (balance checked), refunded a cancelled request, and rejected a funding tx that was not a deposit. Database was the in-memory stand-in and World ID was mocked. Voucher validity is not checked on-chain: the seller checks with the extension and confirms, and the operator releases.
 
 ## 1. INR <-> USDC rate and the 1% fee are not implemented anywhere  (needs a product decision)
 
