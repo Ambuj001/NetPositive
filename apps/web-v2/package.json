@@ -8,6 +8,7 @@
     "typecheck": "tsc -p .",
     "build": "tsc -p . && vite build",
     "preview": "vite preview",
+    "catalog:build": "node scripts/build-card-catalog.mjs",
     "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "dependencies": {

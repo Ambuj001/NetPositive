@@ -24,6 +24,7 @@ async function call(method, path, { token, body } = {}) {
 }
 const card = (id, over = {}) => ({ id, issuer: 'HDFC', name: 'Infinia', last: 'Metal', gradient: '', pointsPer: 5, spendUnit: 150, travelValue: 1, statementValue: 0.3, bonusCap: 3000, bonusUsed: 0,
   channels: [{ id: 'smartbuy', name: 'SmartBuy 5X', multiplier: 5, denomination: 10000, note: 'Accelerated' }], ...over });
+const { CATALOG } = await import('../../apps/web-v2/src/lib/cardCatalog.ts');
 const cardsRef = db.collection('users').doc(addr).collection('cards');
 let token;
 try {
@@ -59,9 +60,20 @@ try {
     assert.equal((await call('PUT', '/cards/bad', { token, body: card('bad', { pointsPer: -5 }) })).status, 400);
     assert.equal((await cardsRef.doc('bad').get()).exists, false);
   });
+  await check("cards picked from the app's card list are saved to Firestore exactly as the picker builds them", async () => {
+    const picks = ['hdfc_infinia', 'axis_magnus', 'kotak_zen'].map((id) => CATALOG.find((c) => c.id === id));
+    for (const c of picks) assert.equal((await call('PUT', `/cards/${c.id}`, { token, body: c.profile })).status, 200, c.id);
+    for (const c of picks) {
+      const d = await cardsRef.doc(c.id).get();
+      assert.equal(d.exists, true, c.id);
+      const { createdAt: _a, updatedAt: _b, ...stored } = d.data();
+      assert.deepEqual({ id: c.id, ...stored }, c.profile, c.id);
+    }
+    assert.ok((await call('GET', '/cards', { token })).body.cards.some((x) => x.id === 'hdfc_infinia' && x.last === 'Verified rates'));
+  });
   await check('removing a card deletes its document', async () => {
     assert.equal((await call('DELETE', '/cards/atlas', { token })).status, 200);
-    assert.equal((await cardsRef.doc('atlas').get()).exists, false); assert.equal((await cardsRef.get()).size, 1);
+    assert.equal((await cardsRef.doc('atlas').get()).exists, false); assert.equal((await cardsRef.get()).size, 4); // infinia + the three picked from the list
   });
   await check('dismissing the pop-up is stored on the user document', async () => {
     assert.equal((await call('POST', '/cards/prompt/dismiss', { token, body: {} })).status, 200);
