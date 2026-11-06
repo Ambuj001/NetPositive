@@ -27,6 +27,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { register } from 'node:module';
+process.env.DOTENV_CONFIG_PATH = 'test-support/.env-ignored-in-tests'; // never read backend/.env here (it may hold real credentials); a real run passes them explicitly
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {

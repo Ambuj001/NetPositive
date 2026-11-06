@@ -6,6 +6,7 @@ import { useApp } from "../lib/store";
 import { readSession } from "../lib/session";
 import { formatChainBalance } from "../lib/wallet";
 import { WorldIdNotice, useWorldId } from "../lib/world";
+import { CardsPrompt } from "./CardsPrompt";
 import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
@@ -34,6 +35,7 @@ export function Shell() {
       </main>
       <Footer />
       <WalletModal />
+      <CardsPrompt />
       <Toaster />
     </div>
   );
