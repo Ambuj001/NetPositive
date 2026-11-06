@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "NetPositive Voucher Check",
+  "version": "0.1.0",
+  "description": "Checks a Woohoo voucher in your own browser session. The code never leaves your device.",
+  "permissions": [
+    "storage",
+    "alarms",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.woohoo.in/*",
+    "https://woohoo.in/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_title": "NetPositive Voucher Check"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.woohoo.in/profile/check-balance*",
+        "https://woohoo.in/profile/check-balance*"
+      ],
+      "js": [
+        "src/inject.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://www.woohoo.in/profile/check-balance*",
+        "https://woohoo.in/profile/check-balance*"
+      ],
+      "js": [
+        "src/normalize.js",
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "minimum_chrome_version": "116",
+  "side_panel": {
+    "default_path": "popup.html"
+  }
+}
