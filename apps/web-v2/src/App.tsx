@@ -4,7 +4,6 @@ import { AppProvider } from "./lib/store";
 import Cards from "./pages/Cards";
 import Buy from "./pages/Buy";
 import Home from "./pages/Home";
-import Spend from "./pages/Spend";
 import Track from "./pages/Track";
 import Landing from "./pages/Landing";
 import Market from "./pages/Market";
@@ -23,8 +22,8 @@ export default function App() {
         <Routes>
           <Route element={<Shell />}>
             <Route index element={<Landing />} />
-            <Route path="home" element={<Home />} />
-            <Route path="spend" element={<Spend />} />
+            <Route path="home" element={<Home key="home" />} />
+            <Route path="spend" element={<Home key="spend" spend />} />
             <Route path="buy" element={<Buy />} />
             <Route path="track" element={<Track />} />
             <Route path="market" element={<Market />} />

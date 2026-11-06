@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Check, CreditCard, ShoppingBag, Sparkles, Wallet } from "lucide-react";
+import { ArrowRight, Check, CreditCard, LoaderCircle, ShoppingBag, Sparkles, Wallet } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Assistant from "../components/Assistant";
 import { Aurora, BrandMark, Button, cx } from "../components/ui";
 import { STATUS, isFinal } from "../lib/api";
@@ -11,11 +11,23 @@ import { inr } from "../lib/engine";
 import { useOrderBook } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 
-export default function Home() {
-  const { address, fullAddress, openWallet, myOrders } = useApp();
+/** `spend` is set on the /spend route: the AI assistant opens straight away. */
+export default function Home({ spend = false }: { spend?: boolean }) {
+  const { address, restoring, fullAddress, openWallet, myOrders } = useApp();
   const { orders } = useOrderBook();
-  const [chatOpen, setChatOpen] = useState(false);
+  const nav = useNavigate();
+  const [chatOpen, setChatOpen] = useState(spend);
   const [session, setSession] = useState(0);
+  const closeChat = () => (spend ? nav("/home") : setChatOpen(false));
+  if (!address && restoring)
+    return (
+      <div className="relative grid min-h-dvh place-items-center px-6 pt-24" aria-live="polite">
+        <Aurora className="opacity-60" />
+        <div className="relative flex items-center gap-2.5 text-[14px] text-mute">
+          <LoaderCircle className="size-4 animate-spin text-mint" /> Reconnecting your wallet…
+        </div>
+      </div>
+    );
   if (!address) return <NotConnected onConnect={openWallet} />;
 
   const openCount = orders.filter((o) => o.seller !== "you").length;
@@ -77,7 +89,7 @@ export default function Home() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               >
-                <Assistant mode="spend" userId={userIdFor(fullAddress)} onRestart={() => setSession((s) => s + 1)} onClose={() => setChatOpen(false)} />
+                <Assistant mode="spend" userId={userIdFor(fullAddress)} onRestart={() => setSession((s) => s + 1)} onClose={closeChat} />
               </motion.div>
             )}
           </AnimatePresence>

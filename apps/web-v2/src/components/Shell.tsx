@@ -34,7 +34,7 @@ export function Shell() {
 }
 
 function Nav() {
-  const { address, balance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
+  const { address, restoring, balance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -97,6 +97,10 @@ function Nav() {
               </span>
               {humanVerified && <ShieldCheck className="size-4 text-mint" aria-label="Verified human" />}
             </button>
+          ) : restoring ? (
+            <span className="flex h-9 items-center gap-2 rounded-full bg-white/[0.04] px-3.5 text-[12.5px] text-mute ring-1 ring-white/10" aria-live="polite">
+              <LoaderCircle className="size-3.5 animate-spin" /> Reconnecting
+            </span>
           ) : (
             <Button size="sm" onClick={openWallet} icon={<Wallet className="size-3.5" />}>
               Connect

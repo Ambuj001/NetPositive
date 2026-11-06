@@ -12,6 +12,8 @@ type Ctx = {
   /** Shortened address of the connected wallet, or null. */
   address: string | null;
   fullAddress: string;
+  /** True for a moment after reload while the last-used wallet reconnects silently. */
+  restoring: boolean;
   chain: string;
   walletName: string;
   walletIcon: string;
@@ -112,6 +114,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       address: wallet.address ? shortAddr(wallet.address) : null,
       fullAddress: wallet.address,
+      restoring: wallet.restoring && !wallet.address,
       chain: chainName(wallet.chainId),
       walletName: wallet.walletName,
       walletIcon: wallet.walletIcon,

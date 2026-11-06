@@ -50,6 +50,15 @@ type Step =
   | "pick_request"
   | "options";
 
+/** Store shortcuts on the Spend greeting. Same tiles the chatbot's /merchants/suggest returns for these sites. */
+const QUICK_STORES: Tile[] = [
+  { merchant_id: "amazon", name: "Amazon", voucher_brand: "Amazon", category: "general online retail", site: "amazon.in" },
+  { merchant_id: "myntra", name: "Myntra", voucher_brand: "Myntra", category: "general online retail", site: "myntra.com" },
+  { merchant_id: "flipkart", name: "Flipkart", voucher_brand: "Flipkart", category: "general online retail", site: "flipkart.com" },
+  { merchant_id: "ajio", name: "AJIO", voucher_brand: "AJIO", category: "general online retail", site: "ajio.com" },
+  { merchant_id: "nike", name: "Nike", voucher_brand: "Nike", category: "general online retail", site: "nike.com" },
+];
+
 let nextId = 1;
 const bot = (...blocks: Block[]): Msg => ({ id: nextId++, from: "bot", blocks });
 const user = (text: string): Msg => ({ id: nextId++, from: "user", blocks: [{ kind: "text", text }] });
@@ -102,7 +111,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
         if (!live) return;
         setOnline(true);
         if (mode === "spend") {
-          push(bot(say("Hi! I'll help you pay for a shop with your USDC.\n\nWhat do you want to buy? You can say something like **Nike shoes**, **groceries** or **shoes from Myntra**.")));
+          push(bot(say("Hi! I'll help you pay for a shop with your USDC.\n\nWhere would you like to spend your crypto? Pick a store below or type one.")));
         } else {
           const pf = await chatbot.portfolio(userId);
           if (!live) return;
@@ -288,7 +297,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
   const quick: { label: string; on: () => void }[] =
     mode === "spend"
       ? step === "ask_item"
-        ? ["Nike shoes", "Groceries", "Shoes from Myntra", "A Lifestyle voucher"].map((l) => ({ label: l, on: () => search(l) }))
+        ? QUICK_STORES.map((t) => ({ label: t.site, on: () => pickStore(t) }))
         : step === "ask_amount"
           ? [2000, 5000, 10000, 25000].map((a) => ({ label: inr(a), on: () => setAmount(a) }))
           : step === "confirm"
@@ -314,7 +323,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
         ? step === "ask_amount"
           ? "Type an amount, e.g. 10000"
           : step === "ask_item" || step === "pick_store"
-            ? "What do you want to buy?"
+            ? "Type a store, e.g. amazon.in"
             : "Ask the assistant anything…"
         : step === "cards"
           ? "Type a card name, e.g. HDFC Regalia Gold"
