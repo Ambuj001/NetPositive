@@ -20,7 +20,8 @@ npm run build      # output in apps/web-v2/dist
 
 | Route | What it shows |
 | --- | --- |
-| `/home` | After connecting a wallet: choose **Spend USDC** or **Buy USDC**, then the NetPositive AI assistant opens |
+| `/trade` | The main page, two tabs (`?mode=sell` for the second). **Buy**: order book, assistant bar and buy panel. **Pay with crypto**: the assistant chat finds a store and posts a request, and the side panel builds a custom order (store, amount, rate). Both lock USDC through the same wallet, World ID and server steps (`src/lib/lockOrder.ts`). `/home`, `/buy` and `/spend` redirect here |
+| `/track` | Your orders, with Ready, Settle and Dispute actions |
 | `/` | Landing: seller ⇄ escrow ⇄ buyer hero, animated trade flow, six-step walkthrough, route calculator, trust model, comparison |
 | `/sell` | Seller: pick voucher brand, amount and rate, lock USDT in escrow |
 | `/market` | Buyer: order book ranked by the buyer's real price per USDT after card rewards |

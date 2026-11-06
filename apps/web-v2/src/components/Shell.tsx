@@ -10,9 +10,7 @@ import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
 const APP_LINKS = [
-  { to: "/home", label: "Home" },
-  { to: "/spend", label: "Spend" },
-  { to: "/buy", label: "Buy" },
+  { to: "/trade", label: "Trade" },
   { to: "/track", label: "Track" },
 ];
 
@@ -190,7 +188,7 @@ function HomeGate() {
     readyRef.current = ready;
     if (becameReady && pathname === "/") {
       closeWallet();
-      navigate("/home");
+      navigate("/trade");
     }
   }, [address, humanVerified, pathname, closeWallet, navigate]);
 
