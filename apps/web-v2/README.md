@@ -20,11 +20,28 @@ npm run build      # output in apps/web-v2/dist
 
 | Route | What it shows |
 | --- | --- |
+| `/home` | After connecting a wallet: choose **Spend USDC** or **Buy USDC**, then the NetPositive AI assistant opens |
 | `/` | Landing: seller ⇄ escrow ⇄ buyer hero, animated trade flow, six-step walkthrough, route calculator, trust model, comparison |
 | `/sell` | Seller: pick voucher brand, amount and rate, lock USDT in escrow |
 | `/market` | Buyer: order book ranked by the buyer's real price per USDT after card rewards |
 | `/cards` | Buyer's card portfolio (issuer, variant, caps; no card numbers) |
 | `/trade/:id` | Live trade room with "View as Seller / View as Buyer", autoplay demo, verification, release and dispute |
+
+## AI assistant (`/home`)
+
+The assistant talks to the chatbot API from the `ai-chatbot` branch (`chatbot/server.py`). Start it before using `/home`:
+
+```sh
+git checkout ai-chatbot -- chatbot   # or use a separate worktree
+cd chatbot && python3 server.py      # http://127.0.0.1:8787
+```
+
+| Option | Steps | API calls |
+| --- | --- | --- |
+| Spend USDC (seller) | what to buy → pick a store → amount → review → lock USDC in escrow | `/merchants/suggest`, `/request/draft` |
+| Buy USDC (buyer) | add your cards → pick an open request → ranked card + channel routes with bank-portal links → accept | `/portfolio`, `/portfolio/add`, `/request/fulfil` |
+
+Free-text questions go to `/chat`, which needs `OPENROUTER_API_KEY` in `chatbot/.env`. Without the key the guided steps still work and the assistant says AI answers are off. If the server isn't running, the chat shows how to start it and a Retry button. The user id sent to the API is the connected wallet address. Set `VITE_CHATBOT_URL` to point at another host.
 
 ## Stack
 

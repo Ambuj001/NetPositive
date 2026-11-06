@@ -2,7 +2,7 @@ import { animate, motion, useInView, useMotionValue, useSpring, useTransform } f
 import { clsx } from "clsx";
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
-import { brand as getBrand } from "../lib/data";
+import { findBrand, brand as getBrand } from "../lib/data";
 
 export const cx = clsx;
 
@@ -155,8 +155,9 @@ export function Persona({ who }: { who: "seller" | "buyer" | "verifier" }) {
 }
 
 /* -------------------------------------------------------- Brand mark */
-export function BrandMark({ id, size = 40, className }: { id: string; size?: number; className?: string }) {
-  const b = getBrand(id);
+export function BrandMark({ id, size = 40, className, name }: { id: string; size?: number; className?: string; name?: string }) {
+  const known = findBrand(id);
+  const b = known ?? { ...getBrand(id), color: "#5a6170", glyph: (name ?? id).slice(0, 1).toUpperCase() };
   return (
     <span
       className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-xl font-display font-bold text-white ring-1 ring-white/10", className)}

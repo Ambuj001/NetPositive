@@ -38,11 +38,11 @@ export default function Sell() {
       const o = postOrder({ brandId, amount, rate }, q.sellerLocks);
       setPosted(o.id);
       setPhase("done");
-      toast({ title: "Request is live", body: `${usdt(q.sellerLocks)} USDT locked in escrow · ${o.id}`, tone: "mint" });
+      toast({ title: "Request is live", body: `${usdt(q.sellerLocks)} USDC locked in escrow · ${o.id}`, tone: "mint" });
     }, 2900);
   };
 
-  const cta = !address ? "Connect wallet" : !humanVerified ? "Verify with World ID" : short ? "Not enough USDT" : `Lock ${usdt(q.sellerLocks)} USDT`;
+  const cta = !address ? "Connect wallet" : !humanVerified ? "Verify with World ID" : short ? "Not enough USDC" : `Lock ${usdt(q.sellerLocks)} USDC`;
 
   return (
     <div className="relative pt-32">
@@ -52,7 +52,7 @@ export default function Sell() {
           <div>
             <Pill tone="mint">Seller · has crypto</Pill>
             <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Pay for any shop with crypto</h1>
-            <p className="mt-3 max-w-xl text-[15.5px] text-mute">Choose a voucher, set your rate, lock USDT. A verified buyer fills it with their card and you get live, checked codes.</p>
+            <p className="mt-3 max-w-xl text-[15.5px] text-mute">Choose a voucher, set your rate, lock USDC. A verified buyer fills it with their card and you get live, checked codes.</p>
           </div>
           <DetectedSite brandId={brandId} />
         </div>
@@ -146,7 +146,7 @@ export default function Sell() {
                 </button>
                 <div className="flex-1 text-center">
                   <div className="font-display text-5xl font-semibold tracking-tight tabular">₹{rate.toFixed(1)}</div>
-                  <div className="mt-1 text-[12px] text-mute">per USDT</div>
+                  <div className="mt-1 text-[12px] text-mute">per USDC</div>
                 </div>
                 <button onClick={() => setRate((r) => Math.round((r + 0.1) * 10) / 10)} className="grid size-11 place-items-center rounded-full text-xl ring-1 ring-white/10 hover:bg-white/5" aria-label="Raise rate">
                   +
@@ -188,9 +188,9 @@ export default function Sell() {
                   </div>
                 </div>
                 <div className="mt-5 divide-y divide-white/[0.06]">
-                  <Row k="Rate" v={`₹${rate.toFixed(1)} / USDT`} />
-                  <Row k="Buyer receives" v={`${usdt(q.buyerReceives)} USDT`} />
-                  <Row k="Fee (1%)" v={`${usdt(q.fee)} USDT`} />
+                  <Row k="Rate" v={`₹${rate.toFixed(1)} / USDC`} />
+                  <Row k="Buyer receives" v={`${usdt(q.buyerReceives)} USDC`} />
+                  <Row k="Fee (1%)" v={`${usdt(q.fee)} USDC`} />
                   <Row k="Your effective rate" v={`₹${q.sellerEffective.toFixed(2)}`} />
                 </div>
               </div>
@@ -200,10 +200,10 @@ export default function Sell() {
                 <div className="flex items-baseline justify-between">
                   <span className="text-[14px] text-mute">You lock</span>
                   <span className="font-display text-3xl font-semibold tracking-tight text-mint tabular">
-                    {usdt(q.sellerLocks)} <span className="text-sm text-mute">USDT</span>
+                    {usdt(q.sellerLocks)} <span className="text-sm text-mute">USDC</span>
                   </span>
                 </div>
-                <div className="mt-1 text-right font-mono text-[11px] text-dim">balance {usdt(balance)} USDT</div>
+                <div className="mt-1 text-right font-mono text-[11px] text-dim">balance {usdt(balance)} USDC</div>
 
                 <AnimatePresence mode="wait">
                   {phase === "done" && posted ? (
@@ -226,7 +226,7 @@ export default function Sell() {
                       {phase !== "idle" ? (
                         <div className="space-y-2">
                           {[
-                            ["approve", "Approve USDT spend"],
+                            ["approve", "Approve USDC spend"],
                             ["lock", "Lock in escrow contract"],
                           ].map(([k, label]) => {
                             const doneStep = k === "approve" && phase === "lock";
@@ -248,7 +248,7 @@ export default function Sell() {
                       )}
                       <div className="mt-4 flex items-start gap-2 text-[12px] leading-relaxed text-dim">
                         <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint" />
-                        Released only after a signed voucher check. If nobody fills it in 30 min, the USDT returns to you automatically.
+                        Released only after a signed voucher check. If nobody fills it in 30 min, the USDC returns to you automatically.
                       </div>
                     </motion.div>
                   )}

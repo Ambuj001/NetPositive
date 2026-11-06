@@ -1,7 +1,7 @@
 /**
  * NetPositive pricing + reward route engine (client-side mock).
  * Numbers reproduce the Product Walkthrough V3 example:
- * ₹10,000 Lifestyle voucher at ₹90/USDT → buyer gets 111.11 USDT, seller locks 112.22 USDT.
+ * ₹10,000 Lifestyle voucher at ₹90/USDC → buyer gets 111.11 USDC, seller locks 112.22 USDC.
  */
 
 export const FEE_RATE = 0.01;

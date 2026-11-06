@@ -15,7 +15,7 @@ type Ctx = {
   choices: WalletChoice[];
   pending: string | null;
   walletError: string;
-  /** Demo USDT balance used by the simulated escrow (not read from chain). */
+  /** Demo USDC balance used by the simulated escrow (not read from chain). */
   balance: number;
   humanVerified: boolean;
   walletOpen: boolean;
