@@ -54,6 +54,11 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(res["redirect"]["url"], "https://www.gyftr.com/instantvouchers")
         self.assertEqual(res["redirect"]["second_option"]["name"], "CRED")
 
+    def test_verify_guide_endpoint(self):
+        st, g = self.call("POST", "/request/verify_guide", {"brand": "Amazon", "amount": 5000})
+        self.assertEqual((st, g["check_each_voucher"][0]["expected_paise"]), (200, 500000))
+        self.assertEqual(self.call("POST", "/request/verify_guide", {"brand": "Amazon"})[0], 400)
+
     def test_request_flow_endpoints(self):
         st, r, _ = self.call("POST", "/merchants/suggest", {"query": "shoes"})
         self.assertEqual((st, r["mode"], r["tiles"][0]["name"]), (200, "tiles", "Amazon"))

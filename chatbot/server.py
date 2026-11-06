@@ -12,6 +12,7 @@ POST /plan              {"user_id","store","amount","item"?,"value_mode"?}      
 POST /merchants/suggest {"query"}                                      <- seller: "shoes" -> merchant tiles
 POST /request/draft     {"merchant","amount","item"?}                  <- seller: summary of the request to post
 POST /request/fulfil    {"user_id","brand","amount","value_mode"?}     <- buyer: ranked options, best first, each with a link
+POST /request/verify_guide {"brand","amount","vouchers"?}  <- seller: how to check the submitted voucher with the extension
 POST /chat              {"user_id","role":"buyer|seller","message"}                       <- website chatbot
 """
 import json
@@ -107,6 +108,8 @@ def route(method, path, query, body):
         return flow.draft_request(body.get("merchant"), body.get("amount"), body.get("item"))
     if path == "/request/fulfil":
         return flow.fulfil_request(_user(body), body.get("brand"), body.get("amount"), body.get("value_mode", "travel"))
+    if path == "/request/verify_guide":
+        return flow.verify_received_voucher(body.get("brand"), body.get("amount"), body.get("vouchers"))
     if path == "/chat":
         if body.get("reset"):
             with _sessions_lock:

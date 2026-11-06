@@ -121,6 +121,23 @@ class Draft(unittest.TestCase):
             self.assertIn("error", flow.draft_request("amazon", bad), bad)
 
 
+class SellerVerify(unittest.TestCase):
+    def test_guide_amounts_and_limits(self):
+        g = flow.verify_received_voucher("Amazon", 10000, [5000, 5000])
+        self.assertEqual([x["expected_paise"] for x in g["check_each_voucher"]], [500000, 500000])
+        self.assertEqual([x["expected_paise"] for x in flow.verify_received_voucher("Amazon", 999)["check_each_voucher"]], [99900])
+        self.assertTrue(any("woohoo" in l.lower() for l in g["limits"]) and any("brand" in l for l in g["limits"]))
+        self.assertTrue(any("dispute" in s for s in g["steps"]))
+
+    def test_never_asks_for_the_code(self):
+        self.assertNotIn("paste", json.dumps(flow.verify_received_voucher("Amazon", 500)).lower())
+
+    def test_bad_input(self):
+        for b, a in [(None, 100), ("", 100), ("Amazon", 0), ("Amazon", "x"), ("Amazon", None)]:
+            self.assertIn("error", flow.verify_received_voucher(b, a), (b, a))
+        self.assertEqual(len(flow.verify_received_voucher("Amazon", 100, [-1, "x", True])["check_each_voucher"]), 1)
+
+
 class Fulfil(unittest.TestCase):
     def setUp(self):
         engine.STATE_FILE = Path(tempfile.mkdtemp()) / "pf.json"
@@ -148,14 +165,9 @@ class Fulfil(unittest.TestCase):
         self.assertEqual(r["must_match"]["voucher_brand"], "Lifestyle")
         self.assertEqual(r["must_match"]["total_amount_inr"], 10000.0)
 
-    def test_verify_step_matches_amounts_and_states_limits(self):
+    def test_buyer_output_has_no_verify_step(self):
         self.cards("b", "Infinia")
-        v = flow.fulfil_request("b", "Lifestyle", 10000)["verify_before_submit"]
-        self.assertEqual(sum(x["expected_paise"] for x in v["check_each_voucher"]), 1000000)
-        self.assertTrue(all(isinstance(x["expected_paise"], int) for x in v["check_each_voucher"]))
-        self.assertTrue(any("woohoo" in l.lower() for l in v["limits"]) and any("brand" in l for l in v["limits"]))
-        small = flow.fulfil_request("b", "Amazon", 999)["verify_before_submit"]["check_each_voucher"]
-        self.assertEqual([x["expected_paise"] for x in small], [99900])
+        self.assertNotIn("verify_before_submit", flow.fulfil_request("b", "Lifestyle", 10000))
 
     def test_values_within_verified_group_are_descending(self):
         self.cards("b", "Infinia")
