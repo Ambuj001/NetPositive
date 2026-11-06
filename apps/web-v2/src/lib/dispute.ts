@@ -33,18 +33,22 @@ export type Bond = {
   escrowId: string;
 };
 
-/** Fields are read defensively: the server decides the exact shape. */
+/** What this backend stores on a request once a dispute is open (see backend/src/services/disputes.js). */
 export type DisputeInfo = {
-  raisedBy?: string | null;
+  /** Wallet that raised it. */
+  by?: string | null;
   category?: string | null;
   reason?: string | null;
-  response?: string | { text?: string } | null;
-  bond?: { status?: string | null; amountUsdc?: string | number | null } | null;
+  openedAt?: string | null;
+  /** none = no stake was asked; held = locked in escrow; returned / forfeited = after the decision. */
+  bond?: { status?: string | null; amountBaseUnits?: string | null } | null;
+  /** The other person's single reply. */
+  response?: { by?: string | null; text?: string | null; at?: string | null } | null;
 };
-export type Resolution = { verdict?: string | null; note?: string | null } | null;
-export type DisputeRequest = ApiRequest & { dispute?: DisputeInfo | null; resolution?: Resolution; disputedBy?: string | null };
+export type Resolution = { verdict?: string | null; note?: string | null; at?: string | null } | null;
+export type DisputeRequest = Omit<ApiRequest, "resolution"> & { dispute?: DisputeInfo | null; resolution?: Resolution };
 
-export type Evidence = { id: string; uploadedBy?: string | null; contentType?: string | null; size?: number | null; createdAt?: string | null };
+export type Evidence = { id: string; by?: string | null; mime?: string | null; size?: number | null; note?: string | null; createdAt?: string | null };
 
 /* ------------------------------------------------------------------- http */
 
