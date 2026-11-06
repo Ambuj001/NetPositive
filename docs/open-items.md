@@ -2,6 +2,19 @@
 
 Things that are known, deliberately not done yet, and need a decision or more work. Newest context first.
 
+## 0. Escrow decision: only the deployed contract ("A")  (decided 6 Nov 2026)
+
+We use **only** `contracts/src/VoucherEscrow.sol` from `backend-integration`, deployed on Arc testnet (chain 5042002) at `0x96456Edda0DEAd356EB8c97c2865FEBb693E0888`. The other two designs on `backend-2` (attestor-quorum `VoucherEscrow`, and the Arc Studio escrow) are out of scope. Read straight from the chain (read-only):
+
+| Setting | Value | Meaning |
+|---|---|---|
+| token | `0x3600...0000` (Arc USDC, 6 decimals) | matches the backend |
+| operator = owner | the same wallet | one key can `release` to **any** address and `refund` any funded escrow: whoever holds it controls all escrowed funds |
+| `feeBps` | **0** | no fee is charged on-chain today; fee is immutable, so a fee needs a redeploy |
+| `claimDelay` | 604,800 s (7 days) | anyone can refund the depositor after 7 days |
+
+If `feeBps` were set, the fee is taken **out of** the amount (fulfiller gets `amount - fee`), not added on top as the walkthrough says (seller locks amount + fee). Bytecode was not compared with the source (not source-verified). Voucher validity is not checked on-chain: the seller checks with the extension and confirms, and the operator releases.
+
 ## 1. INR <-> USDC rate and the 1% fee are not implemented anywhere  (needs a product decision)
 
 **What the product walkthrough says** (Voucher Rail walkthrough v3, 5 Nov 2026)
