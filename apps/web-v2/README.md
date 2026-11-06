@@ -32,7 +32,15 @@ React 19, TypeScript, Vite, Tailwind CSS v4, Motion, React Router, Lucide icons.
 
 ## Integration boundary
 
-**Wallet connection is real.** `src/lib/wallet.ts` discovers installed browser wallets with EIP-6963 (MetaMask, Rabby, Coinbase Wallet, etc.), falls back to `window.ethereum`, and asks the chosen wallet for permission with `eth_requestAccounts`. The app shows the approved address and current network and follows account and network changes made in the extension. Disconnect also calls `wallet_revokePermissions` where supported. The app never signs messages or sends transactions.
+**Wallet connection is real.** `src/lib/wallet.ts` lists these wallets: Base, MetaMask, Coinbase Wallet, Rainbow, Rabby, Trust Wallet, Phantom, Brave Wallet and WalletConnect, plus any other extension found via EIP-6963.
+
+- Installed extensions open their own approval popup (`eth_requestAccounts`).
+- **Base** opens the Base Account passkey popup (`@base-org/account`), no extension needed.
+- **Coinbase Wallet** uses the extension if installed, otherwise the Coinbase popup (`@coinbase/wallet-sdk`).
+- **WalletConnect** shows a QR code for mobile wallets. It needs a free project ID from https://cloud.reown.com in `.env` as `VITE_WALLETCONNECT_PROJECT_ID` (see `.env.example`). Without it the option is shown as "Setup".
+- Wallets that aren't installed link to their download page.
+
+The app shows the approved address and network and follows account and network changes. It never signs messages or sends transactions.
 
 Everything after connection is a UI prototype: World ID, the USDT escrow balance, voucher verification and contract events are simulated in the browser with demo data (`src/lib/store.tsx`, `src/lib/data.ts`). No funds move.
 

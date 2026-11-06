@@ -98,7 +98,12 @@ async function loadSdk(kind: "base-sdk" | "coinbase-sdk"): Promise<Provider> {
   if (sdkCache[kind]) return sdkCache[kind]!;
   if (kind === "base-sdk") {
     const { createBaseAccountSDK } = await import("@base-org/account");
-    sdkCache[kind] = createBaseAccountSDK({ appName: APP.name, appLogoUrl: APP.logo, appChainIds: [84532, 8453] }).getProvider() as unknown as Provider;
+    sdkCache[kind] = createBaseAccountSDK({
+      appName: APP.name,
+      appLogoUrl: APP.logo,
+      appChainIds: [84532, 8453],
+      preference: { telemetry: false },
+    }).getProvider() as unknown as Provider;
   } else {
     const { createCoinbaseWalletSDK } = await import("@coinbase/wallet-sdk");
     sdkCache[kind] = createCoinbaseWalletSDK({
