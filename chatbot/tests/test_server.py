@@ -57,7 +57,7 @@ class ServerTests(unittest.TestCase):
     def test_verify_guide_endpoint(self):
         st, g, _ = self.call("POST", "/request/verify_guide", {"brand": "Amazon", "amount": 5000})
         self.assertEqual((st, g["check_each_voucher"][0]["expected_paise"]), (200, 500000))
-        self.assertEqual(self.call("POST", "/request/verify_guide", {"brand": "Amazon"})[0], 400)
+        self.assertIn("error", self.call("POST", "/request/verify_guide", {"brand": "Amazon"})[1])  # domain errors are 200 + {"error"}, like the other endpoints
 
     def test_request_flow_endpoints(self):
         st, r, _ = self.call("POST", "/merchants/suggest", {"query": "shoes"})
