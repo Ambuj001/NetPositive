@@ -38,6 +38,14 @@ export function CustomOrder() {
   const ready = validAmount && validRate && q.sellerLocks > 0;
   const hint = !validAmount ? `Enter a whole-rupee amount up to ${inr(MAX_INR)}.` : !validRate ? "Enter a rate between ₹1 and ₹1,000 per USDC." : "Preview only · no funds move until you lock";
 
+  /** Open the review for the store and amount entered. Used by the button and by picking a recommended buyer. */
+  const startReview = () => {
+    if (!address) return openWallet();
+    setSavedLocally(null);
+    lock.reset();
+    setReview(true);
+  };
+
   const confirm = async () => {
     if (!ready || lock.phase) return;
     const res = await lock.run({ brandApi: place.api, brandId: place.id, amountInr: amount, rate, usdcLock: q.sellerLocks });
@@ -58,6 +66,10 @@ export function CustomOrder() {
       <VoucherPicker value={placeId} onChange={(id) => setPlaceId(id as typeof placeId)} />
       <AmountField label="Voucher value" value={amount} onChange={setAmount} />
       {type === "limit" ? <LimitField label="Your rate" value={limit} onChange={setLimit} /> : <p className="mt-3 text-[11.5px] text-dim">Market rate: ₹{RATE.toFixed(2)} / USDC.</p>}
+
+      {/* Buy requests (Firestore `buyIntents`) that match the store and amount entered above: same amount, and the same
+          voucher or no voucher. It follows the inputs live. */}
+      <RecommendedBuyers amount={validAmount ? amount : 0} brandId={place.api} brandName={place.label} className="mt-5" onPick={startReview} pickDisabled={!ready || !!lock.phase} />
 
       <Divider />
 
@@ -86,19 +98,11 @@ export function CustomOrder() {
         <p className="mt-1.5 text-[11px] text-dim">Voucher value ÷ total USDC, including the fee.</p>
       </Calc>
 
-      {/* Buyers who asked for this amount (and this store, or no store in particular). */}
-      <RecommendedBuyers amount={validAmount ? amount : 0} brandId={place.api} brandName={place.label} className="mt-5" />
-
       <Button
         className="mt-5 w-full"
         size="lg"
         disabled={!ready}
-        onClick={() => {
-          if (!address) return openWallet();
-          setSavedLocally(null);
-          lock.reset();
-          setReview(true);
-        }}
+        onClick={startReview}
         icon={<ArrowRight className="size-4" />}
       >
         {address ? "Review order" : "Connect to review"}

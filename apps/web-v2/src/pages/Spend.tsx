@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { BuyerList } from "../components/BuyRequest";
 import { BrandMark, Button, cx } from "../components/ui";
 import { api, type BuyIntent } from "../lib/api";
-import { fromOthers } from "../lib/buyIntents";
 import type { Order } from "../lib/data";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
@@ -41,7 +40,9 @@ type Block =
   | { kind: "text"; text: string }
   | { kind: "orders"; orders: Order[]; selectedId: string | null; place: string }
   | { kind: "posted"; orderId: string }
-  | { kind: "buyers"; intents: BuyIntent[]; amount: number; place: string };
+  | { kind: "buyers"; intents: BuyIntent[]; amount: number; place: string }
+  /** "Create new order" button. Carries the amount it was offered for, so a later pick can't change what it opens. */
+  | { kind: "create"; amount: number };
 type Msg = { id: number; from: "bot" | "user"; blocks: Block[] };
 
 let nextId = 1;
@@ -52,7 +53,7 @@ const user = (text: string): Msg => ({ id: nextId++, from: "user", blocks: [say(
 const greeting = () => [bot(say("Where do you want to spend crypto today?"))];
 
 export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onRestart: () => void; onClose: () => void }) {
-  const { toast, fullAddress } = useApp();
+  const { toast } = useApp();
   const lock = useLockOrder();
   const [msgs, setMsgs] = useState<Msg[]>(greeting);
   const [step, setStep] = useState<Step>("place");
@@ -86,7 +87,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
     const label = amountLabel(n);
     push(user(label));
     try {
-      const [{ orders, match, count }, buyers] = await Promise.all([loadBrand(place, n, book), loadBuyers(place, n, fullAddress)]);
+      const [{ orders, match, count }, buyers] = await Promise.all([loadBrand(place, n, book), loadBuyers(place, n)]);
       // Buyers who asked for exactly this amount (this store, or no store in particular).
       const buyerMsg = () => (buyers.length ? [bot(say(`${buyers.length === 1 ? "A buyer is" : `${buyers.length} buyers are`} waiting for a ${label} ${place.label} voucher.`), { kind: "buyers" as const, intents: buyers, amount: n, place: place.label })] : []);
       if (match) {
@@ -103,16 +104,23 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
       }
       push(
         bot(
-          say(`No ${place.label} ${label} order is open. Review a new one and I'll lock your USDC, then post it for a gift-card buyer.`),
+          say(`No ${place.label} ${label} order is open.`),
           { kind: "orders", orders, selectedId: null, place: place.label },
         ),
       );
+      // Show who is already waiting first. Creating an order is the next step, and it is the user's click, not automatic.
       push(...buyerMsg());
-      lock.reset();
-      setReview(true);
+      push(bot({ kind: "create", amount: n }));
     } finally {
       setBusy(false);
     }
+  };
+
+  /** Start a new order for this store at this amount: opens the review. Nothing is locked until they confirm there. */
+  const startOrder = (n: number) => {
+    setAmount(n);
+    lock.reset();
+    setReview(true);
   };
 
   const confirm = async () => {
@@ -202,7 +210,15 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
                       {b.text}
                     </div>
                   ) : b.kind === "buyers" ? (
-                    <BuyerList key={i} intents={b.intents} amount={b.amount} place={b.place} />
+                    <BuyerList key={i} intents={b.intents} amount={b.amount} place={b.place} onPick={() => startOrder(b.amount)} pickDisabled={step === "posted" || step === "matched" || review || busy} />
+                  ) : b.kind === "create" ? (
+                    <CreateOrderPrompt
+                      key={i}
+                      amount={b.amount}
+                      place={place?.label ?? "this store"}
+                      disabled={step === "posted" || review || busy}
+                      onCreate={() => startOrder(b.amount)}
+                    />
                   ) : b.kind === "posted" ? (
                     <Posted key={i} orderId={b.orderId} />
                   ) : (
@@ -297,13 +313,26 @@ async function loadBrand(place: Place, amount: number, book: Order[]) {
 }
 
 /** Open buy requests for this amount and store (or no store). Offline or failing just means no recommendations. */
-async function loadBuyers(place: Place, amount: number, me: string) {
+async function loadBuyers(place: Place, amount: number) {
   try {
     const { intents } = await api.matchBuyIntents(amount, place.api);
-    return fromOthers(intents, me);
+    return intents;
   } catch {
     return [];
   }
+}
+
+function CreateOrderPrompt({ amount, place, disabled, onCreate }: { amount: number; place: string; disabled: boolean; onCreate: () => void }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl bg-white/[0.03] p-4 ring-1 ring-white/[0.07] sm:flex-row sm:items-center">
+      <div className="flex-1 text-[13px] leading-relaxed text-mute">
+        Nothing fits? Create a new {place} {amountLabel(amount)} order. You'll review it before any USDC is locked.
+      </div>
+      <Button size="sm" disabled={disabled} onClick={onCreate} icon={<ArrowRight className="size-3.5" />}>
+        Create new order
+      </Button>
+    </div>
+  );
 }
 
 function Posted({ orderId }: { orderId: string }) {
