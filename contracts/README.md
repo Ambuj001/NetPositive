@@ -10,7 +10,7 @@ How the fulfiller (Saad) hands a voucher code and PIN to the requester (Shivam) 
 > | `CodeMailbox` | `0xA8243e92A89de7F62D3023EB68EEB4f4e40e88B1` |
 > | Escrow it reads (existing `VoucherEscrow`) | `0x96456Edda0DEAd356EB8c97c2865FEBb693E0888` |
 >
-> Deployed from the escrow operator wallet by `scripts/deploy.mjs`; full details in `deployments/arc-testnet.json`. Verified on-chain: the registry's bytecode equals the compiled bytecode, the mailbox points at the right escrow and registry, and its EIP-712 digest equals what wallets sign. A live delivery on Arc has **not** been run yet.
+> Deployed from the escrow operator wallet by `scripts/deploy.mjs`; full details in `deployments/arc-testnet.json`. Verified on-chain: the registry's bytecode equals the compiled bytecode, the mailbox points at the right escrow and registry, and its EIP-712 digest equals what wallets sign. **Live test on Arc passed 12/12** (`scripts/live-e2e.mjs`, 6 Nov 2026): key registered, 0.10 USDC deposited in the real escrow, gasless Ready permit signed, sealed code delivered on-chain, event read back through the RPC and decrypted, a second delivery and a foreign wallet both refused, escrow refunded. Example delivery tx `0xb82cff3c1fd8f826785b8cb9812ba799bea0488d6c21064a45fc94a8c67ce77f` (about 150k gas). Net cost of the test was about 0.014 testnet USDC.
 
 ## What goes where
 
@@ -60,6 +60,7 @@ Mutation check done by hand: deliberately removing each of the funded check, exp
 - **Wallet-derived keys.** Wallets that sign the key message differently each time cannot derive a stable key (`assertDeterministicSignature` detects this); they need a recovery passphrase, not built.
 - **A malicious frontend can steal the plaintext in the browser.** This protects against server/database compromise and tampering, not a replaced website.
 - **The escrow is unchanged.** It still lets its operator release to any address; the mailbox does not gate it. Choose release rules in the backend.
+- Live test: `node scripts/live-e2e.mjs` is read-only by default; the real run needs `OPERATOR_PK` and `CONFIRM_LIVE=<CodeMailbox address>`. The public Arc RPC rejects bursts of requests ("Request exceeds defined limit"), so clients and indexers need request spacing and retries (the script does this).
 - Redeploying: `node scripts/deploy.mjs` is read-only by default; a real deploy needs `DEPLOYER_PK` and `CONFIRM_DEPLOY=<escrow address>`.
 
 ## Still to do (outside this module)
