@@ -37,11 +37,11 @@ import { useWorldId } from "../lib/world";
 type Role = "seller" | "buyer";
 
 const STAGES = [
-  { k: "Locked in escrow", who: "Seller", icon: Lock },
+  { k: "Locked in escrow", who: "Spender", icon: Lock },
   { k: "Accepted by a verified human", who: "Buyer", icon: FingerprintPattern },
   { k: "Vouchers bought on best route", who: "Buyer", icon: CreditCard },
   { k: "Codes verified live", who: "Verifier", icon: ScanLine },
-  { k: "Delivered to seller", who: "Seller", icon: KeyRound },
+  { k: "Delivered to spender", who: "Spender", icon: KeyRound },
   { k: "USDC released", who: "Contract", icon: Unlock },
 ];
 
@@ -452,7 +452,7 @@ export default function Trade() {
                     </div>
                   </Panel>
                 ) : stage === 2 ? (
-                  <Panel tone="amber" title="Paste your voucher codes" sub={request ? "Encrypted on this device to the spender's vault key. The server only stores the locked box." : "They're encrypted on this device to the verifier's key. The seller only sees them after they pass."}>
+                  <Panel tone="amber" title="Paste your voucher codes" sub={request ? "Encrypted on this device to the spender's vault key. The server only stores the locked box." : "They're encrypted on this device to the verifier's key. The spender only sees them after they pass."}>
                     <div className="space-y-2.5">
                       {codes.map((c, i) => (
                         <div key={i} className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-2 pl-4 ring-1 ring-white/[0.08] focus-within:ring-amber/40">
@@ -599,7 +599,7 @@ function RoleSwitch({ role, setRole }: { role: Role; setRole: (r: Role) => void 
       {(["seller", "buyer"] as Role[]).map((r) => (
         <button key={r} onClick={() => setRole(r)} className={cx("relative h-8 rounded-full px-4 text-[12.5px] font-medium transition", role === r ? "text-ink" : "text-mute hover:text-fg")}>
           {role === r && <motion.span layoutId="role" className={cx("absolute inset-0 rounded-full", r === "seller" ? "bg-mint" : "bg-amber")} transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
-          <span className="relative">View as {r === "seller" ? "Seller" : "Buyer"}</span>
+          <span className="relative">View as {r === "seller" ? "Spender" : "Buyer"}</span>
         </button>
       ))}
     </div>
@@ -627,7 +627,7 @@ function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number
     0: ["Waiting for a buyer", "Your USDC is locked in escrow and visible to verified buyers. If nobody fills it in 30 minutes, it comes back to you automatically."],
     1: ["The buyer is buying your vouchers", "They're checking out on SmartBuy with their own card. Your USDC stays locked the whole time."],
     2: ["The buyer is submitting codes", "Codes go encrypted to the verifier first. You'll see them only after they pass."],
-    4: ["The seller is checking the codes", `USDC is released when they confirm, or automatically in ${fmt(clock)}.`],
+    4: ["The spender is checking the codes", `USDC is released when they confirm, or automatically in ${fmt(clock)}.`],
   };
   const [t, s] = msg[stage] ?? ["Waiting", ""];
   const tone = actor === "buyer" ? "amber" : "mint";
@@ -644,7 +644,7 @@ function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number
       <h2 className="mt-6 font-display text-2xl font-semibold tracking-tight">{t}</h2>
       <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-mute">{s}</p>
       <button onClick={onSwitch} className="mt-6 text-[13px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
-        Switch to {actor === "buyer" ? "buyer" : "seller"} view
+        Switch to {actor === "buyer" ? "buyer" : "spender"} view
       </button>
     </Card>
   );

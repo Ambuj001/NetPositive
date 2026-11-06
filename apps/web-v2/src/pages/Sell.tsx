@@ -65,7 +65,7 @@ export default function Sell() {
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <Pill tone="mint">Seller · has crypto</Pill>
+            <Pill tone="mint">Spender · has crypto</Pill>
             <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Pay for any shop with crypto</h1>
             <p className="mt-3 max-w-xl text-[15.5px] text-mute">Choose a voucher, set your rate, lock USDC. A verified buyer fills it with their card and you get live, checked codes.</p>
           </div>

@@ -40,7 +40,7 @@ export function HeroRail({ className }: { className?: string }) {
           tone="mint"
           active={sellerOn}
           eyebrow="Crypto holder"
-          name="Seller"
+          name="Spender"
           city="sells USDC"
           avatar={<Avatar letter="S" tone="mint" />}
           stats={[

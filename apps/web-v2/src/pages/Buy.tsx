@@ -42,7 +42,7 @@ export function BuyView() {
   const [review, setReview] = useState(false);
 
   const open = useMemo(() => orders.filter((o) => o.seller !== "you"), [orders]);
-  const rows = useMemo(() => open.filter((o) => brand(o.brandId).name.toLowerCase().includes(q.toLowerCase())), [open, q]);
+  const rows = useMemo(() => open.filter((o) => `${brand(o.brandId).name} ${o.seller} ${o.spender ?? ""}`.toLowerCase().includes(q.trim().toLowerCase())), [open, q]);
   const featured = useMemo(() => {
     const seen = new Set<string>();
     return open.filter((o) => (seen.has(o.brandId) ? false : (seen.add(o.brandId), true))).slice(0, 4);
@@ -70,7 +70,7 @@ export function BuyView() {
               </div>
               <label className="flex h-9 items-center gap-2 rounded-full bg-white/[0.03] px-3.5 text-[13px] ring-1 ring-white/[0.07] focus-within:ring-mint/40">
                 <Search className="size-3.5 text-dim" />
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers" className="w-36 bg-transparent outline-none placeholder:text-dim" aria-label="Search vouchers" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search store or wallet" className="w-40 bg-transparent outline-none placeholder:text-dim" aria-label="Search orders by store or wallet" />
               </label>
             </div>
 
@@ -96,7 +96,7 @@ export function BuyView() {
               <table className="w-full min-w-[520px] text-[13.5px]">
                 <thead>
                   <tr className="border-b border-white/[0.06] text-left text-[11.5px] text-dim">
-                    <th className="pb-3 font-normal">Voucher</th>
+                    <th className="pb-3 font-normal">Store · from wallet</th>
                     <th className="pb-3 text-right font-normal">Value</th>
                     <th className="pb-3 text-right font-normal">You receive</th>
                     <th className="pb-3 text-right font-normal">Rate / USDC</th>
@@ -121,12 +121,19 @@ export function BuyView() {
                           <td className="py-3.5">
                             <span className="flex items-center gap-3">
                               <BrandMark id={o.brandId} size={30} />
-                              <span className="font-medium">{b.name}</span>
-                              {isMine(o) ? (
-                                <span className="rounded-full bg-white/[0.07] px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mute uppercase">yours</span>
-                              ) : (
-                                isMatch && <span className="rounded-full bg-mint/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mint uppercase">match</span>
-                              )}
+                              <span className="min-w-0">
+                                <span className="flex items-center gap-2">
+                                  <span className="font-medium">{b.name}</span>
+                                  {isMine(o) ? (
+                                    <span className="rounded-full bg-white/[0.07] px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mute uppercase">yours</span>
+                                  ) : (
+                                    isMatch && <span className="rounded-full bg-mint/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mint uppercase">match</span>
+                                  )}
+                                </span>
+                                <span className="block font-mono text-[11px] text-dim" title={o.spender}>
+                                  from {o.seller}
+                                </span>
+                              </span>
                             </span>
                           </td>
                           <td className="py-3.5 text-right text-mute tabular">{inr(o.amount)}</td>
@@ -143,7 +150,7 @@ export function BuyView() {
                   </AnimatePresence>
                 </tbody>
               </table>
-              {rows.length === 0 && <div className="py-10 text-center text-[13px] text-mute">{open.length ? "No vouchers match your search." : "No open orders right now."}</div>}
+              {rows.length === 0 && <div className="py-10 text-center text-[13px] text-mute">{open.length ? "No orders match your search." : "No open orders right now."}</div>}
             </div>
             <p className="mt-4 text-[11.5px] text-dim">Whole vouchers. No partial fills.</p>
           </section>
@@ -166,7 +173,7 @@ export function BuyView() {
                   return `Set your spend to ${inr(n)}. ${matchOrders(open, n).length} whole order(s) match.`;
                 }
               }
-              if (/fee/i.test(t)) return "Buying is free. The seller pays a 1% fee from the USDC they lock. You pay only the voucher price on your own card, and any card rewards stay yours.";
+              if (/fee/i.test(t)) return "Buying is free. The spender pays a 1% fee from the USDC they lock. You pay only the voucher price on your own card, and any card rewards stay yours.";
               return null;
             }}
           />
@@ -267,7 +274,7 @@ export function BuyView() {
             <Button className="mt-5 w-full" size="lg" disabled={!matched.length} onClick={() => setReview(true)} icon={<ArrowRight className="size-4" />}>
               Review buy order
             </Button>
-            <p className="mt-3 text-center text-[12px] text-dim">{matched.length ? "Your card rewards stay yours." : tab === "limit" ? "No orders at or below your max rate." : "No whole orders fit this amount."}</p>
+            {!matched.length && <p className="mt-3 text-center text-[12px] text-dim">{tab === "limit" ? "No orders at or below your max rate." : "No whole orders fit this amount."}</p>}
 
             <Link to="/cards" className="mt-5 flex items-center justify-between border-t border-white/[0.07] pt-4 text-[13px] text-mute transition hover:text-fg">
               <span className="flex items-center gap-2.5">

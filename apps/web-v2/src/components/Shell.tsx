@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, ChevronRight, Copy, FingerprintPattern, LoaderCircle, Menu, ShieldCheck, Wallet, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../lib/store";
 import { readSession } from "../lib/session";
 import { formatChainBalance } from "../lib/wallet";
@@ -31,7 +31,7 @@ export function Shell() {
       <HomeGate />
       {!walletOpen && <WorldIdNotice className="fixed bottom-5 left-5 z-[60] w-[min(360px,calc(100vw-40px))] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)]" />}
       <main>
-        <Outlet />
+        <Gate />
       </main>
       <Footer />
       <WalletModal />
@@ -207,7 +207,6 @@ function Footer() {
         ))}
       </div>
       <div className="mx-auto flex max-w-6xl flex-col justify-between gap-2 border-t border-line px-6 py-6 text-[12px] text-dim md:flex-row">
-        <span>Hackathon prototype. Contracts unaudited. Demo data shown.</span>
         <span className="font-mono">escrow · world id · signed voucher checks</span>
       </div>
       <div aria-hidden className="pointer-events-none select-none overflow-hidden">
@@ -219,12 +218,30 @@ function Footer() {
   );
 }
 
-/** Leave the landing page only once this browser has both a wallet and World ID. */
+/**
+ * Nothing but the landing page shows until this browser has both a wallet and World ID.
+ * Anyone who opens another address (or presses a button that goes there) is sent to the landing page and asked to connect first;
+ * once they have, they land where they were headed.
+ */
+function Gate() {
+  const { address, humanVerified } = useApp();
+  const { pathname, search } = useLocation();
+  const ready = Boolean(address && humanVerified);
+  const wasReady = useRef(false);
+  if (ready) wasReady.current = true;
+  if (ready || pathname === "/") return <Outlet />;
+  // A wallet that was just disconnected goes home quietly. Anyone else is asked to connect, then sent on.
+  return <Navigate to="/" replace state={wasReady.current ? null : { from: pathname + search }} />;
+}
+
+/** Leave the landing page once this browser has both a wallet and World ID, and ask to connect when someone was sent here. */
 function HomeGate() {
-  const { address, humanVerified, closeWallet } = useApp();
+  const { address, humanVerified, closeWallet, openWallet } = useApp();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
   const readyRef = useRef(false);
+  const askedRef = useRef(false);
+  const from = typeof (state as { from?: unknown } | null)?.from === "string" ? (state as { from: string }).from : "";
 
   useEffect(() => {
     const ready = Boolean(address && humanVerified);
@@ -232,9 +249,12 @@ function HomeGate() {
     readyRef.current = ready;
     if (becameReady && pathname === "/") {
       closeWallet();
-      navigate("/trade");
+      navigate(from || "/trade", { replace: true });
+    } else if (!ready && pathname === "/" && from && !askedRef.current) {
+      askedRef.current = true;
+      openWallet();
     }
-  }, [address, humanVerified, pathname, closeWallet, navigate]);
+  }, [address, humanVerified, pathname, from, closeWallet, openWallet, navigate]);
 
   return null;
 }

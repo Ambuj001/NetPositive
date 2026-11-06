@@ -70,7 +70,7 @@ export default function Market() {
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
           <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-white/[0.03] px-4 ring-1 ring-white/10 transition focus-within:ring-mint/45">
             <Search className="size-4 text-dim" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or sellers" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or sellers" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or spenders" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or spenders" />
           </label>
           <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-white/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-white/10 transition focus-within:ring-mint/45">
             <SlidersHorizontal className="size-4 text-dim" />
@@ -155,7 +155,6 @@ export default function Market() {
           </div>
           {rows.length === 0 && <div className="py-14 text-center text-[13.5px] text-mute">{source === "loading" ? "Loading orders…" : "No vouchers match your search."}</div>}
         </div>
-        <p className="mt-4 text-[11.5px] text-dim">Rewards use illustrative card rates and statement-credit values. Compare live issuer terms before buying.</p>
       </div>
     </div>
   );
