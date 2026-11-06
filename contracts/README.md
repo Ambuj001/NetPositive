@@ -2,7 +2,15 @@
 
 How the fulfiller (Saad) hands a voucher code and PIN to the requester (Shivam) privately, with a timestamp nobody can fake.
 
-> Status: written and tested on an in-process EVM. **Not deployed anywhere.** Not audited. Not yet wired into the backend or frontend.
+> Status: tested on an in-process EVM and **deployed to Arc testnet** (chain 5042002, 6 Nov 2026). Not audited. Not yet wired into the backend or frontend.
+>
+> | Contract | Address |
+> |---|---|
+> | `KeyRegistry` | `0x00f8924768D9b8019E6ba2878E8F55d321b98312` |
+> | `CodeMailbox` | `0xA8243e92A89de7F62D3023EB68EEB4f4e40e88B1` |
+> | Escrow it reads (existing `VoucherEscrow`) | `0x96456Edda0DEAd356EB8c97c2865FEBb693E0888` |
+>
+> Deployed from the escrow operator wallet by `scripts/deploy.mjs`; full details in `deployments/arc-testnet.json`. Verified on-chain: the registry's bytecode equals the compiled bytecode, the mailbox points at the right escrow and registry, and its EIP-712 digest equals what wallets sign. A live delivery on Arc has **not** been run yet.
 
 ## What goes where
 
@@ -52,7 +60,7 @@ Mutation check done by hand: deliberately removing each of the funded check, exp
 - **Wallet-derived keys.** Wallets that sign the key message differently each time cannot derive a stable key (`assertDeterministicSignature` detects this); they need a recovery passphrase, not built.
 - **A malicious frontend can steal the plaintext in the browser.** This protects against server/database compromise and tampering, not a replaced website.
 - **The escrow is unchanged.** It still lets its operator release to any address; the mailbox does not gate it. Choose release rules in the backend.
-- **No deployment script yet.** Deploying costs gas and needs a funded key, so it should be an explicit step.
+- Redeploying: `node scripts/deploy.mjs` is read-only by default; a real deploy needs `DEPLOYER_PK` and `CONFIRM_DEPLOY=<escrow address>`.
 
 ## Still to do (outside this module)
 

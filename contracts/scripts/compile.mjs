@@ -18,7 +18,7 @@ for (const dir of ['src', 'test']) {
 const input = {
   language: 'Solidity',
   sources,
-  settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: 'paris', outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object'] } } },
+  settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: 'paris', outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object'] } } },
 };
 function findImports(p) {
   const candidates = [path.join(root, 'node_modules', p), path.join(root, p)];
@@ -36,7 +36,7 @@ fs.mkdirSync(path.join(root, 'build'), { recursive: true });
 for (const [file, contracts] of Object.entries(out.contracts)) {
   if (!file.startsWith('src/') && !file.startsWith('test/')) continue;
   for (const [name, c] of Object.entries(contracts)) {
-    fs.writeFileSync(path.join(root, 'build', `${name}.json`), JSON.stringify({ abi: c.abi, bytecode: `0x${c.evm.bytecode.object}` }));
+    fs.writeFileSync(path.join(root, 'build', `${name}.json`), JSON.stringify({ abi: c.abi, bytecode: `0x${c.evm.bytecode.object}`, deployedBytecode: `0x${c.evm.deployedBytecode.object}` }));
     console.log(`compiled ${name} (${c.evm.bytecode.object.length / 2} bytes)`);
   }
 }
