@@ -6,6 +6,7 @@ import { AMOUNTS, PLACES, RATE, ONE_USD_INR, ReviewModal, amountLabel } from "..
 import { inr, quote, usdt } from "../lib/engine";
 import { useLockOrder } from "../lib/lockOrder";
 import { useApp } from "../lib/store";
+import { RecommendedBuyers } from "./BuyRequest";
 import { BrandMark, Button, cx } from "./ui";
 
 /** Largest voucher the order API accepts. */
@@ -84,6 +85,9 @@ export function CustomOrder() {
         <Rate value={ready ? amount / q.sellerLocks : null} />
         <p className="mt-1.5 text-[11px] text-dim">Voucher value ÷ total USDC, including the fee.</p>
       </Calc>
+
+      {/* Buyers who asked for this amount (and this store, or no store in particular). */}
+      <RecommendedBuyers amount={validAmount ? amount : 0} brandId={place.api} brandName={place.label} className="mt-5" />
 
       <Button
         className="mt-5 w-full"

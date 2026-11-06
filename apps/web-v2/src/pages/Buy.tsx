@@ -3,15 +3,20 @@ import { ArrowDownLeft, ArrowRight, ArrowUpRight, CircleAlert, CreditCard, Refre
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AssistantBar } from "../components/AssistantBar";
+import { BuyRequestCard } from "../components/BuyRequest";
 import { BrandMark, Button, cx } from "../components/ui";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
+import { brandIdFromApi } from "../lib/api";
 import { sameAddr } from "../lib/lifecycle";
 import { useOrderBook, type Source } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 import type { Order } from "../lib/data";
 
 const PRESETS = [5000, 10000, 25000];
+const DEFAULT_SPEND = 10000;
+/** Vouchers a buyer can say they hold. Shown in this order, after "None". */
+const VOUCHER_BRANDS = ["amazon", "myntra", "blinkit", "flipkart"];
 
 /** Whole vouchers only: pick orders (best rate first) whose total stays within the spend. */
 export function matchOrders(orders: Order[], spend: number, maxRate?: number) {
@@ -37,18 +42,26 @@ export function BuyView() {
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"market" | "limit">("market");
-  const [spend, setSpend] = useState(10000);
+  const [spend, setSpend] = useState(DEFAULT_SPEND);
   const [limit, setLimit] = useState(90);
   const [review, setReview] = useState(false);
+  /** Brand of the one voucher the buyer holds and wants to use. "none" means no voucher: match any brand. */
+  const [voucher, setVoucher] = useState<string>("none");
 
   const open = useMemo(() => orders.filter((o) => o.seller !== "you"), [orders]);
+  const voucherOptions = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const o of open) count.set(o.brandId, (count.get(o.brandId) ?? 0) + 1);
+    return VOUCHER_BRANDS.map((id) => ({ id, n: count.get(id) ?? 0 }));
+  }, [open]);
+  const pool = useMemo(() => (voucher === "none" ? open : open.filter((o) => o.brandId === voucher)), [open, voucher]);
   const rows = useMemo(() => open.filter((o) => brand(o.brandId).name.toLowerCase().includes(q.toLowerCase())), [open, q]);
   const featured = useMemo(() => {
     const seen = new Set<string>();
     return open.filter((o) => (seen.has(o.brandId) ? false : (seen.add(o.brandId), true))).slice(0, 4);
   }, [open]);
 
-  const matched = useMemo(() => matchOrders(open, spend, tab === "limit" ? limit : undefined), [open, spend, tab, limit]);
+  const matched = useMemo(() => matchOrders(pool, spend, tab === "limit" ? limit : undefined), [pool, spend, tab, limit]);
   const matchedInr = matched.reduce((s, o) => s + o.amount, 0);
   const receive = matched.reduce((s, o) => s + quote(o.amount, o.rate).buyerReceives, 0);
 
@@ -163,7 +176,7 @@ export function BuyView() {
                 if (n > 0) {
                   setTab("market");
                   setSpend(n);
-                  return `Set your spend to ${inr(n)}. ${matchOrders(open, n).length} whole order(s) match.`;
+                  return `Set your spend to ${inr(n)}. ${matchOrders(pool, n).length} whole order(s) match.`;
                 }
               }
               if (/fee/i.test(t)) return "Buying is free. The seller pays a 1% fee from the USDC they lock. You pay only the voucher price on your own card, and any card rewards stay yours.";
@@ -214,6 +227,46 @@ export function BuyView() {
                 </button>
               ))}
             </div>
+
+            <div className="mt-5">
+              <div className="text-[12.5px] text-mute">Voucher you hold (pick one)</div>
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Voucher you hold">
+                {[{ id: "none", n: open.length }, ...voucherOptions].map(({ id, n }) => {
+                  const on = voucher === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setVoucher(id)}
+                      title={id !== "none" && n === 0 ? "No open orders for this voucher right now" : undefined}
+                      className={cx(
+                        "flex h-9 items-center gap-2 rounded-xl px-3 text-[12.5px] ring-1 transition",
+                        on ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20",
+                        !on && id !== "none" && n === 0 && "opacity-50",
+                      )}
+                    >
+                      {id !== "none" && <BrandMark id={id} size={18} />}
+                      {id === "none" ? "None" : brand(id).name}
+                      {id !== "none" && <span className="font-mono text-[10px] text-dim">{n}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* A custom amount (not one of the presets) can be put on record as a buy request that spenders are shown. */}
+            <BuyRequestCard
+              amount={spend}
+              voucher={voucher}
+              custom={!PRESETS.includes(spend)}
+              onRestore={(i) => {
+                // Show the saved request in the form, unless they have already started changing it.
+                setSpend((s) => (s === DEFAULT_SPEND ? i.amountInr : s));
+                setVoucher((v) => (v === "none" ? (i.voucher ? brandIdFromApi(i.voucher) : "none") : v));
+              }}
+            />
 
             {tab === "limit" && (
               <div className="mt-4 flex items-center justify-between rounded-xl bg-white/[0.03] px-3.5 py-2.5 ring-1 ring-white/[0.07]">
@@ -267,7 +320,7 @@ export function BuyView() {
             <Button className="mt-5 w-full" size="lg" disabled={!matched.length} onClick={() => setReview(true)} icon={<ArrowRight className="size-4" />}>
               Review buy order
             </Button>
-            <p className="mt-3 text-center text-[12px] text-dim">{matched.length ? "Your card rewards stay yours." : tab === "limit" ? "No orders at or below your max rate." : "No whole orders fit this amount."}</p>
+            <p className="mt-3 text-center text-[12px] text-dim">{matched.length ? "Your card rewards stay yours." : tab === "limit" ? "No orders at or below your max rate." : voucher !== "none" ? `No whole ${brand(voucher).name} orders fit this amount.` : "No whole orders fit this amount."}</p>
 
             <Link to="/cards" className="mt-5 flex items-center justify-between border-t border-white/[0.07] pt-4 text-[13px] text-mute transition hover:text-fg">
               <span className="flex items-center gap-2.5">
