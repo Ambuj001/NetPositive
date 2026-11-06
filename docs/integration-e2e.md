@@ -29,3 +29,21 @@ cd contracts/private-transfer && npm test
 ## What the end-to-end run covers and does not
 Covers: chatbot suggestions and request drafts, request creation and funding rules, accept, code submission (plaintext and sealed), seller-only access, confirm/release, security checks, secrets hygiene, the chatbot/backend brand contract.
 Does not cover: real World ID, real Firestore indexes/rules (use `real-firestore-check.mjs` with a service account), real Woohoo checks, the mailbox contract from the backend (not wired), the frontend.
+
+## Full real run: `npm run full:e2e` (backend/scripts/full-e2e.mjs)
+One script that runs the whole trade with the deployed contracts, the real backend and the real chatbot server:
+
+- **Shivam -> Saad (money):** request via the chatbot draft, backend `POST /requests`, `approve` + `deposit` on the real escrow, backend verifies the deposit on-chain, Saad accepts, Shivam confirms, the backend operator `release`s the USDC to Saad (balance checked on-chain). A second request is cancelled and refunded.
+- **Saad -> Shivam (code):** Shivam registers his wallet-derived vault key in `KeyRegistry` and with the backend; he signs the gasless Ready permit for Saad; Saad seals the code (to Shivam and the offline dispute key) and calls `CodeMailbox.deliver()` on Arc; the same sealed box is submitted to the backend (sealed-only mode, plaintext refused). Shivam decrypts it from the on-chain event and from the backend, the dispute key can open it, Saad cannot, and the database holds no plaintext.
+- Mocked: World ID only (needs a real person with the World App). The voucher code is synthetic.
+
+```
+node scripts/full-e2e.mjs                                   # dry run: mock escrow, in-memory DB, on-chain steps skipped
+OPERATOR_PK=... CONFIRM_CHAIN_TX=<escrow address> node scripts/full-e2e.mjs
+   # real Arc: ~12 transactions, ~0.02 testnet USDC of gas, in-memory DB
+OPERATOR_PK=... CONFIRM_CHAIN_TX=... SA_PATH=<service-account.json> CONFIRM_REAL_FIRESTORE=<project_id> MANIFEST=<file> node scripts/full-e2e.mjs
+   # real Arc + real Firestore: requests appear in the console; nothing is deleted
+SA_PATH=... CONFIRM_REAL_FIRESTORE=<project_id> MANIFEST=<file> node scripts/full-e2e.mjs --cleanup
+   # deletes exactly what that run created (a user doc that existed before the run is never recorded or deleted)
+```
+Note: the backend does not call the mailbox itself yet. The script does both: it delivers on-chain and also drives the backend state machine with the same sealed box.
