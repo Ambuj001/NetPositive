@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, CreditCard, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { CardPicker } from "../components/CardPicker";
 import { Aurora, Button, cx } from "../components/ui";
-import { CARDS, inr, routesFor, type Card } from "../lib/engine";
+import { inr, routesFor, type Card } from "../lib/engine";
 import { useApp } from "../lib/store";
 
 /** Dark card faces, cycled for saved cards (matches the example card colours). */
@@ -14,49 +15,21 @@ const FACES = [
   "linear-gradient(130deg,#2a1a40 0%,#4c3175 55%,#170e24 100%)",
 ];
 
-/** More example profiles to add. Illustrative rates, not live issuer data. */
-const EXAMPLES: Card[] = [
-  ...CARDS,
-  {
-    id: "atlas",
-    issuer: "Axis",
-    name: "Atlas",
-    last: "Travel",
-    gradient: "",
-    pointsPer: 5,
-    spendUnit: 100,
-    travelValue: 1,
-    statementValue: 0.2,
-    bonusCap: 2000,
-    bonusUsed: 0,
-    channels: [
-      { id: "grab", name: "Grab Deals 3X", multiplier: 3, denomination: 5000, note: "Axis Grab Deals portal" },
-      { id: "direct", name: "Direct", multiplier: 1, denomination: 10000, note: "Merchant checkout" },
-    ],
-  },
-  {
-    id: "amazon-icici",
-    issuer: "ICICI",
-    name: "Amazon Pay",
-    last: "Cashback",
-    gradient: "",
-    pointsPer: 2,
-    spendUnit: 100,
-    travelValue: 1,
-    statementValue: 1,
-    bonusCap: 0,
-    bonusUsed: 0,
-    channels: [{ id: "direct", name: "Direct", multiplier: 1, denomination: 10000, note: "2% back on gift cards" }],
-  },
-];
-
 const BLANK = { issuer: "", name: "", points: "1", unit: "100", cash: "1", travel: "1" };
 
 export default function Cards() {
-  const { cards, setCards, toast } = useApp();
+  const { cards, setCards, toast, fullAddress, token, signIn, signingIn } = useApp();
   const [selected, setSelected] = useState(cards[0]?.id ?? "");
   const [value, setValue] = useState<"cash" | "travel">("cash");
-  const [adding, setAdding] = useState(false);
+  // /cards?add=1 (from the "add your cards" pop-up) opens the add dialog straight away.
+  const [params, setParams] = useSearchParams();
+  const [adding, setAdding] = useState(params.get("add") === "1");
+  useEffect(() => {
+    if (params.get("add") === "1") {
+      setAdding(true);
+      setParams({}, { replace: true });
+    }
+  }, [params, setParams]);
   const card = cards.find((c) => c.id === selected) ?? cards[0];
   const routes = card ? routesFor(10000, [card]).sort((a, b) => (value === "cash" ? b.statementInr - a.statementInr : b.travelInr - a.travelInr)) : [];
   const update = (patch: Partial<Card>) => card && setCards(cards.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
@@ -66,6 +39,14 @@ export default function Cards() {
     setSelected(c.id);
     setAdding(false);
     toast({ title: `${c.issuer} ${c.name} saved`, body: "Issuer, variant and reward rates only. No card number.", tone: "amber" });
+  };
+  const addMany = (list: Card[]) => {
+    const fresh = list.filter((c) => !cards.some((x) => x.id === c.id));
+    if (!fresh.length) return;
+    setCards([...cards, ...fresh]);
+    setSelected(fresh[0].id);
+    setAdding(false);
+    toast({ title: `${fresh.length} card${fresh.length > 1 ? "s" : ""} saved`, body: "Saved to your account. Issuer, variant and reward rates only. No card number.", tone: "amber" });
   };
   const remove = () => {
     if (!card) return;
@@ -89,6 +70,15 @@ export default function Cards() {
             Add card
           </Button>
         </motion.div>
+
+        {fullAddress && !token && (
+          <div className="mt-8 flex flex-col gap-3 rounded-2xl bg-amber/[0.07] p-4 ring-1 ring-amber/30 sm:flex-row sm:items-center">
+            <p className="flex-1 text-[13.5px] leading-relaxed text-fg/85">You're connected but not signed in. Sign in (one free signature) to load the cards saved on your account and to save new ones. Until then you see example cards.</p>
+            <Button variant="amber" size="sm" onClick={() => void signIn()} disabled={signingIn}>
+              {signingIn ? "Check your wallet…" : "Sign in"}
+            </Button>
+          </div>
+        )}
 
         <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
           {/* card stack */}
@@ -232,15 +222,14 @@ export default function Cards() {
         </div>
       </div>
 
-      <AddCard open={adding} onClose={() => setAdding(false)} saved={cards} onAdd={add} />
+      <AddCard open={adding} onClose={() => setAdding(false)} saved={cards} onAdd={add} onAddMany={addMany} />
     </div>
   );
 }
 
-function AddCard({ open, onClose, saved, onAdd }: { open: boolean; onClose: () => void; saved: Card[]; onAdd: (c: Card) => void }) {
+function AddCard({ open, onClose, saved, onAdd, onAddMany }: { open: boolean; onClose: () => void; saved: Card[]; onAdd: (c: Card) => void; onAddMany: (c: Card[]) => void }) {
   const [form, setForm] = useState(BLANK);
   const [error, setError] = useState("");
-  const left = EXAMPLES.filter((c) => !saved.some((x) => x.id === c.id));
 
   const submit = () => {
     const p = Number(form.points);
@@ -292,7 +281,7 @@ function AddCard({ open, onClose, saved, onAdd }: { open: boolean; onClose: () =
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 16, opacity: 0 }}
-            className="hairline w-full max-w-[480px] rounded-[26px] bg-ink-2 p-6"
+            className="hairline my-auto w-full max-w-[520px] rounded-[26px] bg-ink-2 p-6"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-display text-xl font-semibold tracking-tight">Add a card</h3>
@@ -300,26 +289,11 @@ function AddCard({ open, onClose, saved, onAdd }: { open: boolean; onClose: () =
                 <X className="size-4" />
               </button>
             </div>
-            <p className="mt-1 text-[13px] text-mute">Issuer, variant and reward rates. Never a card number or CVV.</p>
+            <p className="mt-1 text-[13px] text-mute">Search the list and tick your cards, or enter your own below. Issuer, variant and reward rates only. Never a card number or CVV.</p>
 
-            {left.length > 0 && (
-              <div className="mt-5 space-y-2">
-                {left.map((c) => (
-                  <button key={c.id} onClick={() => onAdd(c)} className="flex w-full items-center gap-3 rounded-2xl bg-white/[0.03] p-3.5 text-left ring-1 ring-white/[0.07] transition hover:bg-white/[0.06] hover:ring-amber/40">
-                    <span className="grid size-9 place-items-center rounded-xl bg-amber/10 text-amber">
-                      <CreditCard className="size-4" />
-                    </span>
-                    <span className="flex-1">
-                      <span className="block text-[14px] font-medium">
-                        {c.issuer} {c.name}
-                      </span>
-                      <span className="block text-[11.5px] text-dim">Example reward profile</span>
-                    </span>
-                    <Plus className="size-4 text-mute" />
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="mt-5">
+              <CardPicker saved={saved} onAdd={onAddMany} listHeight="max-h-[260px]" />
+            </div>
 
             <form
               onSubmit={(e) => {

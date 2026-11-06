@@ -39,7 +39,7 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
         if (!ok) return;
       }
       const { request } = await api.accept(req.id, auth);
-      saveRoute(req.id, { cardId: chosen.cardId, cardLabel: chosen.cardLabel, channelId: chosen.channel.id, channelName: chosen.channel.name });
+      saveRoute(req.id, { cardId: chosen.cardId, cardLabel: chosen.cardLabel, channelId: chosen.channel.id, channelName: chosen.channel.name, issuer: cards.find((c) => c.id === chosen.cardId)?.issuer });
       toast({ title: "Order accepted", body: `Buy via ${chosen.cardLabel} · ${chosen.channel.name}`, tone: "amber" });
       onAccepted(request);
     } catch (e) {

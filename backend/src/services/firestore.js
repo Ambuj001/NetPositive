@@ -23,6 +23,7 @@ export { FieldValue, Timestamp };
  * worldIdNullifiers/{nullifierHash}  binds one human to one wallet
  * authNonces/{address}               short-lived sign-in challenge
  * buyIntents/{address}               one active "I want to buy USDC for this INR amount" per crypto buyer (lowercase address)
+ * users/{address}/cards/{cardId}    saved card reward profiles (no card numbers), see services/cards.js
  * requests/{requestId}               public lifecycle state (readable by clients)
  * requests/{requestId}/private/voucher  encrypted code + pin (backend-only)
  * requests/{requestId}/events/{auto} audit trail of every transition

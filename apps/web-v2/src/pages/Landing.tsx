@@ -21,7 +21,6 @@ import { FlowDiagram } from "../components/FlowDiagram";
 import { ScreenDetect, ScreenGuide, ScreenRequest, ScreenReveal, ScreenRoutes, ScreenVerify } from "../components/Screens";
 import { Link } from "react-router-dom";
 import { Aurora, BrandMark, Button, Card, Counter, Persona, Pill, SectionHead, Tilt, cx } from "../components/ui";
-import { FEED } from "../lib/data";
 import { CARDS, effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -30,7 +29,6 @@ export default function Landing() {
   return (
     <>
       <Hero />
-      <Ticker />
       <TwoPeople />
       <Walkthrough />
       <Calculator />
@@ -224,23 +222,6 @@ function Choice({
         </span>
       </Link>
     </motion.div>
-  );
-}
-
-/* ============================================================== TICKER */
-function Ticker() {
-  const items = [...FEED, ...FEED];
-  return (
-    <div className="relative overflow-hidden border-y border-line bg-ink-2/40 py-4 [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
-      <div className="flex w-max animate-marquee gap-10 hover:[animation-play-state:paused]">
-        {items.map((t, i) => (
-          <span key={i} className="flex items-center gap-3 whitespace-nowrap font-mono text-[12px] text-mute">
-            <span className={cx("size-1.5 rounded-full", t.includes("settled") ? "bg-mint" : t.includes("verif") || t.includes("check") ? "bg-iris" : "bg-amber")} />
-            {t}
-          </span>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -836,10 +817,7 @@ function FinalCta() {
           <h2 className="text-gradient mx-auto max-w-3xl font-display text-5xl font-semibold leading-[1] tracking-[-0.04em] md:text-7xl">Your crypto, at the checkout.</h2>
           <p className="mx-auto mt-6 max-w-lg text-[16px] text-mute">Post a voucher request in under a minute, or fill one and earn USDC on rewards you were leaving on the table.</p>
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button size="lg" to="/trade/VR-24817" icon={<ArrowUpRight className="size-4" />}>
-              Watch a live trade
-            </Button>
-            <Button size="lg" variant="outline" to="/market">
+            <Button size="lg" to="/market" icon={<ArrowUpRight className="size-4" />}>
               Open the market
             </Button>
           </div>
