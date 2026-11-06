@@ -1,18 +1,13 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, ChevronRight, Copy, FingerprintPattern, LoaderCircle, Menu, ShieldCheck, Wallet, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../lib/store";
 import { usdt } from "../lib/engine";
 import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
-const LINKS = [
-  { to: "/market", label: "Market" },
-  { to: "/sell", label: "Pay with crypto" },
-  { to: "/cards", label: "My cards" },
-  { to: "/trade/VR-24817", label: "Live trade" },
-];
+const APP_LINKS = [{ to: "/home", label: "Home" }];
 
 export function Shell() {
   const { pathname } = useLocation();
@@ -38,6 +33,7 @@ function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const links = address ? APP_LINKS : [];
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -61,7 +57,7 @@ function Nav() {
       >
         <Logo />
         <div className="hidden items-center gap-1 md:flex">
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
@@ -92,7 +88,7 @@ function Nav() {
               <WalletLogo id={walletId} icon={walletIcon} name={walletName || "W"} className="size-7" />
               <span className="hidden text-left leading-tight sm:block">
                 <span className="block font-mono text-[11px] text-mute">{address}</span>
-                <span className="tabular block text-[12.5px] font-medium">{usdt(balance)} USDT</span>
+                <span className="tabular block text-[12.5px] font-medium">{usdt(balance)} USDC</span>
               </span>
               {humanVerified && <ShieldCheck className="size-4 text-mint" aria-label="Verified human" />}
             </button>
@@ -101,7 +97,7 @@ function Nav() {
               Connect
             </Button>
           )}
-          <button className="grid size-9 place-items-center rounded-full text-mute md:hidden" onClick={() => setOpen((o) => !o)} aria-label="Menu">
+          <button className={cx("grid size-9 place-items-center rounded-full text-mute md:hidden", !links.length && "hidden")} onClick={() => setOpen((o) => !o)} aria-label="Menu">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
@@ -114,7 +110,7 @@ function Nav() {
             exit={{ opacity: 0, y: -10 }}
             className="glass absolute inset-x-4 top-20 rounded-3xl p-2 md:hidden"
           >
-            {LINKS.map((l) => (
+            {links.map((l) => (
               <NavLink key={l.to} to={l.to} className="flex items-center justify-between rounded-2xl px-4 py-3.5 text-[15px] hover:bg-white/5">
                 {l.label}
                 <ChevronRight className="size-4 text-dim" />
@@ -176,10 +172,16 @@ function WalletModal() {
     useApp();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const doConnect = async (w: (typeof choices)[number]) => {
     const ok = await connect(w);
-    if (ok) toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
+    if (ok) {
+      toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
+      closeWallet();
+      if (pathname === "/") navigate("/home");
+    }
   };
   const doVerify = () => {
     setBusy("world");

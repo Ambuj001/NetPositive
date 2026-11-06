@@ -6,8 +6,8 @@ import { cx } from "./ui";
 /**
  * Hero "rail": Seller ⇄ Escrow ⇄ Buyer.
  * Loops through one trade using the walkthrough numbers:
- * Seller 120 USDT → locks 112.22 → keeps 7.78 and gets ₹10,000 vouchers,
- * Buyer gets 111.11 USDT + 1,650 card points.
+ * Seller 120 USDC → locks 112.22 → keeps 7.78 and gets ₹10,000 vouchers,
+ * Buyer gets 111.11 USDC + 1,650 card points.
  */
 
 type Phase = 0 | 1 | 2 | 3 | 4;
@@ -41,16 +41,16 @@ export function HeroRail({ className }: { className?: string }) {
           active={sellerOn}
           eyebrow="Crypto holder"
           name="Seller"
-          city="sells USDT"
+          city="sells USDC"
           avatar={<Avatar letter="S" tone="mint" />}
           stats={[
-            { k: "USDT", v: <Tween value={s.rUsdt} format={(n) => n.toFixed(2)} /> },
+            { k: "USDC", v: <Tween value={s.rUsdt} format={(n) => n.toFixed(2)} /> },
             { k: "Vouchers", v: <Tween value={s.rVouch} format={(n) => "₹" + Math.round(n).toLocaleString("en-IN")} /> },
           ]}
           footer={
             <>
               <Store className="size-3.5 shrink-0 text-mint/80" />
-              {phase >= 3 ? "Got live Lifestyle codes, shops Saturday" : "Has USDT, wants a Lifestyle voucher"}
+              {phase >= 3 ? "Got live Lifestyle codes, shops Saturday" : "Has USDC, wants a Lifestyle voucher"}
             </>
           }
         />
@@ -75,7 +75,7 @@ export function HeroRail({ className }: { className?: string }) {
             <span className="font-display text-[26px] leading-tight font-semibold tracking-tight text-fg tabular">
               <Tween value={s.escrow} format={(n) => n.toFixed(2)} />
             </span>
-            <span className="font-mono text-[9.5px] tracking-wider text-dim">USDT on Base</span>
+            <span className="font-mono text-[9.5px] tracking-wider text-dim">USDC on Base</span>
           </div>
           <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap">
             <AnimatePresence mode="wait">
@@ -100,10 +100,10 @@ export function HeroRail({ className }: { className?: string }) {
           active={buyerOn}
           eyebrow="Card holder"
           name="Buyer"
-          city="buys USDT"
+          city="buys USDC"
           avatar={<Avatar letter="B" tone="amber" verified />}
           stats={[
-            { k: "USDT", v: <Tween value={s.pUsdt} format={(n) => n.toFixed(2)} /> },
+            { k: "USDC", v: <Tween value={s.pUsdt} format={(n) => n.toFixed(2)} /> },
             { k: "Card points", v: <Tween value={s.pPts} format={(n) => "+" + Math.round(n).toLocaleString("en-IN")} /> },
           ]}
           footer={

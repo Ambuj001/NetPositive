@@ -54,17 +54,7 @@ function Hero() {
       <Aurora />
       <div className="grid-bg absolute inset-0" />
       <motion.div style={{ y, opacity: fade }} className="relative mx-auto max-w-6xl px-6 text-center">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="flex justify-center">
-          <a href="#how" className="group flex items-center gap-2 rounded-full bg-white/[0.04] py-1 pl-1 pr-3 text-[12.5px] text-mute ring-1 ring-white/10 transition hover:ring-white/20">
-            <Pill tone="mint" dot>
-              Live demo
-            </Pill>
-            Escrow on Base · World ID · signed voucher checks
-            <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
-          </a>
-        </motion.div>
-
-        <h1 className="mx-auto mt-7 max-w-5xl font-display text-[clamp(44px,7.6vw,92px)] font-semibold leading-[0.95] tracking-[-0.045em]">
+        <h1 className="mx-auto mt-4 max-w-5xl font-display text-[clamp(44px,7.6vw,92px)] font-semibold leading-[0.95] tracking-[-0.045em]">
           <span className="block">
             {words.map((w, i) => (
               <motion.span
@@ -155,7 +145,7 @@ function TwoPeople() {
           <>
             The seller wants to shop.
             <br />
-            The buyer wants USDT.
+            The buyer wants USDC.
           </>
         }
         sub="The seller holds crypto but Lifestyle only takes rupees. The buyer has a premium card with unused reward caps. NetPositive turns the voucher into the bridge between them."
@@ -168,11 +158,11 @@ function TwoPeople() {
               who: "seller" as const,
               name: "Seller",
               tag: "Seller of crypto",
-              blurb: "Holds 120 USDT. Wants ₹10,000 of clothes at Lifestyle this weekend, without cashing out through an exchange.",
-              gives: `${usdt(q.sellerLocks)} USDT`,
+              blurb: "Holds 120 USDC. Wants ₹10,000 of clothes at Lifestyle this weekend, without cashing out through an exchange.",
+              gives: `${usdt(q.sellerLocks)} USDC`,
               gets: "₹10,000 Lifestyle vouchers",
               price: "₹89.11",
-              priceNote: "per USDT, all-in",
+              priceNote: "per USDC, all-in",
               saving: "Pays 1%. Nothing else.",
               glow: "rgba(61,220,151,0.14)",
             },
@@ -180,11 +170,11 @@ function TwoPeople() {
               who: "buyer" as const,
               name: "Buyer",
               tag: "Buyer of crypto",
-              blurb: "Holds HDFC Infinia. Wants about 110 USDT. Hasn't used the SmartBuy voucher bonus this month.",
+              blurb: "Holds HDFC Infinia. Wants about 110 USDC. Hasn't used the SmartBuy voucher bonus this month.",
               gives: "₹10,000 on their card",
-              gets: `${usdt(q.buyerReceives)} USDT + 1,650 pts`,
+              gets: `${usdt(q.buyerReceives)} USDC + 1,650 pts`,
               price: "₹75.15",
-              priceNote: "per USDT, travel value",
+              priceNote: "per USDC, travel value",
               saving: "16.5% saved",
               glow: "rgba(245,181,68,0.14)",
             },
@@ -231,7 +221,7 @@ function TwoPeople() {
         ))}
       </div>
       <p className="mt-5 max-w-3xl text-[12px] leading-relaxed text-dim">
-        Example rate ₹90 per USDT, set by the two users. Card numbers from Infinia terms and SmartBuy offer as checked 4 Nov 2026: 5 points per ₹150, brand vouchers 5X, voucher bonus capped at 3,000 points a month, ₹1 per point on flights and hotels, up to ₹0.30 as statement credit.
+        Example rate ₹90 per USDC, set by the two users. Card numbers from Infinia terms and SmartBuy offer as checked 4 Nov 2026: 5 points per ₹150, brand vouchers 5X, voucher bonus capped at 3,000 points a month, ₹1 per point on flights and hotels, up to ₹0.30 as statement credit.
       </p>
     </section>
   );
@@ -248,9 +238,9 @@ const STEPS: { who: "seller" | "buyer" | "verifier"; title: string; body: string
   },
   {
     who: "seller",
-    title: "Seller locks USDT and the request goes live",
-    body: "The seller picks one of hundreds of suggested vouchers or types any brand and amount. Their USDT moves into escrow, so buyers know the crypto is really there.",
-    tech: ["Escrow holds USDT against order ID (brand, amount, rate, deadline)", "Order appears in the buyer order book", "World ID on first use"],
+    title: "Seller locks USDC and the request goes live",
+    body: "The seller picks one of hundreds of suggested vouchers or types any brand and amount. Their USDC moves into escrow, so buyers know the crypto is really there.",
+    tech: ["Escrow holds USDC against order ID (brand, amount, rate, deadline)", "Order appears in the buyer order book", "World ID on first use"],
     screen: () => <ScreenRequest />,
   },
   {
@@ -277,8 +267,8 @@ const STEPS: { who: "seller" | "buyer" | "verifier"; title: string; body: string
   {
     who: "seller",
     title: "Seller gets the codes, escrow pays the buyer",
-    body: "Codes open only for the seller. The verifier re-checks the balance right before release, because the buyer also saw the codes. Then 111.11 USDT goes to the buyer and the 1.11 USDT fee is split.",
-    tech: ["Codes re-encrypted to the seller's key", "Second check right before release", "0.56 USDT → dispute reserve · 0.55 USDT platform"],
+    body: "Codes open only for the seller. The verifier re-checks the balance right before release, because the buyer also saw the codes. Then 111.11 USDC goes to the buyer and the 1.11 USDC fee is split.",
+    tech: ["Codes re-encrypted to the seller's key", "Second check right before release", "0.56 USDC → dispute reserve · 0.55 USDC platform"],
     screen: () => <ScreenReveal />,
   },
 ];
@@ -384,7 +374,7 @@ function Calculator() {
         eyebrow="Route engine"
         title={
           <>
-            Your card is a <span className="text-amber">discount</span> on USDT.
+            Your card is a <span className="text-amber">discount</span> on USDC.
           </>
         }
         sub="Pick a voucher size and your cards. The engine applies base rate × channel multiplier, monthly caps, per-transaction rounding and denominations, then ranks every route."
@@ -395,7 +385,7 @@ function Calculator() {
           <div className="rounded-[20px] bg-white/[0.02] p-6 md:p-8">
             <Slider label="Voucher value" value={amount} min={1000} max={50000} step={500} onChange={setAmount} display={inr(amount)} />
             <div className="mt-8">
-              <Slider label="Rate set in order" value={rate} min={85} max={95} step={0.1} onChange={(v) => setRate(Math.round(v * 10) / 10)} display={`₹${rate.toFixed(1)} / USDT`} />
+              <Slider label="Rate set in order" value={rate} min={85} max={95} step={0.1} onChange={(v) => setRate(Math.round(v * 10) / 10)} display={`₹${rate.toFixed(1)} / USDC`} />
             </div>
             <div className="mt-8">
               <div className="label mb-3">Cards in your portfolio</div>
@@ -440,7 +430,7 @@ function Calculator() {
               <div>
                 <div className="label">Buyer receives</div>
                 <div className="mt-2 font-display text-4xl font-semibold tracking-tight tabular">
-                  {usdt(q.buyerReceives)} <span className="text-base text-mute">USDT</span>
+                  {usdt(q.buyerReceives)} <span className="text-base text-mute">USDC</span>
                 </div>
               </div>
               <div>
@@ -553,7 +543,7 @@ function Trust() {
         sub="Every layer exists to remove one way a P2P trade goes wrong."
       />
       <div className="mt-14 grid auto-rows-[minmax(220px,auto)] gap-4 md:grid-cols-6">
-        <Bento className="md:col-span-4" icon={<Lock />} tone="mint" title="USDT escrow contract" body="Seller's USDT is locked against an order ID with brand, amount, rate and deadline. It moves only on a signed pass from the verifier, or back to the seller on timeout.">
+        <Bento className="md:col-span-4" icon={<Lock />} tone="mint" title="USDC escrow contract" body="Seller's USDC is locked against an order ID with brand, amount, rate and deadline. It moves only on a signed pass from the verifier, or back to the seller on timeout.">
           <EscrowViz />
         </Bento>
         <Bento className="md:col-span-2" icon={<FingerprintPattern />} tone="iris" title="One human, one account" body="World ID on first use. Banned scammers can't spin up a new account.">
@@ -616,7 +606,7 @@ function Bento({
 
 function EscrowViz() {
   const states = [
-    { k: "Locked", c: "bg-mint", t: "112.22 USDT" },
+    { k: "Locked", c: "bg-mint", t: "112.22 USDC" },
     { k: "Accepted", c: "bg-fg", t: "buyer.eth" },
     { k: "Verified", c: "bg-iris", t: "sig 0x9c1f…" },
     { k: "Released", c: "bg-mint", t: "111.11 → buyer" },
@@ -734,7 +724,7 @@ function FinalCta() {
             <span className="text-[13px] text-mute">Try the full trade as seller and buyer</span>
           </div>
           <h2 className="text-gradient mx-auto max-w-3xl font-display text-5xl font-semibold leading-[1] tracking-[-0.04em] md:text-7xl">Your crypto, at the checkout.</h2>
-          <p className="mx-auto mt-6 max-w-lg text-[16px] text-mute">Post a voucher request in under a minute, or fill one and earn USDT on rewards you were leaving on the table.</p>
+          <p className="mx-auto mt-6 max-w-lg text-[16px] text-mute">Post a voucher request in under a minute, or fill one and earn USDC on rewards you were leaving on the table.</p>
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
             <Button size="lg" to="/trade/VR-24817" icon={<ArrowUpRight className="size-4" />}>
               Watch a live trade

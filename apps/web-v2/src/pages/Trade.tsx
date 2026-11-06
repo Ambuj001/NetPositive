@@ -37,7 +37,7 @@ const STAGES = [
   { k: "Vouchers bought on best route", who: "Buyer", icon: CreditCard },
   { k: "Codes verified live", who: "Verifier", icon: ScanLine },
   { k: "Delivered to seller", who: "Seller", icon: KeyRound },
-  { k: "USDT released", who: "Contract", icon: Unlock },
+  { k: "USDC released", who: "Contract", icon: Unlock },
 ];
 
 const ACTOR: Record<number, Role | "verifier" | null> = { 0: "buyer", 1: "buyer", 2: "buyer", 3: "verifier", 4: "seller", 5: null };
@@ -67,7 +67,7 @@ export default function Trade() {
   const [recheck, setRecheck] = useState<"idle" | "busy" | "ok">("idle");
   const [dispute, setDispute] = useState(false);
   const [log, setLog] = useState<{ t: string; e: string; tone: string }[]>([
-    { t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDT)`, tone: "mint" },
+    { t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" },
   ]);
   const [clock, setClock] = useState(30 * 60);
 
@@ -114,7 +114,7 @@ export default function Trade() {
     setStage(5);
     push(`Released(${usdt(q.buyerReceives)} → buyer)`, "mint");
     push(`FeeSplit(reserve ${usdt(q.reserveShare)}, platform ${usdt(q.platformShare)})`, "fg");
-    toast({ title: `${usdt(q.buyerReceives)} USDT sent to buyer`, body: "Trade settled on-chain", tone: "mint" });
+    toast({ title: `${usdt(q.buyerReceives)} USDC sent to buyer`, body: "Trade settled on-chain", tone: "mint" });
   };
   const reset = () => {
     setStage(0);
@@ -126,7 +126,7 @@ export default function Trade() {
     setRevealed(false);
     setRecheck("idle");
     setClock(30 * 60);
-    setLog([{ t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDT)`, tone: "mint" }]);
+    setLog([{ t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" }]);
   };
 
   // Verifier runs by itself
@@ -205,7 +205,7 @@ export default function Trade() {
                 / {order.id}
               </div>
               <h1 className="mt-1 font-display text-3xl font-semibold tracking-[-0.03em] md:text-4xl">
-                {b.name} {inr(order.amount)} <span className="text-mute">→</span> {usdt(q.buyerReceives)} USDT
+                {b.name} {inr(order.amount)} <span className="text-mute">→</span> {usdt(q.buyerReceives)} USDC
               </h1>
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function Trade() {
                           </div>
                           <div className="text-right">
                             <div className="text-[16px] font-semibold tabular">{r.pctTravel.toFixed(1)}%</div>
-                            <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(order.amount, r.travelInr, q.buyerReceives).toFixed(2)}/USDT</div>
+                            <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(order.amount, r.travelInr, q.buyerReceives).toFixed(2)}/USDC</div>
                           </div>
                         </button>
                       ))}
@@ -464,7 +464,7 @@ export default function Trade() {
                 <motion.span key={stage === 5 ? "z" : "l"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl font-semibold tracking-tight tabular">
                   {stage === 5 ? "0.00" : usdt(q.sellerLocks)}
                 </motion.span>
-                <span className="text-[13px] text-mute">USDT held</span>
+                <span className="text-[13px] text-mute">USDC held</span>
               </div>
               <div className="mt-3 divide-y divide-white/[0.06]">
                 <Row k="Buyer gets" v={usdt(q.buyerReceives)} />
@@ -534,10 +534,10 @@ function Panel({ title, sub, children, tone, right }: { title: string; sub?: str
 
 function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number; onSwitch: () => void; clock: number }) {
   const msg: Record<number, [string, string]> = {
-    0: ["Waiting for a buyer", "Your USDT is locked in escrow and visible to verified buyers. If nobody fills it in 30 minutes, it comes back to you automatically."],
-    1: ["The buyer is buying your vouchers", "They're checking out on SmartBuy with their own card. Your USDT stays locked the whole time."],
+    0: ["Waiting for a buyer", "Your USDC is locked in escrow and visible to verified buyers. If nobody fills it in 30 minutes, it comes back to you automatically."],
+    1: ["The buyer is buying your vouchers", "They're checking out on SmartBuy with their own card. Your USDC stays locked the whole time."],
     2: ["The buyer is submitting codes", "Codes go encrypted to the verifier first. You'll see them only after they pass."],
-    4: ["The seller is checking the codes", `USDT is released when they confirm, or automatically in ${fmt(clock)}.`],
+    4: ["The seller is checking the codes", `USDC is released when they confirm, or automatically in ${fmt(clock)}.`],
   };
   const [t, s] = msg[stage] ?? ["Waiting", ""];
   const tone = actor === "buyer" ? "amber" : "mint";
@@ -624,7 +624,7 @@ function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<ty
       <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 14 }} className="relative mx-auto grid size-20 place-items-center rounded-full bg-mint text-ink shadow-[0_0_60px_-5px_rgba(61,220,151,0.8)]">
         <Check className="size-9" strokeWidth={2.5} />
       </motion.div>
-      <h2 className="relative mt-6 font-display text-3xl font-semibold tracking-tight">{role === "buyer" ? `${usdt(q.buyerReceives)} USDT is yours` : `Enjoy ${brandName} on Saturday`}</h2>
+      <h2 className="relative mt-6 font-display text-3xl font-semibold tracking-tight">{role === "buyer" ? `${usdt(q.buyerReceives)} USDC is yours` : `Enjoy ${brandName} on Saturday`}</h2>
       <p className="relative mx-auto mt-2 max-w-md text-[14px] text-mute">
         {role === "buyer" ? "Plus 1,650 reward points from HDFC, posting within 90 working days." : "Codes are live and yours. The escrow paid the buyer and split the 1% fee."}
       </p>
@@ -640,7 +640,7 @@ function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<ty
               <span className="flex items-center gap-2 text-mute">
                 <span className={cx("size-2 rounded-full", b.c)} /> {b.k}
               </span>
-              <span className="tabular">{usdt(b.v)} USDT</span>
+              <span className="tabular">{usdt(b.v)} USDC</span>
             </div>
           ))}
         </div>
@@ -754,7 +754,7 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-mint/[0.07] p-4 ring-1 ring-mint/30">
                   <div className="text-[14px] font-medium">Code 2 was redeemed 3 min before your first use</div>
                   <div className="mt-1 text-[12.5px] text-mute">
-                    {usdt(q.sellerLocks / 2)} USDT refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.
+                    {usdt(q.sellerLocks / 2)} USDC refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.
                   </div>
                 </motion.div>
               )}
