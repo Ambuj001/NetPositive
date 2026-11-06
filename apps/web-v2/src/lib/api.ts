@@ -132,6 +132,8 @@ type ApiClient = {
     token: string,
   ) => Promise<{ request: ApiRequest; escrowContract: string | null }>;
   fund: (id: string, txHash: string, token: string) => Promise<{ request: ApiRequest }>;
+  /** A World-ID-verified buyer takes an open order. Locks it to them for the fulfil window. */
+  accept: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   cancel: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   /** The EIP-712 "Ready" typed data for the spender's wallet to sign (gasless). */
   readyPermit: (id: string, token: string) => Promise<{ validUntil: number; typedData: unknown }>;
@@ -160,6 +162,7 @@ export const api: ApiClient = Object.assign(call, {
     call<{ request: ApiRequest; escrowContract: string | null }>("/requests", { body, token }),
   fund: (id: string, txHash: string, token: string) =>
     call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/fund`, { method: "POST", body: { txHash }, token }),
+  accept: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/accept`, { method: "POST", body: {}, token }),
   cancel: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/cancel`, { method: "POST", body: {}, token }),
   readyPermit: (id: string, token: string) => call<{ validUntil: number; typedData: unknown }>(`/requests/${encodeURIComponent(id)}/ready-permit`, { token }),
   ready: (id: string, body: { validUntil: number; signature: string }, token: string) =>

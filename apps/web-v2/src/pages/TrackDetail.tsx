@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, ArrowUpRight, Check, Clock, Copy, LoaderCircle, Minus, RefreshCw, Search, Wallet, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { PickRoute } from "../components/PickRoute";
 import { Aurora, BrandMark, Button, Pill, Row, cx } from "../components/ui";
 import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest, type ReqStatus } from "../lib/api";
 import { brand } from "../lib/data";
@@ -231,11 +232,19 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-5">
           {notice && <NoticeBar notice={notice} onClose={() => setNotice(null)} />}
-          <NextCard next={next} id={req.id} role={role} status={req.status} token={token} signIn={signIn} signingIn={signingIn} onChanged={onRefresh} />
-          <Timeline stages={stages} viewer={viewer} actions={actions} />
+          {role === "observer" && req.status === "open" ? (
+            // Someone who could fill this order: choose how to buy it, then accept.
+            <PickRoute req={req} onAccepted={onApplied} onRefresh={onRefresh} />
+          ) : (
+            <>
+              <NextCard next={next} id={req.id} role={role} status={req.status} token={token} signIn={signIn} signingIn={signingIn} onChanged={onRefresh} />
+              <Timeline stages={stages} viewer={viewer} actions={actions} />
+            </>
+          )}
         </div>
         <div className="space-y-5">
-          <Money req={req} role={role} brandName={b.name} />
+          {/* Someone looking at an open order is a possible buyer, so show the trade from the buyer's side. */}
+          <Money req={req} role={role === "observer" && req.status === "open" ? "buyer" : role} brandName={b.name} />
           <Parties req={req} viewer={viewer} />
           <Technical req={req} />
         </div>
@@ -471,7 +480,7 @@ function NoticeBar({ notice, onClose }: { notice: Notice; onClose: () => void })
 
 const FUNDS: Record<Role, Partial<Record<ReqStatus, string>>> = {
   spender: { pending_funding: "Not deposited yet", open: "Locked in escrow", accepted: "Locked in escrow", code_submitted: "Locked until you confirm", disputed: "Frozen during the review", releasing: "Being paid to the buyer", released: "Paid to the buyer", refunding: "Coming back to you", refunded: "Returned to you", cancelled: "Never locked" },
-  buyer: { accepted: "Locked in escrow for you", code_submitted: "Yours once the spender confirms", disputed: "Frozen during the review", releasing: "On its way to you", released: "In your wallet", refunding: "Going back to the spender", refunded: "Went back to the spender", cancelled: "Never locked" },
+  buyer: { open: "Locked in escrow", accepted: "Locked in escrow for you", code_submitted: "Yours once the spender confirms", disputed: "Frozen during the review", releasing: "On its way to you", released: "In your wallet", refunding: "Going back to the spender", refunded: "Went back to the spender", cancelled: "Never locked" },
   observer: { pending_funding: "Not deposited yet", open: "Locked in escrow", accepted: "Locked in escrow", code_submitted: "Locked in escrow", disputed: "Frozen during the review", releasing: "Being paid out", released: "Paid to the buyer", refunding: "Being returned", refunded: "Returned to the spender", cancelled: "Never locked" },
 };
 
