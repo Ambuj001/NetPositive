@@ -23,9 +23,10 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Aurora, BrandMark, Button, Card, Pill, Row, cx } from "../components/ui";
-import { api, brandIdFromApi, type ApiRequest } from "../lib/api";
+import { ApiError, api, brandIdFromApi, type ApiRequest } from "../lib/api";
+import { sealVoucher } from "../lib/vault";
 import { brand } from "../lib/data";
 import { effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
 import { ledgerFromRequest, toOrder } from "../lib/orderbook";
@@ -50,7 +51,8 @@ const DEMO_CODES = ["LFS-7Q2K-91XA-3M8D", "LFS-4HWE-22PL-0Z6R", "LFS-9TBC-55MN-1
 
 export default function Trade() {
   const { id = "VR-24817" } = useParams();
-  const { orders, address, humanVerified, openWallet, toast } = useApp();
+  const nav = useNavigate();
+  const { orders, address, fullAddress, humanVerified, openWallet, toast, token, signIn } = useApp();
   const { verifyHuman, phase } = useWorldId();
   const [request, setRequest] = useState<ApiRequest | null>(null);
   useEffect(() => {
@@ -122,13 +124,69 @@ export default function Trade() {
     setStage(2);
     push(`VoucherPurchased(${order.id}, ${nCodes} × ${inr(denom)})`, "amber");
   };
+  const iAmBuyer = !!request && !!fullAddress && request.crypto_buyer?.toLowerCase() === fullAddress.toLowerCase();
+
+  // A live order the buyer already accepted: skip the walkthrough and open the seal step.
+  useEffect(() => {
+    if (request?.status === "accepted" && iAmBuyer) setStage(2);
+  }, [request, iAmBuyer]);
+
   const submitCodes = () => {
+    if (request) {
+      void submitLive();
+      return;
+    }
     setEncrypting(true);
     setTimeout(() => {
       setEncrypting(false);
       setStage(3);
       push("CodesSubmitted(enc → verifier key)", "iris");
     }, 1500);
+  };
+
+  const submitLive = async () => {
+    if (!request) return;
+    if (request.status !== "accepted" || !iAmBuyer || !request.crypto_buyer) {
+      toast({
+        title: "This order isn't ready for a code",
+        body: request.status !== "accepted" ? `The order is ${request.status.replaceAll("_", " ")}.` : "Connect the wallet that accepted this order.",
+        tone: "amber",
+      });
+      return;
+    }
+    setEncrypting(true);
+    try {
+      let t = token;
+      if (!t) t = await signIn();
+      if (!t) return;
+      if (!humanVerified) {
+        const ok = await verifyHuman();
+        if (!ok) return;
+      }
+      const code = codes.map((c) => c.trim()).filter(Boolean).join("\n");
+      const sealed = await sealVoucher({
+        requestId: request.id,
+        spender: request.crypto_spender,
+        buyer: request.crypto_buyer,
+        code,
+        pin: null,
+        token: t,
+      });
+      const { request: next } = await api.submitCode(request.id, sealed.legacy ? { code } : { sealed: sealed.sealed }, t);
+      setRequest(next);
+      setCodes(Array(nCodes).fill(""));
+      toast({
+        title: "Code sealed and sent",
+        body: sealed.legacy ? "The server stored it encrypted with its own key." : "Only the spender's vault key can open it.",
+        tone: "mint",
+      });
+      nav(`/track?id=${encodeURIComponent(request.id)}`);
+    } catch (e) {
+      const body = e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Couldn't send the code";
+      toast({ title: "Couldn't send the code", body, tone: "rose" });
+    } finally {
+      setEncrypting(false);
+    }
   };
   const confirm = () => {
     setStage(5);
@@ -195,6 +253,7 @@ export default function Trade() {
       [0, 1, 2, 3].forEach((i) => at(600 + i * 550, () => setChecks((c) => c.map((v, j) => (j === i ? true : v)))));
       at(3200, bought);
     } else if (stage === 2) {
+      if (request) return;
       at(700, () => setCodes(DEMO_CODES.slice(0, nCodes)));
       at(1700, submitCodes);
     } else if (stage === 4) {
@@ -393,7 +452,7 @@ export default function Trade() {
                     </div>
                   </Panel>
                 ) : stage === 2 ? (
-                  <Panel tone="amber" title="Paste your voucher codes" sub="They're encrypted on this device to the verifier's key. The seller only sees them after they pass.">
+                  <Panel tone="amber" title="Paste your voucher codes" sub={request ? "Encrypted on this device to the spender's vault key. The server only stores the locked box." : "They're encrypted on this device to the verifier's key. The seller only sees them after they pass."}>
                     <div className="space-y-2.5">
                       {codes.map((c, i) => (
                         <div key={i} className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-2 pl-4 ring-1 ring-white/[0.08] focus-within:ring-amber/40">
@@ -411,11 +470,13 @@ export default function Trade() {
                       ))}
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <button onClick={() => setCodes(DEMO_CODES.slice(0, nCodes))} className="text-left text-[12.5px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
-                        Fill demo codes
-                      </button>
+                      {!request && (
+                        <button onClick={() => setCodes(DEMO_CODES.slice(0, nCodes))} className="text-left text-[12.5px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
+                          Fill demo codes
+                        </button>
+                      )}
                       <Button variant="amber" disabled={codes.some((c) => c.length < 6) || encrypting} onClick={submitCodes} icon={encrypting ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-4" />}>
-                        {encrypting ? "Encrypting…" : "Encrypt & send to verifier"}
+                        {encrypting ? "Sealing…" : request ? "Seal and send to the spender" : "Encrypt & send to verifier"}
                       </Button>
                     </div>
                   </Panel>

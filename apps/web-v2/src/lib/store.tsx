@@ -3,6 +3,7 @@ import { ApiError, api, type ApiUser, type ReqStatus } from "./api";
 import { ORDERS, type Order } from "./data";
 import { CARDS, type Card as CardT } from "./engine";
 import { clearSession, readSession, writeSession } from "./session";
+import { clearVaultSession } from "./vault";
 import { chainName, preloadConnectors, shortAddr, useWallet, type ChainBalance, type WalletChoice } from "./wallet";
 
 const CARDS_KEY = (addr: string) => `netpositive:cards:${(addr || "guest").toLowerCase()}`;
@@ -135,7 +136,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // One session for World ID and the tracker. Drop it when the wallet changes.
+  // The vault private key is memory-only and belongs to the previous wallet, so it goes too.
   useEffect(() => {
+    clearVaultSession();
     const addr = wallet.address;
     setApiUser(null);
     if (!addr) {
@@ -232,6 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       connect: wallet.connect,
       disconnect: () => {
         if (wallet.address) clearSession(wallet.address);
+        clearVaultSession();
         setToken(null);
         setHuman(false);
         setApiUser(null);
