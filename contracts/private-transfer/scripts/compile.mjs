@@ -15,6 +15,10 @@ for (const dir of ['src', 'test']) {
     if (f.endsWith('.sol')) sources[`${dir}/${f}`] = { content: fs.readFileSync(path.join(root, dir, f), 'utf8') };
   }
 }
+// The existing, deployed escrow lives one level up (contracts/src). It is compiled here as a read-only reference so the tests run
+// against its real source. Nothing in contracts/src, contracts/test or foundry.toml is modified by this module.
+const escrowSrc = path.join(root, '..', 'src', 'VoucherEscrow.sol');
+if (fs.existsSync(escrowSrc)) sources['escrow/VoucherEscrow.sol'] = { content: fs.readFileSync(escrowSrc, 'utf8') };
 const input = {
   language: 'Solidity',
   sources,
@@ -34,7 +38,7 @@ for (const e of out.errors ?? []) {
 if (failed) process.exit(1);
 fs.mkdirSync(path.join(root, 'build'), { recursive: true });
 for (const [file, contracts] of Object.entries(out.contracts)) {
-  if (!file.startsWith('src/') && !file.startsWith('test/')) continue;
+  if (!file.startsWith('src/') && !file.startsWith('test/') && !file.startsWith('escrow/')) continue;
   for (const [name, c] of Object.entries(contracts)) {
     fs.writeFileSync(path.join(root, 'build', `${name}.json`), JSON.stringify({ abi: c.abi, bytecode: `0x${c.evm.bytecode.object}`, deployedBytecode: `0x${c.evm.deployedBytecode.object}` }));
     console.log(`compiled ${name} (${c.evm.bytecode.object.length / 2} bytes)`);
