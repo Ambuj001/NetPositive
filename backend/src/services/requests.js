@@ -1,10 +1,11 @@
-import { parseUnits } from 'viem';
+import { parseUnits, verifyTypedData } from 'viem';
 import { config } from '../config.js';
 import { db, col, voucherRef, eventsRef, FieldValue, Timestamp, serialize } from './firestore.js';
-import { escrowIdFor, verifyDeposit, releaseEscrow, refundEscrow, readEscrowStatus } from './escrow.js';
+import { escrowIdFor, verifyDeposit, releaseEscrow, refundEscrow, readEscrowStatus, publicClient } from './escrow.js';
 import { encrypt, decrypt } from '../lib/crypto.js';
 import { HttpError, notFound, forbidden, conflict, badRequest } from '../lib/errors.js';
 import { assertSealedAcceptable } from './vault.js';
+import { READY_TYPES, READY_DEFAULT_SECONDS, READY_MAX_SECONDS, readyDomain, readyTypedData } from '../lib/ready.js';
 
 /**
  * Lifecycle
@@ -198,6 +199,49 @@ export async function confirmRequest(id, requester) {
   return settle(id, requester, 'release', [S.CODE_SUBMITTED]);
 }
 
+// ---------- "Ready" permit (spender, after a buyer accepts) ----------
+
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+
+/** The typed data the spender's wallet should sign. Only the spender, only while a buyer has accepted. */
+export async function prepareReady(id, spender) {
+  const current = await getRequest(id);
+  if (current.crypto_spender !== spender) throw forbidden('not_requester', 'Only the crypto spender can say they are ready');
+  assertStatus(current, S.ACCEPTED);
+  if (!current.crypto_buyer) throw conflict('no_buyer', 'No buyer has accepted this order');
+  const validUntil = nowSeconds() + READY_DEFAULT_SECONDS;
+  return { validUntil, typedData: readyTypedData({ escrowId: current.escrowId, fulfiller: current.crypto_buyer, validUntil }) };
+}
+
+/**
+ * Store the spender's signed Ready permit so the buyer (and the mailbox contract) can use it.
+ * The signature is checked here against the exact escrow, buyer and expiry, so a permit for a different order or a
+ * different buyer is refused. It does not gate submit-code: it is evidence the spender is ready, not a lock.
+ */
+export async function readyRequest(id, spender, { validUntil, signature }) {
+  const current = await getRequest(id);
+  if (current.crypto_spender !== spender) throw forbidden('not_requester', 'Only the crypto spender can say they are ready');
+  assertStatus(current, S.ACCEPTED);
+  const buyer = current.crypto_buyer;
+  if (!buyer) throw conflict('no_buyer', 'No buyer has accepted this order');
+
+  const now = nowSeconds();
+  if (validUntil <= now) throw badRequest('ready_expired', 'This Ready permit has already expired');
+  if (validUntil > now + READY_MAX_SECONDS) throw badRequest('ready_too_long', `A Ready permit can last at most ${READY_MAX_SECONDS / 60} minutes`);
+
+  const args = { address: spender, domain: readyDomain(), types: READY_TYPES, primaryType: 'Ready', message: { escrowId: current.escrowId, fulfiller: buyer, validUntil: BigInt(validUntil) }, signature };
+  let valid = await verifyTypedData(args).catch(() => false);
+  // Smart-contract wallets (ERC-1271) can only be checked on-chain.
+  if (!valid && config.ESCROW_MODE === 'chain') valid = await publicClient.verifyTypedData(args).catch(() => false);
+  if (!valid) throw badRequest('bad_ready_signature', 'That signature is not the spender\'s Ready permit for this order and buyer');
+
+  return transition(id, spender, 'ready', (data) => {
+    assertStatus(data, S.ACCEPTED);
+    if (buyerOf(data) !== buyer) throw conflict('buyer_changed', 'The buyer changed while you were signing; sign again');
+    return { ready: { validUntil, signature, signedAt: Timestamp.now() } };
+  });
+}
+
 // ---------- Fulfiller actions ----------
 
 export async function acceptRequest(id, fulfiller) {
@@ -207,6 +251,7 @@ export async function acceptRequest(id, fulfiller) {
     return {
       status: S.ACCEPTED,
       crypto_buyer: fulfiller,
+      ready: null,
       acceptedAt: FieldValue.serverTimestamp(),
       fulfilDeadline: minutesFromNow(config.FULFIL_WINDOW_MINUTES),
     };
@@ -321,7 +366,7 @@ export async function sweep() {
       await transition(d.id, 'system', 'fulfil_timeout', (data) => {
         assertStatus(data, S.ACCEPTED);
         if (data.fulfilDeadline.toMillis() >= Date.now()) throw conflict('not_expired');
-        return { status: S.OPEN, crypto_buyer: null, fulfiller: null, fulfilDeadline: null, acceptedAt: null };
+        return { status: S.OPEN, crypto_buyer: null, fulfiller: null, fulfilDeadline: null, acceptedAt: null, ready: null };
       });
       await bumpReputation(before, 'strikes');
       result.reopened++;

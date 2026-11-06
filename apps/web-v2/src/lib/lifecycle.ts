@@ -12,7 +12,7 @@ import type { ApiRequest, ReqStatus } from "./api";
 export type Role = "spender" | "buyer" | "observer";
 export type Tone = "mint" | "amber" | "iris" | "rose" | "mute";
 export type StageState = "done" | "current" | "upcoming" | "skipped";
-export type StageKey = "created" | "funded" | "accepted" | "code" | "dispute" | "outcome";
+export type StageKey = "created" | "funded" | "accepted" | "ready" | "code" | "dispute" | "outcome";
 
 export type Stage = {
   key: StageKey;
@@ -36,8 +36,8 @@ export type NextStep = {
   title: string;
   body: string;
   deadline: { label: string; at: string } | null;
-  /** What the page may offer. The page decides how to render each. */
-  cta: "cancel" | "trade" | "fill" | "none";
+  /** What the page may offer. The page decides how to render each. "ready" and "settle" live inside the lifecycle steps. */
+  cta: "cancel" | "trade" | "fill" | "ready" | "settle" | "none";
 };
 
 export const sameAddr = (a?: string | null, b?: string | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
@@ -71,7 +71,7 @@ export function facts(r: ApiRequest) {
 
 const usdc = (r: ApiRequest) => (Number(r.amountUsdc) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function buildStages(r: ApiRequest, role: Role, brandName: string = r.brand): Stage[] {
+export function buildStages(r: ApiRequest, role: Role, brandName: string = r.brand, now: number = Date.now()): Stage[] {
   const f = facts(r);
   const s = r.status;
   const amt = `${usdc(r)} USDC`;
@@ -131,6 +131,45 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
       deadline: s === "accepted" && r.fulfilDeadline ? { label: role === "buyer" ? "Submit the code by" : "Buyer must submit the code by", at: r.fulfilDeadline } : null,
     }),
   );
+
+  // The spender's gasless "Ready" permit (EIP-712) naming this buyer. Evidence the spender is ready; it does not lock the buyer.
+  {
+    const rd = r.ready ?? null;
+    const expired = !!rd && rd.validUntil * 1000 <= now;
+    const live = s === "accepted";
+    const until = rd ? new Date(rd.validUntil * 1000).toISOString() : null;
+    stages.push(
+      mk({
+        key: "ready",
+        title: rd ? "Spender is ready" : "Spender says they're ready",
+        detail: rd
+          ? role === "spender"
+            ? live && !expired
+              ? "You told the buyer you're ready. They can now hand over the voucher code."
+              : live
+                ? "Your Ready permit expired. Sign again so the buyer can hand over the code."
+                : "You told the buyer you were ready."
+            : role === "buyer"
+              ? live && !expired
+                ? "The spender is ready. Buy the voucher and hand over the code."
+                : live
+                  ? "The spender's Ready permit expired. Ask them to sign again."
+                  : "The spender said they were ready."
+              : "The spender signalled they were ready to receive the code."
+          : role === "spender"
+            ? "Tell the buyer you're ready to receive the voucher code. It's a free signature, no gas."
+            : role === "buyer"
+              ? "Waiting for the spender to say they're ready."
+              : "Once a buyer accepts, the spender says they're ready to receive the code.",
+        at: rd?.signedAt ?? null,
+        actor: rd ? r.crypto_spender : null,
+        state: rd ? "done" : "upcoming",
+        tone: expired && live ? "amber" : "mint",
+        facts: rd && live ? [{ label: "Permit", value: expired ? "Expired" : `Valid until ${new Date(rd.validUntil * 1000).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}` }] : [],
+        deadline: rd && live && !expired && until ? { label: "Permit valid for", at: until } : null,
+      }),
+    );
+  }
 
   stages.push(
     mk({
@@ -232,9 +271,15 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
   }
   stages.push(outcome);
 
-  // Exactly one "current" stage while the order is live: the first stage that isn't done.
+  // No Ready was sent, but the code arrived (or the order ended) anyway: it was never needed, so it is not "pending".
+  const readyStage = stages.find((x) => x.key === "ready")!;
+  if (readyStage.state === "upcoming" && (f.code || f.settled)) {
+    readyStage.state = "skipped";
+    readyStage.detail = "No Ready signal was sent for this order.";
+  }
+  // Exactly one "current" stage while the order is live: the first stage still ahead of us.
   if (!f.settled && !settling && s !== "disputed") {
-    const first = stages.find((x) => x.state !== "done");
+    const first = stages.find((x) => x.state === "upcoming");
     if (first) first.state = "current";
   }
   // Once settled, anything that never happened is "skipped", and says so instead of describing an action.
@@ -242,6 +287,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
     const NEVER: Partial<Record<StageKey, string>> = {
       funded: "No USDC was ever locked for this order.",
       accepted: "No buyer took this order.",
+      ready: "No Ready signal was sent for this order.",
       code: "No voucher was handed over.",
     };
     for (const st of stages) {
@@ -254,7 +300,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
   return stages;
 }
 
-export function nextStep(r: ApiRequest, role: Role, brandName: string = r.brand): NextStep {
+export function nextStep(r: ApiRequest, role: Role, brandName: string = r.brand, now: number = Date.now()): NextStep {
   const amt = `${usdc(r)} USDC`;
   const none = (tone: Tone, title: string, body: string): NextStep => ({ tone, title, body, deadline: null, cta: "none" });
 
@@ -266,13 +312,20 @@ export function nextStep(r: ApiRequest, role: Role, brandName: string = r.brand)
     case "open":
       if (role === "spender") return { tone: "mint", title: "Waiting for a buyer", body: `Your ${amt} is locked and the order is in the order book. You can cancel and get it back until someone accepts.`, deadline: null, cta: "cancel" };
       return { tone: "mint", title: "This order is open", body: `Buy a ₹${r.amountInr.toLocaleString("en-IN")} ${brandName} voucher on your best card and you receive ${amt}.`, deadline: null, cta: role === "observer" ? "fill" : "none" };
-    case "accepted":
+    case "accepted": {
+      const readyLive = !!r.ready && r.ready.validUntil * 1000 > now;
+      if (role === "spender") {
+        return readyLive
+          ? { tone: "amber", title: "You're ready. Waiting for the buyer's code", body: "The buyer can hand the voucher over now. If they miss the deadline, the order reopens and your USDC stays locked for the next buyer.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" }
+          : { tone: "amber", title: r.ready ? "Sign Ready again" : "Tell the buyer you're ready", body: "A buyer accepted your order. Press Ready in the lifecycle below: a free signature (no gas) that lets them hand over the voucher code.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "ready" };
+      }
       return role === "buyer"
-        ? { tone: "amber", title: "Buy the voucher and submit its code", body: "Pay for the voucher on your best card route, then submit the code. If the deadline passes, the order reopens and you get a strike.", deadline: r.fulfilDeadline ? { label: "Submit the code by", at: r.fulfilDeadline } : null, cta: "trade" }
-        : { tone: "amber", title: "A buyer is purchasing your voucher", body: "Nothing for you to do yet. If they miss the deadline, the order reopens and your USDC stays locked for the next buyer.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: role === "spender" ? "trade" : "none" };
+        ? { tone: "amber", title: "Buy the voucher and submit its code", body: `${readyLive ? "The spender is ready. " : "The spender hasn't said they're ready yet, but you can still submit. "}Pay for the voucher on your best card route, then submit the code. If the deadline passes, the order reopens and you get a strike.`, deadline: r.fulfilDeadline ? { label: "Submit the code by", at: r.fulfilDeadline } : null, cta: "trade" }
+        : { tone: "amber", title: "A buyer is purchasing the voucher", body: "Nothing for you to do yet. If they miss the deadline, the order reopens.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" };
+    }
     case "code_submitted":
       return role === "spender"
-        ? { tone: "iris", title: "Check the voucher, then confirm", body: "Open the voucher, make sure it's live, and confirm to pay the buyer. If it doesn't work, dispute before the deadline. If you do nothing, the USDC is released automatically.", deadline: r.reviewDeadline ? { label: "Auto-release at", at: r.reviewDeadline } : null, cta: "trade" }
+        ? { tone: "iris", title: "Check the voucher, then confirm", body: "Check the voucher is live, then settle to pay the buyer, or raise a dispute if it doesn't work. Both are in the lifecycle below. If you do nothing, the USDC is released automatically.", deadline: r.reviewDeadline ? { label: "Auto-release at", at: r.reviewDeadline } : null, cta: "settle" }
         : { tone: "iris", title: role === "buyer" ? "Waiting for the spender to confirm" : "The spender is checking the voucher", body: role === "buyer" ? `Nothing to do. When they confirm, or if they don't respond by the deadline, ${amt} is released to you.` : "The voucher was handed over and is being checked.", deadline: r.reviewDeadline ? { label: "Auto-release at", at: r.reviewDeadline } : null, cta: "none" };
     case "disputed":
       return { tone: "rose", title: "Under review by an admin", body: "The funds stay in escrow until the admin releases them to the buyer or refunds the spender.", deadline: null, cta: role === "observer" ? "none" : "trade" };

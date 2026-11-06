@@ -59,15 +59,15 @@ test("a live order has exactly one current stage, a settled one has none", () =>
 });
 
 test("progress moves forward stage by stage", () => {
-  assert.equal(states(base(), "spender"), "created:done funded:current accepted:upcoming code:upcoming outcome:upcoming");
-  assert.equal(states(base(funded), "spender"), "created:done funded:done accepted:current code:upcoming outcome:upcoming");
-  assert.equal(states(base(accepted), "buyer"), "created:done funded:done accepted:done code:current outcome:upcoming");
-  assert.equal(states(base(coded), "buyer"), "created:done funded:done accepted:done code:done outcome:current");
+  assert.equal(states(base(), "spender"), "created:done funded:current accepted:upcoming ready:upcoming code:upcoming outcome:upcoming");
+  assert.equal(states(base(funded), "spender"), "created:done funded:done accepted:current ready:upcoming code:upcoming outcome:upcoming");
+  assert.equal(states(base(accepted), "buyer"), "created:done funded:done accepted:done ready:current code:upcoming outcome:upcoming");
+  assert.equal(states(base(coded), "buyer"), "created:done funded:done accepted:done ready:skipped code:done outcome:current");
 });
 
 test("released: everything done, tx proof on the outcome, wording follows the role", () => {
   const r = base({ ...coded, status: "released", settledAt: T(90), releaseTxHash: "0xrelease" });
-  assert.equal(states(r, "buyer"), "created:done funded:done accepted:done code:done outcome:done");
+  assert.equal(states(r, "buyer"), "created:done funded:done accepted:done ready:skipped code:done outcome:done");
   assert.equal(stage(r, "buyer", "outcome").tx, "0xrelease");
   assert.match(stage(r, "buyer", "outcome").detail, /You received 112\.22 USDC/);
   assert.match(stage(r, "spender", "outcome").detail, /voucher is yours/);
@@ -76,7 +76,7 @@ test("released: everything done, tx proof on the outcome, wording follows the ro
 
 test("cancelled before funding: later stages are skipped, not pending", () => {
   const r = base({ status: "cancelled" });
-  assert.equal(states(r, "spender"), "created:done funded:skipped accepted:skipped code:skipped outcome:done");
+  assert.equal(states(r, "spender"), "created:done funded:skipped accepted:skipped ready:skipped code:skipped outcome:done");
   assert.match(stage(r, "spender", "outcome").title, /cancelled/i);
   // a step that never happened must not describe an action ("You deposited ...")
   assert.equal(stage(r, "spender", "funded").detail, "No USDC was ever locked for this order.");
@@ -104,7 +104,7 @@ test("brand shows by display name, not the raw backend id", () => {
 
 test("cancel-and-refund while open: funded, then refunded, buyer steps skipped", () => {
   const r = base({ ...funded, status: "refunded", refundTxHash: "0xrefund", settledAt: T(3) });
-  assert.equal(states(r, "spender"), "created:done funded:done accepted:skipped code:skipped outcome:done");
+  assert.equal(states(r, "spender"), "created:done funded:done accepted:skipped ready:skipped code:skipped outcome:done");
   assert.equal(stage(r, "spender", "outcome").tx, "0xrefund");
   assert.match(stage(r, "spender", "outcome").detail, /came back to you/);
   assert.match(stage(r, "observer", "outcome").detail, /returned to the spender/);
@@ -118,7 +118,7 @@ test("reopened after the buyer missed the deadline: back to waiting for a buyer"
 
 test("dispute: its own current stage with the reason; outcome waits behind it", () => {
   const r = base(disputed);
-  assert.equal(states(r, "spender"), "created:done funded:done accepted:done code:done dispute:current outcome:upcoming");
+  assert.equal(states(r, "spender"), "created:done funded:done accepted:done ready:skipped code:done dispute:current outcome:upcoming");
   const d = stage(r, "spender", "dispute");
   assert.deepEqual(d.facts, [{ label: "Reason", value: "Already redeemed" }]);
   assert.match(d.detail, /^You disputed/);
@@ -127,7 +127,7 @@ test("dispute: its own current stage with the reason; outcome waits behind it", 
 
 test("dispute resolved by refund shows the ruling and a refund outcome", () => {
   const r = base({ ...disputed, status: "refunded", refundTxHash: "0xref", settledAt: T(50), resolution: { outcome: "refund", note: "Code was spent", by: "0xadmin", at: T(45) } });
-  assert.equal(states(r, "buyer"), "created:done funded:done accepted:done code:done dispute:done outcome:done");
+  assert.equal(states(r, "buyer"), "created:done funded:done accepted:done ready:skipped code:done dispute:done outcome:done");
   const d = stage(r, "buyer", "dispute");
   assert.equal(d.title, "Dispute resolved");
   assert.ok(d.facts.some((f) => f.label === "Ruling" && /refunded to the spender/.test(f.value)));
@@ -147,7 +147,7 @@ test("next step is written from the viewer's side, with the right action", () =>
   // The spender is the one who must act once the code is in
   const sp = nextStep(base(coded), "spender");
   assert.match(sp.title, /Check the voucher/);
-  assert.equal(sp.cta, "trade");
+  assert.equal(sp.cta, "settle"); // settle or dispute, from the lifecycle
   assert.equal(sp.deadline?.at, T(80));
   // The buyer just waits
   const by = nextStep(base(coded), "buyer");
@@ -155,11 +155,11 @@ test("next step is written from the viewer's side, with the right action", () =>
   assert.equal(by.cta, "none");
   // ...but must act while accepted
   assert.match(nextStep(base(accepted), "buyer").title, /Buy the voucher/);
-  assert.match(nextStep(base(accepted), "spender").title, /A buyer is purchasing/);
+  assert.match(nextStep(base(accepted), "spender").title, /Tell the buyer you're ready/);
   // Only the spender can cancel, and only before a buyer accepts
   assert.equal(nextStep(base(funded), "spender").cta, "cancel");
   assert.equal(nextStep(base(), "spender").cta, "cancel");
-  assert.equal(nextStep(base(accepted), "spender").cta, "trade");
+  assert.equal(nextStep(base(accepted), "spender").cta, "ready");
   assert.equal(nextStep(base(funded), "buyer").cta, "none");
   // An outsider is invited to fill an open order, and to nothing else
   assert.equal(nextStep(base(funded), "observer").cta, "fill");
@@ -185,4 +185,73 @@ test("every status gets a next step for every role (no crashes, no empty text)",
 test("implied rate", () => {
   assert.equal(Math.round(impliedRate({ amountInr: 10000, amountUsdc: "112.22" })! * 100) / 100, 89.11);
   assert.equal(impliedRate({ amountInr: 10000, amountUsdc: "0" }), null);
+});
+
+// ---------------------------------------------------------------- Ready permit
+
+const NOW = Date.parse(T(10));
+const permit = (validUntilMin: number) => ({ validUntil: Math.floor(Date.parse(T(validUntilMin)) / 1000), signature: "0x" + "ab".repeat(65), signedAt: T(8) });
+
+test("Ready: the spender is asked to sign once a buyer has accepted", () => {
+  const r = base(accepted);
+  const st = buildStages(r, "spender", "Amazon Pay", NOW).find((x) => x.key === "ready")!;
+  assert.equal(st.state, "current");
+  assert.match(st.detail, /free signature, no gas/);
+  assert.equal(nextStep(r, "spender", "Amazon Pay", NOW).cta, "ready");
+  // the buyer is told to wait, an outsider is not asked to do anything
+  assert.match(buildStages(r, "buyer", "Amazon Pay", NOW).find((x) => x.key === "ready")!.detail, /Waiting for the spender/);
+  assert.notEqual(nextStep(r, "buyer", "Amazon Pay", NOW).cta, "ready");
+  assert.notEqual(nextStep(r, "observer", "Amazon Pay", NOW).cta, "ready");
+});
+
+test("Ready: once signed it is done, shows its validity, and moves on to waiting for the code", () => {
+  const r = base({ ...accepted, ready: permit(20) });
+  const st = buildStages(r, "spender", "Amazon Pay", NOW).find((x) => x.key === "ready")!;
+  assert.equal(st.state, "done");
+  assert.equal(st.at, T(8));
+  assert.equal(st.actor, SPENDER.toLowerCase());
+  assert.equal(st.deadline?.label, "Permit valid for");
+  assert.ok(st.facts[0].value.startsWith("Valid until"));
+  assert.match(st.detail, /They can now hand over the voucher code/);
+  // the current step is now the buyer's code, and the spender has nothing to press
+  assert.equal(buildStages(r, "spender", "Amazon Pay", NOW).filter((x) => x.state === "current").map((x) => x.key).join(), "code");
+  assert.equal(nextStep(r, "spender", "Amazon Pay", NOW).cta, "none");
+  assert.match(nextStep(r, "spender", "Amazon Pay", NOW).title, /You're ready/);
+  assert.match(buildStages(r, "buyer", "Amazon Pay", NOW).find((x) => x.key === "ready")!.detail, /The spender is ready/);
+  assert.match(nextStep(r, "buyer", "Amazon Pay", NOW).body, /^The spender is ready\./);
+});
+
+test("Ready: an expired permit asks the spender to sign again", () => {
+  const r = base({ ...accepted, ready: permit(5) }); // expired 5 minutes before NOW
+  const st = buildStages(r, "spender", "Amazon Pay", NOW).find((x) => x.key === "ready")!;
+  assert.equal(st.state, "done");
+  assert.equal(st.facts[0].value, "Expired");
+  assert.equal(st.tone, "amber");
+  assert.equal(st.deadline, null);
+  assert.match(st.detail, /Sign again/);
+  const n = nextStep(r, "spender", "Amazon Pay", NOW);
+  assert.equal(n.cta, "ready");
+  assert.match(n.title, /Sign Ready again/);
+  assert.match(buildStages(r, "buyer", "Amazon Pay", NOW).find((x) => x.key === "ready")!.detail, /Ask them to sign again/);
+});
+
+test("Ready: a missing permit never blocks the order (the buyer can still hand over the code)", () => {
+  const r = base(coded); // code in, no permit was ever signed
+  const st = buildStages(r, "spender", "Amazon Pay", NOW).find((x) => x.key === "ready")!;
+  assert.equal(st.state, "skipped");
+  assert.equal(st.detail, "No Ready signal was sent for this order.");
+  assert.equal(buildStages(r, "spender", "Amazon Pay", NOW).filter((x) => x.state === "current").length, 1);
+  // and a permit that was signed stays on the record after the order moves on
+  const signed = base({ ...coded, ready: permit(20) });
+  assert.equal(buildStages(signed, "spender", "Amazon Pay", NOW).find((x) => x.key === "ready")!.detail, "You told the buyer you were ready.");
+});
+
+test("Settle or dispute is offered to the spender only, and only once the code is in", () => {
+  assert.equal(nextStep(base(coded), "spender").cta, "settle");
+  assert.notEqual(nextStep(base(coded), "buyer").cta, "settle");
+  assert.notEqual(nextStep(base(coded), "observer").cta, "settle");
+  for (const over of [funded, accepted, disputed, { ...coded, status: "released" }, { ...coded, status: "releasing" }]) {
+    assert.notEqual(nextStep(base(over), "spender").cta, "settle", String((over as { status: string }).status));
+  }
+  assert.match(nextStep(base(coded), "spender").body, /settle .* raise a dispute/i);
 });

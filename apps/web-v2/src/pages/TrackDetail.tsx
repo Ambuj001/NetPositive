@@ -6,8 +6,9 @@ import { Aurora, BrandMark, Button, Pill, Row, cx } from "../components/ui";
 import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest, type ReqStatus } from "../lib/api";
 import { brand } from "../lib/data";
 import { inr, usdt } from "../lib/engine";
-import { buildStages, impliedRate, isSettled, nextStep, roleOf, sameAddr, type Role, type Stage, type Tone } from "../lib/lifecycle";
+import { buildStages, impliedRate, isSettled, nextStep, roleOf, sameAddr, type Role, type Stage, type StageKey, type Tone } from "../lib/lifecycle";
 import { useApp } from "../lib/store";
+import { ReadyAction, SettleActions, type Notice } from "./TrackActions";
 
 /**
  * /track?id=<order id>: one order, in detail, from the viewer's side.
@@ -42,7 +43,7 @@ function ago(iso: string, now = Date.now()) {
 type Load = { kind: "loading" } | { kind: "ready"; req: ApiRequest; at: number; stale: boolean } | { kind: "notfound" } | { kind: "offline" } | { kind: "error"; message: string };
 
 export default function TrackDetail({ id }: { id: string }) {
-  const { fullAddress, token, signIn, signingIn, openWallet } = useApp();
+  const { fullAddress, token, signIn, signingIn, openWallet, walletRequest } = useApp();
   const [load, setLoad] = useState<Load>(id ? { kind: "loading" } : { kind: "notfound" });
   const [refreshing, setRefreshing] = useState(false);
   const last = useRef<ApiRequest | null>(null);
@@ -71,6 +72,12 @@ export default function TrackDetail({ id }: { id: string }) {
   useEffect(() => {
     fetchOrder();
   }, [fetchOrder]);
+
+  /** An action (Ready, Settle, Dispute) came back with the new state of the order: show it now, don't wait for the next poll. */
+  const applyRequest = useCallback((request: ApiRequest) => {
+    last.current = request;
+    setLoad({ kind: "ready", req: request, at: Date.now(), stale: false });
+  }, []);
 
   // Poll while the order is live and the tab is visible; stop once it has settled.
   const settled = load.kind === "ready" && isSettled(load.req.status);
@@ -111,6 +118,8 @@ export default function TrackDetail({ id }: { id: string }) {
             signIn={signIn}
             signingIn={signingIn}
             openWallet={openWallet}
+            walletRequest={walletRequest}
+            onApplied={applyRequest}
           />
         )}
       </div>
@@ -173,15 +182,24 @@ type DetailProps = {
   signIn: () => Promise<string | null>;
   signingIn: boolean;
   openWallet: () => void;
+  walletRequest: (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
+  onApplied: (req: ApiRequest) => void;
 };
 
-function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, token, signIn, signingIn, openWallet }: DetailProps) {
+function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, token, signIn, signingIn, openWallet, walletRequest, onApplied }: DetailProps) {
+  const [notice, setNotice] = useState<Notice | null>(null);
   const b = brand(brandIdFromApi(req.brand));
   const s = STATUS[req.status];
   const stages = buildStages(req, role, b.name);
   const next = nextStep(req, role, b.name);
   const live = !isSettled(req.status);
   const usdcAmount = Number(req.amountUsdc) || 0;
+
+  // Buttons live inside the lifecycle step they belong to, and only for the spender.
+  const common = { req, token, signIn, signingIn, onUpdated: (r: ApiRequest, n: Notice) => { onApplied(r); setNotice(n); } };
+  const actions: Partial<Record<StageKey, ReactNode>> = {};
+  if (role === "spender" && next.cta === "ready") actions.ready = <ReadyAction {...common} viewer={viewer} walletRequest={walletRequest} expired={!!req.ready} />;
+  if (role === "spender" && next.cta === "settle") actions.outcome = <SettleActions {...common} />;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -212,8 +230,9 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-5">
+          {notice && <NoticeBar notice={notice} onClose={() => setNotice(null)} />}
           <NextCard next={next} id={req.id} role={role} status={req.status} token={token} signIn={signIn} signingIn={signingIn} onChanged={onRefresh} />
-          <Timeline stages={stages} viewer={viewer} />
+          <Timeline stages={stages} viewer={viewer} actions={actions} />
         </div>
         <div className="space-y-5">
           <Money req={req} role={role} brandName={b.name} />
@@ -303,7 +322,8 @@ function NextCard({ next, id, role, status, token, signIn, signingIn, onChanged 
           <Clock className="size-3.5" /> {next.deadline.label} {when(next.deadline.at)} · <Countdown to={next.deadline.at} />
         </div>
       )}
-      {next.cta !== "none" && (
+      {(next.cta === "ready" || next.cta === "settle") && <p className="mt-3 text-[12.5px] text-mute">The {next.cta === "ready" ? "Ready" : "Settle and Dispute"} button{next.cta === "ready" ? "" : "s are"} in the lifecycle below.</p>}
+      {next.cta !== "none" && next.cta !== "ready" && next.cta !== "settle" && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {next.cta === "trade" && (
             <Button size="sm" to={`/trade/${id}`} icon={<ArrowUpRight className="size-3.5" />}>
@@ -343,20 +363,20 @@ function NextCard({ next, id, role, status, token, signIn, signingIn, onChanged 
 
 /* ---------------------------------------------------------------- timeline */
 
-function Timeline({ stages, viewer }: { stages: Stage[]; viewer: string }) {
+function Timeline({ stages, viewer, actions }: { stages: Stage[]; viewer: string; actions: Partial<Record<StageKey, ReactNode>> }) {
   return (
     <div className="hairline rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl">
       <div className="label">Lifecycle</div>
       <ol className="mt-4">
         {stages.map((st, i) => (
-          <StageRow key={st.key} st={st} viewer={viewer} last={i === stages.length - 1} />
+          <StageRow key={st.key} st={st} viewer={viewer} last={i === stages.length - 1} action={actions[st.key]} />
         ))}
       </ol>
     </div>
   );
 }
 
-function StageRow({ st, viewer, last }: { st: Stage; viewer: string; last: boolean }) {
+function StageRow({ st, viewer, last, action }: { st: Stage; viewer: string; last: boolean; action?: ReactNode }) {
   const done = st.state === "done";
   const cur = st.state === "current";
   const skipped = st.state === "skipped";
@@ -421,8 +441,29 @@ function StageRow({ st, viewer, last }: { st: Stage; viewer: string; last: boole
             )}
           </div>
         )}
+        {action}
       </div>
     </li>
+  );
+}
+
+function NoticeBar({ notice, onClose }: { notice: Notice; onClose: () => void }) {
+  const tone: Tone = notice.tone;
+  return (
+    <div role="status" className={cx("flex items-start gap-3 rounded-2xl px-4 py-3 text-[13.5px] ring-1", TONE[tone])}>
+      <Check className="mt-0.5 size-4 shrink-0" />
+      <div className="min-w-0 flex-1">
+        {notice.text}
+        {notice.tx && !notice.tx.startsWith("reconciled") && (
+          <a href={`${EXPLORER}/tx/${notice.tx}`} target="_blank" rel="noreferrer" className="ml-2 inline-flex items-center gap-1 font-mono text-[12px] underline-offset-2 hover:underline">
+            tx {notice.tx.slice(0, 8)}… <ArrowUpRight className="size-3" />
+          </a>
+        )}
+      </div>
+      <button onClick={onClose} aria-label="Dismiss" className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-white/10">
+        <X className="size-3.5" />
+      </button>
+    </div>
   );
 }
 

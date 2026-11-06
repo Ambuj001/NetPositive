@@ -64,6 +64,23 @@ router.get('/:id/voucher', requireAuth, async (req, res) => {
   res.json({ voucher: await svc.getVoucher(req.params.id, req.user.address, { isAdmin }) });
 });
 
+/**
+ * GET /requests/:id/ready-permit → the EIP-712 "Ready" typed data for the spender's wallet to sign (gasless).
+ * POST /requests/:id/ready { validUntil, signature } → verified and stored on the request. Spender only, while a buyer has accepted.
+ */
+router.get('/:id/ready-permit', requireAuth, async (req, res) => {
+  res.json(await svc.prepareReady(req.params.id, req.user.address));
+});
+
+router.post(
+  '/:id/ready',
+  requireAuth,
+  validate(z.object({ validUntil: z.number().int().positive(), signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/, 'A 65-byte hex signature') }).strict()),
+  async (req, res) => {
+    res.json({ request: await svc.readyRequest(req.params.id, req.user.address, req.body) });
+  },
+);
+
 /** POST /requests/:id/confirm → code works; release USDC to the crypto buyer */
 router.post('/:id/confirm', requireAuth, async (req, res) => {
   res.json({ request: await svc.confirmRequest(req.params.id, req.user.address) });
