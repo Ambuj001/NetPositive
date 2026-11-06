@@ -172,7 +172,7 @@ function Footer() {
 }
 
 function WalletModal() {
-  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast, balance } =
+  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast } =
     useApp();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -312,17 +312,6 @@ function WalletModal() {
                     <div className="mt-3 flex items-center gap-1.5 text-[12px] text-mute">
                       <span className="size-1.5 rounded-full bg-mint" /> {chain || "Unknown network"}
                     </div>
-                  </div>
-
-                  <div className="rounded-2xl bg-white/[0.03] p-4 ring-1 ring-white/[0.06]">
-                    <div className="flex items-center justify-between">
-                      <span className="label">Escrow balance</span>
-                      <span className="rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber uppercase ring-1 ring-amber/25">demo</span>
-                    </div>
-                    <div className="mt-1 font-display text-3xl font-semibold tabular">
-                      {usdt(balance)} <span className="text-base text-mute">USDT</span>
-                    </div>
-                    <div className="mt-1 text-[11.5px] text-dim">Simulated for the prototype. No funds move.</div>
                   </div>
 
                   <div className={cx("rounded-2xl p-4 ring-1", humanVerified ? "bg-mint/[0.06] ring-mint/25" : "bg-iris/[0.06] ring-iris/25")}>
