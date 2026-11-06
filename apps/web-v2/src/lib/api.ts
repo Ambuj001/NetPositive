@@ -59,6 +59,8 @@ export type ApiRequest = {
   /** Wallet that opened the dispute. */
   disputedBy?: string | null;
   disputedAt?: string | null;
+  /** The spender's signed "Ready" permit for the CodeMailbox (EIP-712). Null until they press Ready. */
+  ready?: { validUntil: number; signature: string; signedAt: string } | null;
   /** Set when an admin has ruled on a dispute. */
   resolution?: { outcome: "release" | "refund"; note: string | null; by: string; at: string } | null;
   lastError?: string | null;
@@ -81,10 +83,13 @@ export const brandIdFromApi = (b: string) => BRAND_MAP[b] ?? b;
 export class ApiError extends Error {
   status: number;
   code: string;
-  constructor(status: number, code: string, message: string) {
+  /** Extra facts the server attached to the error (for example which wallet a World ID is linked to). */
+  details?: unknown;
+  constructor(status: number, code: string, message: string, details?: unknown) {
     super(message);
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -105,9 +110,9 @@ async function call<T>(path: string, opts: ApiOpts = {}): Promise<T> {
     throw new ApiError(0, "unreachable", "Couldn't reach the server. You can keep browsing. Posting and accepting stay locked.");
   }
 
-  const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+  const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string; details?: unknown };
   if (!res.ok) {
-    throw new ApiError(res.status, data.error ?? "request_failed", data.message ?? "Request failed");
+    throw new ApiError(res.status, data.error ?? "request_failed", data.message ?? "Request failed", data.details);
   }
   return data as T;
 }
@@ -128,6 +133,14 @@ type ApiClient = {
   ) => Promise<{ request: ApiRequest; escrowContract: string | null }>;
   fund: (id: string, txHash: string, token: string) => Promise<{ request: ApiRequest }>;
   cancel: (id: string, token: string) => Promise<{ request: ApiRequest }>;
+  /** The EIP-712 "Ready" typed data for the spender's wallet to sign (gasless). */
+  readyPermit: (id: string, token: string) => Promise<{ validUntil: number; typedData: unknown }>;
+  ready: (id: string, body: { validUntil: number; signature: string }, token: string) => Promise<{ request: ApiRequest }>;
+  /** Settle: the spender confirms the voucher works and the escrow releases the USDC to the buyer on-chain. */
+  confirm: (id: string, token: string) => Promise<{ request: ApiRequest }>;
+  dispute: (id: string, reason: string, token: string) => Promise<{ request: ApiRequest }>;
+  /** The voucher for the spender: `code`/`pin` for legacy vouchers, `sealed` when it is locked to their vault key. */
+  voucher: (id: string, token: string) => Promise<{ voucher: { requestId: string; brand: string; code?: string; pin?: string | null; sealed?: unknown } }>;
 };
 
 /** Callable for World ID routes, with named methods for the order book and sign-in. */
@@ -148,6 +161,14 @@ export const api: ApiClient = Object.assign(call, {
   fund: (id: string, txHash: string, token: string) =>
     call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/fund`, { method: "POST", body: { txHash }, token }),
   cancel: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/cancel`, { method: "POST", body: {}, token }),
+  readyPermit: (id: string, token: string) => call<{ validUntil: number; typedData: unknown }>(`/requests/${encodeURIComponent(id)}/ready-permit`, { token }),
+  ready: (id: string, body: { validUntil: number; signature: string }, token: string) =>
+    call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/ready`, { method: "POST", body, token }),
+  confirm: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/confirm`, { method: "POST", body: {}, token }),
+  dispute: (id: string, reason: string, token: string) =>
+    call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/dispute`, { method: "POST", body: { reason }, token }),
+  voucher: (id: string, token: string) =>
+    call<{ voucher: { requestId: string; brand: string; code?: string; pin?: string | null; sealed?: unknown } }>(`/requests/${encodeURIComponent(id)}/voucher`, { token }),
 });
 
 /* --------------------------------------------------------------- display */
