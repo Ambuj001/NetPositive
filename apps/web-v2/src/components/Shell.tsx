@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, ChevronRight, Copy, FingerprintPattern, LoaderCircle, Menu, ShieldCheck, Wallet, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../lib/store";
 import { readSession } from "../lib/session";
 import { formatChainBalance } from "../lib/wallet";
@@ -136,6 +136,41 @@ function Nav() {
   );
 }
 
+const REPO = "https://github.com/Ambuj001/NetPositive";
+const REPO_FILE = `${REPO}/blob/integration-e2e`;
+const REPO_DIR = `${REPO}/tree/integration-e2e`;
+
+type FooterLink = { label: string; to: string } | { label: string; href: string };
+const FOOTER_COLUMNS: { h: string; l: FooterLink[] }[] = [
+  {
+    h: "Product",
+    l: [
+      { label: "Market", to: "/market" },
+      { label: "Pay with crypto", to: "/trade" },
+      { label: "Extension", href: `${REPO_FILE}/docs/product/README.md` },
+      { label: "My cards", to: "/cards" },
+    ],
+  },
+  {
+    h: "Trust",
+    l: [
+      { label: "Escrow contract", href: `${REPO_FILE}/contracts/src/VoucherEscrow.sol` },
+      { label: "World ID", href: "https://world.org/world-id" },
+      { label: "Verification layer", href: `${REPO_FILE}/docs/vault.md` },
+      { label: "Dispute reserve", to: "/dispute" },
+    ],
+  },
+  {
+    h: "Build",
+    l: [
+      { label: "Docs", href: `${REPO_DIR}/docs` },
+      { label: "Contracts", href: `${REPO_DIR}/contracts` },
+      { label: "GitHub", href: REPO },
+      { label: "Brand kit", href: `${REPO_DIR}/docs/product` },
+    ],
+  },
+];
+
 function Footer() {
   return (
     <footer className="relative mt-32 border-t border-line">
@@ -150,17 +185,21 @@ function Footer() {
             <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[11px] ring-1 ring-white/10">ETHGlobal Mumbai · 2026</span>
           </div>
         </div>
-        {[
-          { h: "Product", l: ["Market", "Pay with crypto", "Extension", "My cards"] },
-          { h: "Trust", l: ["Escrow contract", "World ID", "Verification layer", "Dispute reserve"] },
-          { h: "Build", l: ["Docs", "Contracts", "GitHub", "Brand kit"] },
-        ].map((c) => (
+        {FOOTER_COLUMNS.map((c) => (
           <div key={c.h}>
             <div className="label mb-4">{c.h}</div>
             <ul className="space-y-2.5 text-[13.5px] text-mute">
               {c.l.map((x) => (
-                <li key={x} className="cursor-default transition hover:text-fg">
-                  {x}
+                <li key={x.label}>
+                  {"to" in x ? (
+                    <Link to={x.to} className="transition hover:text-fg">
+                      {x.label}
+                    </Link>
+                  ) : (
+                    <a href={x.href} target="_blank" rel="noopener noreferrer" className="transition hover:text-fg">
+                      {x.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -216,8 +255,10 @@ function waitForAddress(read: () => string) {
 }
 
 function WalletModal() {
-  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast } =
-    useApp();
+  const app = useApp();
+  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast } = app;
+  const appRef = useRef(app);
+  appRef.current = app;
   const { verifyHuman, phase } = useWorldId();
   const [copied, setCopied] = useState(false);
   const { pathname } = useLocation();
@@ -231,6 +272,10 @@ function WalletModal() {
     toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
     if (pathname !== "/") {
       closeWallet();
+      // They connected on purpose, so sign in too (one free signature). That is what loads their account: saved cards, orders.
+      // World ID is still asked for only when something needs it.
+      const here = await waitForAddress(() => addressRef.current);
+      if (here && !readSession(here)) await appRef.current.signIn();
       return;
     }
     // Landing stays put until World ID is bound to this wallet too.
