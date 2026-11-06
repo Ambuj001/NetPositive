@@ -129,6 +129,18 @@ def draft_request(merchant, amount, item=None):
                             f"suggested_split assumes a max voucher size of Rs {engine.MAX_DENOM}; real denominations vary by brand."]}
 
 
+def _verify_step(split, amount):
+    """What the buyer should check with the browser extension (backend/extension) before submitting.
+    Limits are stated, not hidden: the extension only reads Woohoo, has no brand field, and runs on the buyer's own device."""
+    parts = [x for x in (split or []) if isinstance(x, (int, float)) and x > 0] or [amount]
+    return {"tool": "NetPositive Voucher Check (browser extension)",
+            "check_each_voucher": [{"expected_inr": x, "expected_paise": int(round(x * 100))} for x in parts],
+            "passes_when": "Status ACTIVATED, currency INR, balance at least the expected amount, expiry 30+ days away, card number matches what you typed.",
+            "limits": ["Only checks vouchers redeemable on woohoo.in; vouchers from other portals can't be checked yet.",
+                       "It can't tell the brand (Woohoo's response has no brand field), so confirm the brand yourself.",
+                       "The result stays on your device. It's a pre-check for you, not proof the backend relies on."]}
+
+
 def fulfil_request(buyer_id, brand, amount, value_mode="travel"):
     """Buyer side, after accepting a request: brand and amount are fixed; rank THIS buyer's options, best first."""
     amt, err = engine._clean_amount(amount, required=True)
@@ -164,5 +176,7 @@ def fulfil_request(buyer_id, brand, amount, value_mode="travel"):
             "must_match": {"voucher_brand": brand, "total_amount_inr": amt, "suggested_split": routes["split_into_vouchers"],
                            "tip": "Buy exactly this brand and total value. The verification step checks brand, balance and expiry before the crypto is released.",
                            "split_note": routes["split_note"]},
+            "verify_before_submit": _verify_step(routes["split_into_vouchers"], amt),
             "next_steps": ["Choose an option (best is on top) and open its link.", "Pick the voucher brand shown in must_match and buy it.",
+                           "Check each voucher with the NetPositive Voucher Check extension before submitting (see verify_before_submit).",
                            "Submit the voucher code(s) for verification; do not share them anywhere else."]}

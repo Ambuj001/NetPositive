@@ -14,7 +14,7 @@ Per-user, portfolio-filtered card recommendations for both sides of the voucher 
 1. **Seller** types what they want. `POST /merchants/suggest {"query"}` (`flow.suggest_merchants`): "shoes" -> ranked merchant tiles (big players first, only merchants with a voucher); "nike shoes" -> stores that sell Nike; "nike shoes from amazon" -> Amazon locked + alternatives; unknown product -> Amazon/Flipkart fallback. One merchant per request.
 2. **Seller** picks one + amount. `POST /request/draft {"merchant","amount","item"?}` -> the request payload (voucher brand, amount, suggested split). Nothing is posted: the backend posts it and locks the crypto in escrow.
 3. **Buyer** accepts. `POST /request/fulfil {"user_id","brand","amount"}` (`flow.fulfil_request`) -> ranked options from the buyer's own cards, **best first (`best: true`), verified before unverified**, each with its own bank-portal `link`, steps, source/date, plus `must_match` (brand + total the code must match), CRED as `second_option`, and next steps.
-4. **Buyer** opens a link, buys the voucher, submits the code for verification (backend/verification layer, not this module).
+4. **Buyer** opens a link, buys the voucher, checks it with the browser extension (`backend/extension`; `fulfil_request` returns `verify_before_submit` with the expected paise per voucher and the extension's limits), then submits the code (backend).
 
 The LLM never computes rewards and never sees cards outside the caller's portfolio. `user_id` is bound in code, not passed by the model.
 

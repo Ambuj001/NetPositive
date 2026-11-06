@@ -148,6 +148,15 @@ class Fulfil(unittest.TestCase):
         self.assertEqual(r["must_match"]["voucher_brand"], "Lifestyle")
         self.assertEqual(r["must_match"]["total_amount_inr"], 10000.0)
 
+    def test_verify_step_matches_amounts_and_states_limits(self):
+        self.cards("b", "Infinia")
+        v = flow.fulfil_request("b", "Lifestyle", 10000)["verify_before_submit"]
+        self.assertEqual(sum(x["expected_paise"] for x in v["check_each_voucher"]), 1000000)
+        self.assertTrue(all(isinstance(x["expected_paise"], int) for x in v["check_each_voucher"]))
+        self.assertTrue(any("woohoo" in l.lower() for l in v["limits"]) and any("brand" in l for l in v["limits"]))
+        small = flow.fulfil_request("b", "Amazon", 999)["verify_before_submit"]["check_each_voucher"]
+        self.assertEqual([x["expected_paise"] for x in small], [99900])
+
     def test_values_within_verified_group_are_descending(self):
         self.cards("b", "Infinia")
         o = flow.fulfil_request("b", "Lifestyle", 10000)["options"]
