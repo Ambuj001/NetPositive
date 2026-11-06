@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useScroll, useTransform } from "motion/react";
 import {
+  ArrowDownLeft,
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
@@ -17,9 +18,9 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { FlowDiagram } from "../components/FlowDiagram";
-import { HeroRail } from "../components/HeroRail";
 import { ScreenDetect, ScreenGuide, ScreenRequest, ScreenReveal, ScreenRoutes, ScreenVerify } from "../components/Screens";
-import { Aurora, Button, Card, Counter, Persona, Pill, SectionHead, Tilt, cx } from "../components/ui";
+import { Link } from "react-router-dom";
+import { Aurora, BrandMark, Button, Card, Counter, Persona, Pill, SectionHead, Tilt, cx } from "../components/ui";
 import { FEED } from "../lib/data";
 import { CARDS, effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
 
@@ -42,52 +43,111 @@ export default function Landing() {
 }
 
 /* ================================================================ HERO */
+const FAVOURITES = ["lifestyle", "amazon", "myntra", "croma", "swiggy"];
+
 function Hero() {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const y = useTransform(scrollYProgress, [0, 1], [0, 80]);
+  const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0.2]);
+  const lines: [string, string][] = [
+    ["Your crypto.", "text-gradient"],
+    ["Your cards.", "text-gradient"],
+    ["Better together.", "text-mint-gradient"],
+  ];
 
-  const words = ["Spend", "crypto", "anywhere."];
   return (
-    <section ref={ref} className="relative overflow-hidden pt-32 pb-16 md:pt-36">
+    <section ref={ref} className="relative overflow-hidden pt-36 pb-10 md:pt-40">
       <Aurora />
       <div className="grid-bg absolute inset-0" />
       <motion.div style={{ y, opacity: fade }} className="relative mx-auto max-w-6xl px-6 text-center">
-        <h1 className="mx-auto mt-4 max-w-5xl font-display text-[clamp(44px,7.6vw,92px)] font-semibold leading-[0.95] tracking-[-0.045em]">
-          <span className="block">
-            {words.map((w, i) => (
-              <motion.span
-                key={w}
-                className="text-gradient inline-block pr-[0.22em]"
-                initial={{ opacity: 0, y: 40, filter: "blur(12px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ delay: 0.1 + i * 0.08, duration: 0.9, ease }}
-              >
-                {w}
-              </motion.span>
-            ))}
-          </span>
-          <motion.span
-            className="text-mint-gradient block pb-2"
-            initial={{ opacity: 0, y: 40, filter: "blur(12px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ delay: 0.4, duration: 0.9, ease }}
-          >
-            Keep every reward.
-          </motion.span>
+        <motion.div className="label" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease }}>
+          More value. Both ways.
+        </motion.div>
+        <h1 className="mx-auto mt-6 max-w-4xl font-display text-[clamp(46px,8vw,96px)] font-semibold leading-[1] tracking-[-0.045em]">
+          {lines.map(([t, c], i) => (
+            <motion.span
+              key={t}
+              className={cx("block pb-[0.06em]", c)}
+              initial={{ opacity: 0, y: 36, filter: "blur(12px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ delay: 0.1 + i * 0.12, duration: 0.9, ease }}
+            >
+              {t}
+            </motion.span>
+          ))}
         </h1>
+        <motion.p
+          className="mx-auto mt-7 max-w-md text-[16px] leading-relaxed text-mute"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.8, ease }}
+        >
+          Pay for what you love with crypto.
+          <br />
+          Or buy USDC and keep your card rewards.
+        </motion.p>
       </motion.div>
 
+      {/* two intersecting choices */}
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9, duration: 1, ease }}
-        className="relative mt-12 px-6"
+        transition={{ delay: 0.65, duration: 0.9, ease }}
+        className="relative mx-auto mt-14 flex w-fit flex-col items-center px-6 md:flex-row"
       >
-        <HeroRail />
+        <Choice
+          to="/spend"
+          tone="mint"
+          icon={<ArrowUpRight className="size-5" />}
+          line1="Put your crypto"
+          line2="to everyday use."
+          title="Pay with crypto"
+          end={<ArrowUpRight className="size-4" />}
+          className="pb-10 md:pr-16 md:pb-0"
+        />
+        <Choice
+          to="/home"
+          tone="amber"
+          icon={<ArrowDownLeft className="size-5" />}
+          line1="Make more of"
+          line2="your card rewards."
+          title="Buy USDC"
+          end={<ArrowRight className="size-4" />}
+          className="-mt-10 pt-10 md:mt-0 md:-ml-12 md:pt-0 md:pl-16"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-1/2 z-10 grid size-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-ink-2 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.9)] ring-1 ring-white/15"
+        >
+          <svg viewBox="0 0 40 32" className="h-[16px] w-[20px]" fill="none">
+            <path d="M4 26V6h5l17 20h5V6" stroke="#3ddc97" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M23 6h13M31 1v10" stroke="#f5b544" strokeWidth="2.8" strokeLinecap="round" />
+          </svg>
+        </span>
       </motion.div>
 
+      {/* favourites */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9, duration: 0.8 }}
+        className="relative mt-14 flex flex-wrap items-center justify-center gap-x-5 gap-y-3 px-6"
+      >
+        <span className="text-[12.5px] text-dim">Everyday favourites</span>
+        <span className="flex -space-x-1.5">
+          {FAVOURITES.map((id, i) => (
+            <motion.span key={id} whileHover={{ y: -4, zIndex: 10 }} className="relative rounded-full ring-2 ring-ink" style={{ zIndex: FAVOURITES.length - i }}>
+              <BrandMark id={id} size={30} className="!rounded-full" />
+            </motion.span>
+          ))}
+        </span>
+        <Link to="/market" className="group flex items-center gap-1.5 text-[12.5px] text-mute transition hover:text-fg">
+          Explore vouchers <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
+        </Link>
+      </motion.div>
+
+      {/* live trade preview */}
       <motion.div
         initial={{ opacity: 0, y: 60, scale: 0.96 }}
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
@@ -114,6 +174,56 @@ function Hero() {
         </div>
       </motion.div>
     </section>
+  );
+}
+
+function Choice({
+  to,
+  tone,
+  icon,
+  line1,
+  line2,
+  title,
+  end,
+  className,
+}: {
+  to: string;
+  tone: "mint" | "amber";
+  icon: ReactNode;
+  line1: string;
+  line2: string;
+  title: string;
+  end: ReactNode;
+  className?: string;
+}) {
+  const c =
+    tone === "mint"
+      ? { bg: "from-mint/[0.14] to-mint/[0.03]", ring: "ring-mint/25 hover:ring-mint/50", text: "text-mint", glow: "rgba(61,220,151,0.35)" }
+      : { bg: "from-amber/[0.13] to-amber/[0.03]", ring: "ring-amber/25 hover:ring-amber/50", text: "text-amber", glow: "rgba(245,181,68,0.32)" };
+  return (
+    <motion.div whileHover={{ y: -4, scale: 1.015 }} transition={{ type: "spring", stiffness: 300, damping: 24 }} className="relative">
+      <Link
+        to={to}
+        className={cx(
+          "group relative flex h-[200px] w-[min(310px,82vw)] flex-col justify-center overflow-hidden rounded-full bg-gradient-to-br px-12 ring-1 backdrop-blur-xl transition-shadow",
+          c.bg,
+          c.ring,
+          className,
+        )}
+        style={{ boxShadow: `0 30px 80px -40px ${c.glow}` }}
+      >
+        <span className={cx("transition group-hover:-translate-y-0.5", c.text)}>{icon}</span>
+        <span className="mt-4 text-[13px] leading-snug text-mute">
+          {line1}
+          <br />
+          {line2}
+        </span>
+        <span className="mt-4 flex items-center justify-between gap-4">
+          <span className="font-display text-[19px] font-semibold tracking-tight">{title}</span>
+          <span className={cx("transition group-hover:translate-x-0.5", c.text)}>{end}</span>
+        </span>
+      </Link>
+    </motion.div>
   );
 }
 
