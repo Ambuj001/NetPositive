@@ -34,6 +34,17 @@ export const S = {
 
 const minutesFromNow = (m) => Timestamp.fromMillis(Date.now() + m * 60_000);
 
+/** New documents use these names. Older ones still have requester / fulfiller. */
+const spenderOf = (data) => data.crypto_spender || data.requester;
+const buyerOf = (data) => ('crypto_buyer' in data ? data.crypto_buyer || null : data.fulfiller || null);
+
+function present(id, data) {
+  const rest = { ...data };
+  delete rest.requester;
+  delete rest.fulfiller;
+  return serialize({ id, ...rest, crypto_spender: spenderOf(data), crypto_buyer: buyerOf(data) });
+}
+
 function assertStatus(data, ...allowed) {
   if (!allowed.includes(data.status)) {
     throw conflict('invalid_status', `Request is "${data.status}"; expected ${allowed.map((s) => `"${s}"`).join(' or ')}`);
@@ -77,25 +88,32 @@ function bumpReputation(address, field, by = 1) {
 export async function getRequest(id) {
   const snap = await col.requests.doc(id).get();
   if (!snap.exists) throw notFound('Request not found');
-  return serialize({ id: snap.id, ...snap.data() });
+  return present(snap.id, snap.data());
 }
 
 export async function listOpen({ brand, limit = 50 }) {
   let q = col.requests.where('status', '==', S.OPEN);
   if (brand) q = q.where('brand', '==', brand);
   const snap = await q.orderBy('createdAt', 'desc').limit(limit).get();
-  return snap.docs.map((d) => serialize({ id: d.id, ...d.data() }));
+  return snap.docs.map((d) => present(d.id, d.data()));
+}
+
+async function listByParty(field, legacy, address) {
+  const [next, previous] = await Promise.all([
+    col.requests.where(field, '==', address).orderBy('createdAt', 'desc').limit(100).get(),
+    col.requests.where(legacy, '==', address).orderBy('createdAt', 'desc').limit(100).get(),
+  ]);
+  const byId = new Map();
+  for (const doc of [...previous.docs, ...next.docs]) byId.set(doc.id, doc);
+  return [...byId.values()].map((doc) => present(doc.id, doc.data()));
 }
 
 export async function listMine(address) {
-  const [asRequester, asFulfiller] = await Promise.all([
-    col.requests.where('requester', '==', address).orderBy('createdAt', 'desc').limit(100).get(),
-    col.requests.where('fulfiller', '==', address).orderBy('createdAt', 'desc').limit(100).get(),
+  const [asCryptoSpender, asCryptoBuyer] = await Promise.all([
+    listByParty('crypto_spender', 'requester', address),
+    listByParty('crypto_buyer', 'fulfiller', address),
   ]);
-  return {
-    asRequester: asRequester.docs.map((d) => serialize({ id: d.id, ...d.data() })),
-    asFulfiller: asFulfiller.docs.map((d) => serialize({ id: d.id, ...d.data() })),
-  };
+  return { asCryptoSpender, asCryptoBuyer };
 }
 
 // ---------- Requester actions ----------
@@ -106,8 +124,8 @@ export async function createRequest(requester, { brand, amountInr, amountUsdc })
   if (BigInt(amountUsdcBaseUnits) <= 0n) throw new HttpError(400, 'invalid_amount', 'amountUsdc must be > 0');
 
   const doc = {
-    requester,
-    fulfiller: null,
+    crypto_spender: requester,
+    crypto_buyer: null,
     brand,
     amountInr,
     amountUsdc,
@@ -131,7 +149,7 @@ export async function createRequest(requester, { brand, amountInr, amountUsdc })
 
 export async function fundRequest(id, requester, txHash) {
   const current = await getRequest(id);
-  if (current.requester !== requester) throw forbidden('not_requester', 'Only the requester can fund this request');
+  if (current.crypto_spender !== requester) throw forbidden('not_requester', 'Only the crypto spender can fund this request');
   assertStatus(current, S.PENDING_FUNDING);
 
   // Chain check happens outside the transaction; the transaction re-checks status.
@@ -145,7 +163,7 @@ export async function fundRequest(id, requester, txHash) {
 
 export async function cancelRequest(id, requester) {
   const current = await getRequest(id);
-  if (current.requester !== requester) throw forbidden('not_requester', 'Only the requester can cancel');
+  if (current.crypto_spender !== requester) throw forbidden('not_requester', 'Only the crypto spender can cancel');
 
   if (current.status === S.PENDING_FUNDING) {
     return transition(id, requester, 'cancelled', (data) => {
@@ -159,8 +177,8 @@ export async function cancelRequest(id, requester) {
 
 export async function getVoucher(id, viewer, { isAdmin = false } = {}) {
   const current = await getRequest(id);
-  const allowedViewer = viewer === current.requester || (isAdmin && current.status === S.DISPUTED);
-  if (!allowedViewer) throw forbidden('not_requester', 'Only the requester can view the voucher');
+  const allowedViewer = viewer === current.crypto_spender || (isAdmin && current.status === S.DISPUTED);
+  if (!allowedViewer) throw forbidden('not_requester', 'Only the crypto spender can view the voucher');
   assertStatus(current, S.CODE_SUBMITTED, S.DISPUTED, S.RELEASING, S.RELEASED);
 
   const snap = await voucherRef(id).get();
@@ -176,7 +194,7 @@ export async function getVoucher(id, viewer, { isAdmin = false } = {}) {
 
 export async function confirmRequest(id, requester) {
   const current = await getRequest(id);
-  if (current.requester !== requester) throw forbidden('not_requester', 'Only the requester can confirm');
+  if (current.crypto_spender !== requester) throw forbidden('not_requester', 'Only the crypto spender can confirm');
   return settle(id, requester, 'release', [S.CODE_SUBMITTED]);
 }
 
@@ -185,10 +203,10 @@ export async function confirmRequest(id, requester) {
 export async function acceptRequest(id, fulfiller) {
   return transition(id, fulfiller, 'accepted', (data) => {
     assertStatus(data, S.OPEN);
-    if (data.requester === fulfiller) throw forbidden('self_accept', 'You cannot accept your own request');
+    if (spenderOf(data) === fulfiller) throw forbidden('self_accept', 'You cannot accept your own request');
     return {
       status: S.ACCEPTED,
-      fulfiller,
+      crypto_buyer: fulfiller,
       acceptedAt: FieldValue.serverTimestamp(),
       fulfilDeadline: minutesFromNow(config.FULFIL_WINDOW_MINUTES),
     };
@@ -200,7 +218,7 @@ export async function submitCode(id, fulfiller, { code, pin, sealed }) {
   else if (config.VOUCHER_MODE === 'sealed') throw badRequest('sealed_required', 'Codes must be sealed in your browser before submitting');
   return transition(id, fulfiller, 'code_submitted', (data, tx) => {
     assertStatus(data, S.ACCEPTED);
-    if (data.fulfiller !== fulfiller) throw forbidden('not_fulfiller', 'Only the fulfiller can submit a code');
+    if (buyerOf(data) !== fulfiller) throw forbidden('not_fulfiller', 'Only the crypto buyer can submit a code');
     if (data.fulfilDeadline && data.fulfilDeadline.toMillis() < Date.now()) {
       throw conflict('fulfil_window_expired', 'The fulfil window has expired');
     }
@@ -222,13 +240,13 @@ export async function submitCode(id, fulfiller, { code, pin, sealed }) {
 export async function disputeRequest(id, actor, reason) {
   const updated = await transition(id, actor, 'disputed', (data) => {
     assertStatus(data, S.CODE_SUBMITTED);
-    if (actor !== data.requester && actor !== data.fulfiller) throw forbidden('not_party', 'Only a party to the trade can dispute');
-    if (actor === data.requester && data.reviewDeadline.toMillis() < Date.now()) {
+    if (actor !== spenderOf(data) && actor !== buyerOf(data)) throw forbidden('not_party', 'Only a party to the trade can dispute');
+    if (actor === spenderOf(data) && data.reviewDeadline.toMillis() < Date.now()) {
       throw conflict('review_window_expired', 'Review window has expired; funds are being auto-released');
     }
     return { status: S.DISPUTED, disputedBy: actor, disputeReason: reason, disputedAt: FieldValue.serverTimestamp() };
   });
-  await Promise.all([bumpReputation(updated.requester, 'disputes'), bumpReputation(updated.fulfiller, 'disputes')]);
+  await Promise.all([bumpReputation(updated.crypto_spender, 'disputes'), bumpReputation(updated.crypto_buyer, 'disputes')]);
   return updated;
 }
 
@@ -253,13 +271,13 @@ async function settle(id, actor, kind, allowedFrom) {
 
   const locked = await transition(id, actor, `${kind}_started`, (data) => {
     assertStatus(data, ...allowedFrom);
-    if (kind === 'release' && !data.fulfiller) throw conflict('no_fulfiller', 'No fulfiller to release to');
+    if (kind === 'release' && !buyerOf(data)) throw conflict('no_fulfiller', 'No crypto buyer to release to');
     return { status: lock, settleFrom: data.status, settleStartedAt: Timestamp.now(), lastError: null };
   });
 
   let txHash;
   try {
-    txHash = kind === 'release' ? await releaseEscrow(id, locked.fulfiller) : await refundEscrow(id);
+    txHash = kind === 'release' ? await releaseEscrow(id, locked.crypto_buyer) : await refundEscrow(id);
   } catch (err) {
     console.error(`[settle] ${kind} ${id} failed:`, err.message);
     await transition(id, 'system', `${kind}_failed`, (data) => {
@@ -282,7 +300,7 @@ async function finalizeSettle(id, actor, kind, lock, final, txHash) {
     };
   });
   if (kind === 'release') {
-    await Promise.all([bumpReputation(done.requester, 'completed'), bumpReputation(done.fulfiller, 'completed')]);
+    await Promise.all([bumpReputation(done.crypto_spender, 'completed'), bumpReputation(done.crypto_buyer, 'completed')]);
   }
   return done;
 }
@@ -299,11 +317,11 @@ export async function sweep() {
   const expiredAccepts = await col.requests.where('status', '==', S.ACCEPTED).where('fulfilDeadline', '<', now).limit(100).get();
   for (const d of expiredAccepts.docs) {
     try {
-      const before = d.data().fulfiller;
+      const before = buyerOf(d.data());
       await transition(d.id, 'system', 'fulfil_timeout', (data) => {
         assertStatus(data, S.ACCEPTED);
         if (data.fulfilDeadline.toMillis() >= Date.now()) throw conflict('not_expired');
-        return { status: S.OPEN, fulfiller: null, fulfilDeadline: null, acceptedAt: null };
+        return { status: S.OPEN, crypto_buyer: null, fulfiller: null, fulfilDeadline: null, acceptedAt: null };
       });
       await bumpReputation(before, 'strikes');
       result.reopened++;

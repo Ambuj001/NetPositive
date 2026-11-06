@@ -26,7 +26,7 @@ router.get('/', validate(listSchema, 'query'), async (req, res) => {
   res.json({ requests: await svc.listOpen(req.validQuery) });
 });
 
-/** GET /requests/mine → requests where I'm requester or fulfiller */
+/** GET /requests/mine → requests where I'm the crypto spender or crypto buyer */
 router.get('/mine', requireAuth, async (req, res) => {
   res.json(await svc.listMine(req.user.address));
 });
@@ -58,13 +58,13 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   res.json({ request: await svc.cancelRequest(req.params.id, req.user.address) });
 });
 
-/** GET /requests/:id/voucher → decrypted code + pin (requester only, after submission) */
+/** GET /requests/:id/voucher → decrypted code + pin (crypto spender only, after submission) */
 router.get('/:id/voucher', requireAuth, async (req, res) => {
   const isAdmin = config.ADMIN_ADDRESSES.includes(req.user.address);
   res.json({ voucher: await svc.getVoucher(req.params.id, req.user.address, { isAdmin }) });
 });
 
-/** POST /requests/:id/confirm → code works; release USDC to fulfiller */
+/** POST /requests/:id/confirm → code works; release USDC to the crypto buyer */
 router.post('/:id/confirm', requireAuth, async (req, res) => {
   res.json({ request: await svc.confirmRequest(req.params.id, req.user.address) });
 });

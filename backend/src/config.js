@@ -109,4 +109,4 @@ if (config.ESCROW_MODE === 'chain') {
 }
 
 // Supported voucher brands. Extend as gift-card coverage grows.
-export const BRANDS = ['amazon', 'flipkart', 'swiggy', 'zomato', 'myntra', 'bigbasket', 'makemytrip'];
+export const BRANDS = ['amazon', 'flipkart', 'swiggy', 'zomato', 'myntra', 'bigbasket', 'makemytrip', 'blinkit'];

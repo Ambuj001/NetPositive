@@ -42,7 +42,7 @@ type Tab = "requester" | "fulfiller";
 export default function Track() {
   const { token, signIn, signingIn, myOrders, address } = useApp();
   const [tab, setTab] = useState<Tab>("requester");
-  const [live, setLive] = useState<{ asRequester: ApiRequest[]; asFulfiller: ApiRequest[] } | null>(null);
+  const [live, setLive] = useState<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] } | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "offline" | "error">("idle");
   const [err, setErr] = useState("");
 
@@ -68,7 +68,7 @@ export default function Track() {
   }, [load, token]);
 
   const rows: Row[] = useMemo(() => {
-    if (live) return tab === "requester" ? live.asRequester.map((r) => fromApi(r, "requester")) : live.asFulfiller.map((r) => fromApi(r, "fulfiller"));
+    if (live) return tab === "requester" ? live.asCryptoSpender.map((r) => fromApi(r, "requester")) : live.asCryptoBuyer.map((r) => fromApi(r, "fulfiller"));
     return myOrders
       .filter((o) => o.role === tab)
       .map((o) => ({
@@ -87,8 +87,8 @@ export default function Track() {
   }, [live, myOrders, tab]);
 
   const counts = {
-    requester: live ? live.asRequester.length : myOrders.filter((o) => o.role === "requester").length,
-    fulfiller: live ? live.asFulfiller.length : myOrders.filter((o) => o.role === "fulfiller").length,
+    requester: live ? live.asCryptoSpender.length : myOrders.filter((o) => o.role === "requester").length,
+    fulfiller: live ? live.asCryptoBuyer.length : myOrders.filter((o) => o.role === "fulfiller").length,
   };
   const active = rows.filter((r) => !isFinal(r.status)).length;
 

@@ -3,8 +3,8 @@
 Express + Firestore backend for P2P gift-card ↔ USDC escrow on Arc, with World ID proof-of-human.
 
 **Roles**
-- **Requester**: has USDC, wants a voucher. Locks USDC in escrow and confirms the code.
-- **Fulfiller**: buys the gift card with INR, submits the code and is paid in USDC.
+- **crypto_spender** (was requester): has USDC, wants a voucher. Locks USDC in escrow and confirms the code.
+- **crypto_buyer** (was fulfiller): buys the gift card with INR, submits the code and is paid in USDC.
 
 ## Quick start (local, no chain, no World App)
 
@@ -44,15 +44,15 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 | POST | `/world-id/rp-signature` | auth | signs the Proof of Human request (`sig`, `nonce`, `created_at`, `expires_at`, `rp_id`) |
 | POST | `/world-id/verify` | auth | `{ rp_id, idkitResponse }` → World v4 verify, then binds the nullifier to the wallet |
 | GET | `/requests?brand=&limit=` | anyone | open requests |
-| GET | `/requests/mine` | auth | `{asRequester, asFulfiller}` |
+| GET | `/requests/mine` | auth | `{asCryptoSpender, asCryptoBuyer}` |
 | GET | `/requests/:id` | anyone | request state |
 | POST | `/requests` | auth 🧍 | `{brand, amountInr, amountUsdc}` → returns `escrowId`, `amountUsdcBaseUnits` |
-| POST | `/requests/:id/fund` | requester 🧍 | `{txHash}`; verifies the escrow on-chain |
-| POST | `/requests/:id/cancel` | requester | cancel (unfunded) or refund (funded, unaccepted) |
-| POST | `/requests/:id/accept` | fulfiller 🧍 | locks the request for `FULFIL_WINDOW_MINUTES` |
-| POST | `/requests/:id/submit-code` | fulfiller 🧍 | `{code, pin?}`, encrypted at rest |
-| GET | `/requests/:id/voucher` | requester | decrypted code (admin too, while disputed) |
-| POST | `/requests/:id/confirm` | requester | releases USDC to the fulfiller |
+| POST | `/requests/:id/fund` | crypto spender 🧍 | `{txHash}`; verifies the escrow on-chain |
+| POST | `/requests/:id/cancel` | crypto spender | cancel (unfunded) or refund (funded, unaccepted) |
+| POST | `/requests/:id/accept` | crypto buyer 🧍 | locks the request for `FULFIL_WINDOW_MINUTES` |
+| POST | `/requests/:id/submit-code` | crypto buyer 🧍 | `{code, pin?}`, encrypted at rest |
+| GET | `/requests/:id/voucher` | crypto spender | decrypted code (admin too, while disputed) |
+| POST | `/requests/:id/confirm` | crypto spender | releases USDC to the crypto buyer |
 | POST | `/requests/:id/dispute` | either party | `{reason}` |
 | POST | `/requests/:id/resolve` | admin | `{outcome: release\|refund, note?}` |
 | POST | `/internal/sweep` | cron (`x-cron-secret`) | handles timeouts |
