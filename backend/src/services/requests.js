@@ -3,7 +3,8 @@ import { config } from '../config.js';
 import { db, col, voucherRef, eventsRef, FieldValue, Timestamp, serialize } from './firestore.js';
 import { escrowIdFor, verifyDeposit, releaseEscrow, refundEscrow, readEscrowStatus } from './escrow.js';
 import { encrypt, decrypt } from '../lib/crypto.js';
-import { HttpError, notFound, forbidden, conflict } from '../lib/errors.js';
+import { HttpError, notFound, forbidden, conflict, badRequest } from '../lib/errors.js';
+import { assertSealedAcceptable } from './vault.js';
 
 /**
  * Lifecycle
@@ -164,7 +165,12 @@ export async function getVoucher(id, viewer, { isAdmin = false } = {}) {
 
   const snap = await voucherRef(id).get();
   if (!snap.exists) throw notFound('Voucher not found');
-  const { code, pin } = JSON.parse(decrypt(snap.data().box, id));
+  const stored = snap.data();
+  if (stored.sealed) {
+    // Sealed: the server cannot read it. The requester (or the dispute key holder) opens it in their own browser.
+    return { requestId: id, brand: current.brand, requester: current.requester, fulfiller: current.fulfiller, sealed: stored.sealed };
+  }
+  const { code, pin } = JSON.parse(decrypt(stored.box, id));
   return { requestId: id, brand: current.brand, code, pin: pin ?? null };
 }
 
@@ -189,7 +195,9 @@ export async function acceptRequest(id, fulfiller) {
   });
 }
 
-export async function submitCode(id, fulfiller, { code, pin }) {
+export async function submitCode(id, fulfiller, { code, pin, sealed }) {
+  if (sealed !== undefined) await assertSealedAcceptable(id, sealed);
+  else if (config.VOUCHER_MODE === 'sealed') throw badRequest('sealed_required', 'Codes must be sealed in your browser before submitting');
   return transition(id, fulfiller, 'code_submitted', (data, tx) => {
     assertStatus(data, S.ACCEPTED);
     if (data.fulfiller !== fulfiller) throw forbidden('not_fulfiller', 'Only the fulfiller can submit a code');
@@ -197,7 +205,7 @@ export async function submitCode(id, fulfiller, { code, pin }) {
       throw conflict('fulfil_window_expired', 'The fulfil window has expired');
     }
     tx.set(voucherRef(id), {
-      box: encrypt(JSON.stringify({ code, pin: pin ?? null }), id),
+      ...(sealed !== undefined ? { sealed } : { box: encrypt(JSON.stringify({ code, pin: pin ?? null }), id) }),
       submittedBy: fulfiller,
       submittedAt: FieldValue.serverTimestamp(),
     });
