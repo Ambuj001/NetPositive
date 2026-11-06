@@ -15,7 +15,9 @@
     "smoke": "firebase emulators:exec --only firestore --project demo-netpositive \"node scripts/smoke.js\"",
     "smoke:mem": "node --import ./test-support/register.mjs scripts/smoke.js",
     "vault:test": "node --test vault-sdk/test/sdk.test.mjs",
-    "vault:e2e": "node --import ./test-support/register.mjs scripts/vault-e2e.mjs both && node --import ./test-support/register.mjs scripts/vault-e2e.mjs sealed"
+    "vault:e2e": "node --import ./test-support/register.mjs scripts/vault-e2e.mjs both && node --import ./test-support/register.mjs scripts/vault-e2e.mjs sealed",
+    "sim": "node --import ./test-support/register.mjs scripts/integration-sim.js",
+    "chain:e2e": "node --import ./test-support/register.mjs scripts/chain-e2e.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^1.3.0",
