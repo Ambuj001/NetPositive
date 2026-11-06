@@ -32,18 +32,28 @@ The LLM never computes rewards and never sees cards outside the caller's portfol
 ## Run
 
 ```
-cp .env.example .env        # add OPENROUTER_API_KEY (git-ignored)
-python server.py            # http://127.0.0.1:8787
+cp .env.example .env        # add OPENROUTER_API_KEY and JWT_SECRET (git-ignored)
+python server.py            # http://127.0.0.1:8787 (needs JWT_SECRET, or CHATBOT_AUTH=off for local dev only)
 python cli.py saad buyer    # terminal chat
 python -m unittest discover -s tests          # offline tests (no network)
 PYTHONIOENCODING=utf-8 python tests/live_test2.py   # live LLM test
 ```
 
-Extension example:
+## Login (who is calling)
+
+User-specific endpoints (`/portfolio*`, `/recommend`, `/plan`, `/request/fulfil`, `/chat`) need the **backend's login token**:
+`Authorization: Bearer <token from POST /auth/verify>`. The chatbot checks it with the same `JWT_SECRET` as the backend
+(`auth.py`: HS256 only, `exp` required, `sub` must be a wallet address) and uses the wallet in the token as the user.
+A `user_id` in the request is optional; if present it must be that same wallet, otherwise `403`. No token or a bad one is `401`.
+Public (no token): `/health`, `/merchants/suggest`, `/request/draft`, `/request/verify_guide`.
+The server refuses to start without `JWT_SECRET` (set `CHATBOT_AUTH=off` only for local development).
+
+Example:
 
 ```js
-fetch("http://127.0.0.1:8787/recommend", {method: "POST", headers: {"Content-Type": "application/json"},
-  body: JSON.stringify({user_id: "saad", url: location.href, amount: 10000, prime: true})})
+fetch("http://127.0.0.1:8787/recommend", {method: "POST",
+  headers: {"Content-Type": "application/json", "Authorization": "Bearer " + backendToken},
+  body: JSON.stringify({url: location.href, amount: 10000, prime: true})})
 ```
 
 ## Status codes in results (from the matrix)
@@ -55,7 +65,7 @@ Rankings use the stated %, ties broken by confidence; `A`/`S` results are always
 
 ## Known gaps / before production
 
-- **No auth**: `user_id` is trusted. Add real auth before exposing the API.
+- **Login is a token check only**: the chatbot does not ask the backend whether the user is banned or unknown, and has no per-user rate limit (each wallet is capped at 50 chat turns per session). Rotate `JWT_SECRET` (the old one leaked in git history). Deployment (HTTPS, CORS origins) is still to do.
 - Merchant -> category map is best-effort (MCC is set by the acquirer). Only ~20 merchants are mapped; unknown sites need a category.
 - Portal links are landing pages only (no per-brand deep links known). HDFC uses the GyFTR instant-vouchers page as requested, though research says the accelerated 5X route is inside SmartBuy. SBI has no link. `CRED_URL` defaults to https://cred.club (confirm). `voucher_brand` availability is not verified; `VOUCHER_RAIL_URL` is a placeholder.
 - The 'split into vouchers' size (Rs 5,000) is an assumption from the Lifestyle example.

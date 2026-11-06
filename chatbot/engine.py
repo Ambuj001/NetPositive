@@ -79,7 +79,8 @@ def _save_state(state):
 
 
 def get_portfolio(user_id):
-    pf = _load_state().get(user_id, {})
+    with _LOCK:  # reading while another request replaces the file can fail (PermissionError on Windows) or see a stale copy
+        pf = _load_state().get(user_id, {})
     return {"cards": list(pf.get("cards", [])), "caps_used": dict(pf.get("caps_used", {})),
             "region": pf.get("region", "IN")}
 

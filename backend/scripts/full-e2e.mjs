@@ -218,6 +218,17 @@ try {
   console.log('\n== 1. Sign-in (wallet signatures real; World ID mocked) ==');
   await check('Shivam (requester) and Saad (fulfiller) sign in', async () => { tS = await signIn(shivam); tA = await signIn(saad); });
 
+  console.log('\n== 1b. Chatbot login (same token as the backend) ==');
+  await check("chatbot rejects calls with no token, and Shivam cannot use Saad's portfolio", async () => {
+    const sid = saad.address.toLowerCase();
+    assert.equal((await chat('POST', '/portfolio/add', { body: { user_id: sid, card: 'HDFC Infinia' } })).status, 401);
+    assert.equal((await chat('POST', '/portfolio/add', { token: tS, body: { user_id: sid, card: 'HDFC Infinia' } })).status, 403);
+    assert.equal((await chat('POST', '/portfolio/add', { token: tA, body: { card: 'HDFC Infinia' } })).body.ok, true); // user comes from the token
+    const r = (await chat('POST', '/request/fulfil', { token: tA, body: { brand: 'Amazon', amount: 9 } })).body;
+    assert.equal(r.options[0].card, 'HDFC Infinia');
+    assert.deepEqual((await chat('GET', '/portfolio', { token: tS })).body.cards, []);
+  });
+
   console.log('\n== 2. Chatbot: what does Shivam want? ==');
   await check('"nike shoes from amazon" -> Amazon locked; draft request', async () => {
     const s = await chat('POST', '/merchants/suggest', { body: { query: 'nike shoes from amazon' } });

@@ -9,6 +9,7 @@
 // (see test-support/register.mjs). ESCROW_MODE=mock: NO real funds move and no chain is contacted.
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
 import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
@@ -333,17 +334,40 @@ try {
   head('6. Bonus: buyer side (chatbot ranking -> accept -> submit code -> confirm)');
   const bobId = bob.address.toLowerCase();
   await check('buyer adds a card using their wallet address as chatbot user_id', async () => {
-    const r = await chat('POST', '/portfolio/add', { body: { user_id: bobId, card: 'HDFC Infinia' } });
+    const r = await chat('POST', '/portfolio/add', { token: tb, body: { user_id: bobId, card: 'HDFC Infinia' } });
     assert.equal(r.body.ok, true);
   });
   await check('chatbot ranking for the accepted request: best first, brand/amount match the request', async () => {
     const q = (await api('GET', `/requests/${requestId}`)).body.request;
-    const r = (await chat('POST', '/request/fulfil', { body: { user_id: bobId, brand: q.brand, amount: q.amountInr } })).body;
+    const r = (await chat('POST', '/request/fulfil', { token: tb, body: { user_id: bobId, brand: q.brand, amount: q.amountInr } })).body;
     assert.equal(r.options[0].best, true);
     assert.equal(r.options[0].card, 'HDFC Infinia');
     assert.equal(r.must_match.total_amount_inr, q.amountInr);
     assert.ok(r.options[0].link.startsWith('https://'));
   });
+  head('6b. Chatbot login: only the signed-in wallet can use its own portfolio/recommendations');
+  await check('no token -> 401 on every user endpoint (the old "just send a user_id" hole is closed)', async () => {
+    for (const [m, p, b] of [['GET', `/portfolio?user_id=${bobId}`], ['POST', '/portfolio/add', { user_id: bobId, card: 'Axis Atlas' }], ['POST', '/recommend', { user_id: bobId, url: 'amazon.in' }], ['POST', '/request/fulfil', { user_id: bobId, brand: 'Amazon', amount: 1000 }], ['POST', '/chat', { user_id: bobId, role: 'buyer', message: 'hi' }]]) {
+      assert.equal((await chat(m, p, b && { body: b })).status, 401, `${m} ${p}`);
+    }
+  });
+  await check("another signed-in user cannot read or change the buyer's cards (403) and nothing leaks", async () => {
+    const read = await chat('GET', `/portfolio?user_id=${bobId}`, { token: ta });
+    assert.equal(read.status, 403); assert.ok(!read.text.includes('Infinia'));
+    assert.equal((await chat('POST', '/portfolio/add', { token: ta, body: { user_id: bobId, card: 'Axis Atlas' } })).status, 403);
+    assert.deepEqual((await chat('GET', '/portfolio', { token: tb })).body.cards, ['HDFC Infinia']); // Bob's portfolio untouched; user comes from the token
+  });
+  await check('a token signed with a different secret, and an expired token, are rejected', async () => {
+    const forged = jwt.sign({ sub: bobId }, 'x'.repeat(64), { algorithm: 'HS256', expiresIn: '1h' });
+    const expired = jwt.sign({ sub: bobId }, JWT_SECRET, { algorithm: 'HS256', expiresIn: -60 });
+    const none = `${Buffer.from('{"alg":"none"}').toString('base64url')}.${Buffer.from(JSON.stringify({ sub: bobId, exp: 9999999999 })).toString('base64url')}.`;
+    for (const t of [forged, expired, none]) assert.equal((await chat('GET', '/portfolio', { token: t })).status, 401);
+  });
+  await check('the backend login token itself is what the chatbot accepts (same token, both services)', async () => {
+    assert.equal((await chat('GET', '/portfolio', { token: tb })).status, 200);
+    assert.equal((await api('GET', '/requests', { token: tb })).status, 200);
+  });
+
   await check('seller cannot accept their own request (403)', async () => {
     assert.equal((await api('POST', `/requests/${requestId}/accept`, { token: ta })).status, 403);
   });
