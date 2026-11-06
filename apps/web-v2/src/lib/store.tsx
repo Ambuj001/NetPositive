@@ -4,6 +4,7 @@ import { ORDERS, type Order } from "./data";
 import type { Card as CardT } from "./engine";
 import { useSavedCards } from "./useSavedCards";
 import { clearSession, readSession, writeSession } from "./session";
+import { clearVaultSession } from "./vault";
 import { chainName, preloadConnectors, shortAddr, useWallet, type ChainBalance, type WalletChoice } from "./wallet";
 
 type Toast = { id: number; title: string; body?: string; tone?: "mint" | "amber" | "iris" | "rose" };
@@ -95,7 +96,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // One session for World ID and the tracker. Drop it when the wallet changes.
+  // The vault private key is memory-only and belongs to the previous wallet, so it goes too.
   useEffect(() => {
+    clearVaultSession();
     const addr = wallet.address;
     setApiUser(null);
     if (!addr) {
@@ -192,6 +195,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       connect: wallet.connect,
       disconnect: () => {
         if (wallet.address) clearSession(wallet.address);
+        clearVaultSession();
         setToken(null);
         setHuman(false);
         setApiUser(null);

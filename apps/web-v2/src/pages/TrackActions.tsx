@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, cx } from "../components/ui";
 import { ApiError, api, type ApiRequest } from "../lib/api";
 import { inr, usdt } from "../lib/engine";
+import { useApp } from "../lib/store";
+import { readSealedVoucher, unlockVault } from "../lib/vault";
 
 /**
  * The spender's three actions on the tracker, shown inside the lifecycle step they belong to:
@@ -114,14 +116,28 @@ export function SettleActions({ req, token, signIn, signingIn, onUpdated }: Comm
 }
 
 function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
-  const [state, setState] = useState<{ kind: "hidden" } | { kind: "loading" } | { kind: "code"; code: string; pin: string | null } | { kind: "sealed" } | { kind: "error"; message: string }>({ kind: "hidden" });
+  const { fullAddress, signMessage } = useApp();
+  const [state, setState] = useState<{ kind: "hidden" } | { kind: "loading"; text: string } | { kind: "code"; code: string; pin: string | null } | { kind: "error"; message: string }>({ kind: "hidden" });
 
   async function show() {
-    setState({ kind: "loading" });
+    setState({ kind: "loading", text: "Fetching the sealed voucher…" });
     try {
       const { voucher } = await api.voucher(req.id, token);
-      if (typeof voucher.code === "string") setState({ kind: "code", code: voucher.code, pin: voucher.pin ?? null });
-      else setState({ kind: "sealed" });
+      if (typeof voucher.code === "string") {
+        setState({ kind: "code", code: voucher.code, pin: voucher.pin ?? null });
+        return;
+      }
+      if (!voucher.sealed || !voucher.requester || !voucher.fulfiller) {
+        throw new Error("The voucher is missing its sealed envelope.");
+      }
+      if (!fullAddress) throw new Error("Connect the spender wallet to unlock this code.");
+      setState({ kind: "loading", text: "Sign in your wallet to unlock the code. The key never leaves this browser." });
+      const keys = await unlockVault(fullAddress, token, signMessage);
+      const opened = await readSealedVoucher(
+        { requestId: voucher.requestId, requester: voucher.requester, fulfiller: voucher.fulfiller, sealed: voucher.sealed },
+        keys,
+      );
+      setState({ kind: "code", code: opened.code, pin: opened.pin });
     } catch (e) {
       setState({ kind: "error", message: messageOf(e, "Couldn't load the voucher") });
     }
@@ -130,24 +146,24 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
   return (
     <div className="text-[12.5px]">
       <div className="flex flex-wrap items-center gap-2 text-mute">
-        Check the voucher before you settle.
+        Check the voucher before you settle. A sealed code opens only with your vault key.
         {state.kind === "code" ? (
           <button onClick={() => setState({ kind: "hidden" })} className="inline-flex items-center gap-1 text-fg/80 hover:text-fg">
             <EyeOff className="size-3.5" /> Hide
           </button>
         ) : (
           <button onClick={show} disabled={state.kind === "loading"} className="inline-flex items-center gap-1 text-mint hover:brightness-110 disabled:opacity-50">
-            {state.kind === "loading" ? <LoaderCircle className="size-3.5 animate-spin" /> : <Eye className="size-3.5" />} Show the code
+            {state.kind === "loading" ? <LoaderCircle className="size-3.5 animate-spin" /> : <Eye className="size-3.5" />} {state.kind === "loading" ? "Unlocking…" : "Show the code"}
           </button>
         )}
       </div>
+      {state.kind === "loading" && <p className="mt-1.5 text-[12px] text-amber">{state.text}</p>}
       {state.kind === "code" && (
         <dl className="mt-2 space-y-1 rounded-xl bg-ink px-3 py-2 font-mono text-[12.5px] ring-1 ring-white/10">
-          <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">Code</dt><dd className="min-w-0 break-all select-all text-fg">{state.code}</dd></div>
+          <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">Code</dt><dd className="min-w-0 break-all whitespace-pre-wrap select-all text-fg">{state.code}</dd></div>
           {state.pin && <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">PIN</dt><dd className="select-all text-fg">{state.pin}</dd></div>}
         </dl>
       )}
-      {state.kind === "sealed" && <p className="mt-1.5 text-[12px] text-amber">This voucher is sealed to your vault key, so it can't be shown on this page. Open it in your vault, then come back to settle.</p>}
       {state.kind === "error" && <p role="alert" className="mt-1.5 text-[12px] text-rose">{state.message}</p>}
     </div>
   );
