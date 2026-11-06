@@ -51,6 +51,8 @@ export type Order = {
   expiresMin: number;
   /** Who started the order. Missing means a crypto spender (every order in the demo book). */
   initiator?: "spender" | "buyer";
+  /** Full wallet address of the crypto spender who locked the USDC. Missing for demo orders. */
+  spender?: string;
 };
 
 export const ORDERS: Order[] = [

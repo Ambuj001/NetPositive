@@ -6,6 +6,7 @@ import { AssistantBar } from "../components/AssistantBar";
 import { BrandMark, Button, cx } from "../components/ui";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
+import { sameAddr } from "../lib/lifecycle";
 import { useOrderBook, type Source } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 import type { Order } from "../lib/data";
@@ -32,7 +33,7 @@ export function matchOrders(orders: Order[], spend: number, maxRate?: number) {
 /** The buy side: order book, assistant bar and the buy panel. Shown in the Buy tab of the Trade page. */
 export function BuyView() {
   const { orders, source, reload } = useOrderBook();
-  const { acceptOrder } = useApp();
+  const { acceptOrder, fullAddress } = useApp();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"market" | "limit">("market");
@@ -51,7 +52,10 @@ export function BuyView() {
   const matchedInr = matched.reduce((s, o) => s + o.amount, 0);
   const receive = matched.reduce((s, o) => s + quote(o.amount, o.rate).buyerReceives, 0);
 
+  const isMine = (o: Order) => sameAddr(o.spender, fullAddress);
   const go = (o: Order) => {
+    // Your own order: open its details on Track. Someone else's: accept it and open the buy room.
+    if (isMine(o)) return nav(`/track?id=${encodeURIComponent(o.id)}`);
     acceptOrder(o);
     nav(`/trade/${o.id}`);
   };
@@ -122,7 +126,11 @@ export function BuyView() {
                             <span className="flex items-center gap-3">
                               <BrandMark id={o.brandId} size={30} />
                               <span className="font-medium">{b.name}</span>
-                              {isMatch && <span className="rounded-full bg-mint/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mint uppercase">match</span>}
+                              {isMine(o) ? (
+                                <span className="rounded-full bg-white/[0.07] px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mute uppercase">yours</span>
+                              ) : (
+                                isMatch && <span className="rounded-full bg-mint/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mint uppercase">match</span>
+                              )}
                             </span>
                           </td>
                           <td className="py-3.5 text-right text-mute tabular">{inr(o.amount)}</td>

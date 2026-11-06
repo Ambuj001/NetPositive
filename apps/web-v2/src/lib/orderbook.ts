@@ -18,6 +18,7 @@ export function toOrder(r: ApiRequest): Order {
     amount: r.amountInr,
     rate: usdc ? Math.round((r.amountInr / usdc) * 100) / 100 : 0,
     seller: shortAddr(r.crypto_spender),
+    spender: r.crypto_spender || undefined,
     initiator: initiatorOf(r),
     sellerTrades: 0,
     city: "",
