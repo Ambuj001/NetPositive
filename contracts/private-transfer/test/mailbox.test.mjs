@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { privateKeyToAccount } from 'viem/accounts';
 import { hashTypedData, keccak256, stringToHex, hexToString, toHex } from 'viem';
 import { Chain, CHAIN_ID } from './chain.mjs';
-import * as V from '../../backend/vault-sdk/index.js';
+import * as V from '../../../backend/vault-sdk/index.js';
 
 const acct = (n) => privateKeyToAccount(`0x${n.toString(16).padStart(64, '0')}`);
 const requester = acct(1); // Shivam: has USDC in escrow, receives the code

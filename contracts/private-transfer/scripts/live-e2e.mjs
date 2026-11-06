@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createPublicClient, createWalletClient, custom, defineChain, formatUnits, getAddress, hexToString, http, keccak256, parseAbi, parseAbiItem, stringToHex, toHex } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
-import * as V from '../../backend/vault-sdk/index.js';
+import * as V from '../../../backend/vault-sdk/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dep = JSON.parse(fs.readFileSync(path.join(root, 'deployments', 'arc-testnet.json'), 'utf8'));

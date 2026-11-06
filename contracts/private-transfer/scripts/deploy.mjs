@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPublicClient, createWalletClient, defineChain, formatUnits, getAddress, hashTypedData, http, parseAbi, sha256 } from 'viem';
+import { createPublicClient, createWalletClient, custom, defineChain, formatUnits, getAddress, hashTypedData, http, parseAbi, sha256 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -24,7 +24,27 @@ const DEPLOY = Boolean(process.env.CONFIRM_DEPLOY);
 const art = (n) => JSON.parse(fs.readFileSync(path.join(root, 'build', `${n}.json`), 'utf8'));
 
 const chain = defineChain({ id: CHAIN_ID, name: 'Arc Testnet', nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
-const pub = createPublicClient({ chain, transport: http(RPC, { timeout: 30000 }) });
+// The public Arc RPC rejects bursts ("Request exceeds defined limit"): space requests out and retry those rejections, so a
+// throttle in the middle of a deploy cannot leave it half-done.
+const rawHttp = http(RPC, { timeout: 30000, retryCount: 0 })({ chain, retryCount: 0 });
+let lastCall = 0;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const transport = custom({
+  async request(args) {
+    for (let attempt = 0; ; attempt++) {
+      const wait = lastCall + 350 - Date.now();
+      if (wait > 0) await sleep(wait);
+      lastCall = Date.now();
+      try { return await rawHttp.request(args); }
+      catch (e) {
+        const msg = String(e.shortMessage || e.message);
+        if (attempt < 10 && /exceeds defined limit|rate|429|timeout|timed out|fetch failed|too many/i.test(msg)) { await sleep(800 * (attempt + 1)); continue; }
+        throw e;
+      }
+    }
+  },
+});
+const pub = createPublicClient({ chain, transport });
 const fail = (m) => { console.error(`STOP: ${m}`); process.exit(2); };
 const ok = (m) => console.log(`  ok   ${m}`);
 
@@ -49,7 +69,7 @@ if (!DEPLOY) { console.log('\nCheck only: nothing sent. Re-run with DEPLOYER_PK 
 if (!account) fail('DEPLOYER_PK is required to deploy');
 if (process.env.CONFIRM_DEPLOY.toLowerCase() !== ESCROW.toLowerCase()) fail('CONFIRM_DEPLOY must equal the escrow address');
 
-const wallet = createWalletClient({ account, chain, transport: http(RPC) });
+const wallet = createWalletClient({ account, chain, transport });
 async function deploy(name, args) {
   const { abi, bytecode } = art(name);
   const hash = await wallet.deployContract({ abi, bytecode, args });

@@ -3,5 +3,3 @@ out/
 broadcast/
 
 .env
-node_modules/
-build/

@@ -1,5 +1,7 @@
 # Private code transfer module (`KeyRegistry` + `CodeMailbox`)
 
+Self-contained in `contracts/private-transfer/`. It does not modify the existing `contracts/src`, `contracts/test` or `foundry.toml`; it only *reads* the deployed escrow (and compiles `../src/VoucherEscrow.sol` as a reference for its tests).
+
 How the fulfiller (Saad) hands a voucher code and PIN to the requester (Shivam) privately, with a timestamp nobody can fake.
 
 > Status: tested on an in-process EVM and **deployed to Arc testnet** (chain 5042002, 6 Nov 2026). Not audited. Not yet wired into the backend or frontend.
@@ -10,7 +12,7 @@ How the fulfiller (Saad) hands a voucher code and PIN to the requester (Shivam) 
 > | `CodeMailbox` | `0xA8243e92A89de7F62D3023EB68EEB4f4e40e88B1` |
 > | Escrow it reads (existing `VoucherEscrow`) | `0x96456Edda0DEAd356EB8c97c2865FEBb693E0888` |
 >
-> Deployed from the escrow operator wallet by `scripts/deploy.mjs`; full details in `deployments/arc-testnet.json`. Verified on-chain: the registry's bytecode equals the compiled bytecode, the mailbox points at the right escrow and registry, and its EIP-712 digest equals what wallets sign. **Live test on Arc passed 12/12** (`scripts/live-e2e.mjs`, 6 Nov 2026): key registered, 0.10 USDC deposited in the real escrow, gasless Ready permit signed, sealed code delivered on-chain, event read back through the RPC and decrypted, a second delivery and a foreign wallet both refused, escrow refunded. Example delivery tx `0xb82cff3c1fd8f826785b8cb9812ba799bea0488d6c21064a45fc94a8c67ce77f` (about 150k gas). Net cost of the test was about 0.014 testnet USDC.
+> Deployed from the escrow operator wallet by `scripts/deploy.mjs`; full details in `deployments/arc-testnet.json` (in this folder). Verified on-chain: the registry's bytecode equals the compiled bytecode, the mailbox points at the right escrow and registry, and its EIP-712 digest equals what wallets sign. **Live test on Arc passed 12/12** (`scripts/live-e2e.mjs`, 6 Nov 2026): key registered, 0.10 USDC deposited in the real escrow, gasless Ready permit signed, sealed code delivered on-chain, event read back through the RPC and decrypted, a second delivery and a foreign wallet both refused, escrow refunded. Example delivery tx `0xb82cff3c1fd8f826785b8cb9812ba799bea0488d6c21064a45fc94a8c67ce77f` (about 150k gas). Net cost of the test was about 0.014 testnet USDC.
 
 ## What goes where
 
@@ -43,7 +45,7 @@ The mailbox never sees a code. The server never needs to.
 ## Run the tests
 
 ```
-cd contracts
+cd contracts/private-transfer
 npm install
 npm test        # compiles with solc-js (no Foundry needed), then runs 18 tests on an in-process EVM
 ```
