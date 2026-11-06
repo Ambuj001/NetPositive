@@ -34,7 +34,7 @@ export const S = {
 
 const minutesFromNow = (m) => Timestamp.fromMillis(Date.now() + m * 60_000);
 
-function assertStatus(data, ...allowed) {
+export function assertStatus(data, ...allowed) {
   if (!allowed.includes(data.status)) {
     throw conflict('invalid_status', `Request is "${data.status}"; expected ${allowed.map((s) => `"${s}"`).join(' or ')}`);
   }
@@ -45,7 +45,7 @@ function assertStatus(data, ...allowed) {
  * `fn(data, tx)` validates and returns the field updates. It must not do network I/O
  * other than Firestore (transactions may be retried).
  */
-async function transition(id, actor, event, fn) {
+export async function transition(id, actor, event, fn) {
   const ref = col.requests.doc(id);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -64,7 +64,7 @@ async function transition(id, actor, event, fn) {
   return getRequest(id);
 }
 
-function bumpReputation(address, field, by = 1) {
+export function bumpReputation(address, field, by = 1) {
   if (!address) return Promise.resolve();
   return col.users
     .doc(address)
@@ -217,28 +217,7 @@ export async function submitCode(id, fulfiller, { code, pin, sealed }) {
   });
 }
 
-// ---------- Disputes ----------
-
-export async function disputeRequest(id, actor, reason) {
-  const updated = await transition(id, actor, 'disputed', (data) => {
-    assertStatus(data, S.CODE_SUBMITTED);
-    if (actor !== data.requester && actor !== data.fulfiller) throw forbidden('not_party', 'Only a party to the trade can dispute');
-    if (actor === data.requester && data.reviewDeadline.toMillis() < Date.now()) {
-      throw conflict('review_window_expired', 'Review window has expired; funds are being auto-released');
-    }
-    return { status: S.DISPUTED, disputedBy: actor, disputeReason: reason, disputedAt: FieldValue.serverTimestamp() };
-  });
-  await Promise.all([bumpReputation(updated.requester, 'disputes'), bumpReputation(updated.fulfiller, 'disputes')]);
-  return updated;
-}
-
-export async function resolveDispute(id, admin, outcome, note) {
-  await transition(id, admin, 'dispute_resolved', (data) => {
-    assertStatus(data, S.DISPUTED);
-    return { resolution: { outcome, note: note ?? null, by: admin, at: Timestamp.now() } };
-  });
-  return settle(id, admin, outcome, [S.DISPUTED]);
-}
+// ---------- Disputes live in services/disputes.js ----------
 
 // ---------- Settlement (on-chain) ----------
 
@@ -247,7 +226,7 @@ export async function resolveDispute(id, admin, outcome, note) {
  * sweeper can't double-pay), make the chain call, then commit the final state. On failure
  * the lock is rolled back to the previous status.
  */
-async function settle(id, actor, kind, allowedFrom) {
+export async function settle(id, actor, kind, allowedFrom) {
   const lock = kind === 'release' ? S.RELEASING : S.REFUNDING;
   const final = kind === 'release' ? S.RELEASED : S.REFUNDED;
 

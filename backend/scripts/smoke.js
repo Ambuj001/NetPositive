@@ -183,7 +183,8 @@ try {
   await call('POST', `/requests/${disputed}/fund`, { token: ta, body: { txHash: fakeTx() } });
   await call('POST', `/requests/${disputed}/accept`, { token: tb });
   await call('POST', `/requests/${disputed}/submit-code`, { token: tb, body: { code: 'FLIP-ALREADY-USED' } });
-  r = await call('POST', `/requests/${disputed}/dispute`, { token: ta, body: { reason: 'Code says already redeemed' } });
+  await call('POST', `/requests/${disputed}/dispute/bond`, { token: ta });
+  r = await call('POST', `/requests/${disputed}/dispute`, { token: ta, body: { category: 'already_redeemed', reason: 'Code says already redeemed', bondTxHash: fakeTx() } });
   assert.equal(r.body.request.status, 'disputed');
   assert.equal((await call('POST', `/requests/${disputed}/resolve`, { token: ta, body: { outcome: 'refund' } })).status, 403);
   assert.equal((await call('GET', `/requests/${disputed}/voucher`, { token: tadmin })).status, 200); // admin can inspect
@@ -204,7 +205,7 @@ try {
   await call('POST', `/requests/${silent}/submit-code`, { token: tb, body: { code: 'MYNTRA-OK-0001' } });
 
   await Promise.all([expire(ghosted, 'fulfilDeadline'), expire(silent, 'reviewDeadline')]);
-  assert.equal((await call('POST', `/requests/${silent}/dispute`, { token: ta, body: { reason: 'too late to dispute' } })).status, 409);
+  assert.equal((await call('POST', `/requests/${silent}/dispute`, { token: ta, body: { category: 'other', reason: 'too late to dispute', bondTxHash: fakeTx() } })).status, 409);
   assert.equal((await call('POST', `/requests/${ghosted}/submit-code`, { token: tb, body: { code: 'LATE-CODE' } })).status, 409);
   assert.equal((await call('POST', '/internal/sweep', { headers: { 'x-cron-secret': 'wrong-secret-0000' } })).status, 401);
   r = await call('POST', '/internal/sweep', { headers: { 'x-cron-secret': 'cron-test-secret' } });
@@ -213,7 +214,7 @@ try {
   assert.equal(r.body.request.status, 'open');
   assert.equal(r.body.request.fulfiller, null);
   assert.equal((await call('GET', `/requests/${silent}`)).body.request.status, 'released');
-  assert.equal((await call('GET', '/auth/me', { token: tb })).body.user.reputation.strikes, 1);
+  assert.equal((await call('GET', '/auth/me', { token: tb })).body.user.reputation.strikes, 2); // 1 from the ghosted accept + 1 from losing the dispute above
   step('sweeper: expired accept reopened + strike, expired review auto-released');
 
   r = await call('GET', '/requests/mine', { token: tb });

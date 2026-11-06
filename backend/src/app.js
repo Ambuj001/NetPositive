@@ -6,6 +6,7 @@ import { worldIdReady } from './services/worldid.js';
 import authRoutes from './routes/auth.js';
 import worldIdRoutes from './routes/worldid.js';
 import requestRoutes from './routes/requests.js';
+import disputeRoutes from './routes/disputes.js';
 import vaultRoutes from './routes/vault.js';
 import internalRoutes from './routes/internal.js';
 
@@ -19,6 +20,7 @@ export function createApp() {
 
   app.use('/auth', authRoutes);
   app.use('/world-id', worldIdRoutes);
+  app.use('/requests', disputeRoutes); // before requestRoutes: owns /:id/dispute*, /:id/evidence*, /:id/resolve
   app.use('/requests', requestRoutes);
   app.use('/vault', vaultRoutes);
   app.use('/internal', internalRoutes);
