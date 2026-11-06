@@ -49,6 +49,8 @@ export type Order = {
   city: string;
   postedMin: number;
   expiresMin: number;
+  /** Who started the order. Missing means a crypto spender (every order in the demo book). */
+  initiator?: "spender" | "buyer";
 };
 
 export const ORDERS: Order[] = [
