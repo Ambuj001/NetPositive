@@ -1,13 +1,17 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, ChevronRight, Copy, FingerprintPattern, LoaderCircle, Menu, ShieldCheck, Wallet, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "../lib/store";
 import { usdt } from "../lib/engine";
 import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
-const APP_LINKS = [{ to: "/home", label: "Home" }];
+const APP_LINKS = [
+  { to: "/trade", label: "Trade" },
+  { to: "/market", label: "Market" },
+  { to: "/cards", label: "My cards" },
+];
 
 export function Shell() {
   const { pathname } = useLocation();
@@ -29,11 +33,11 @@ export function Shell() {
 }
 
 function Nav() {
-  const { address, balance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
+  const { address, restoring, balance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
-  const links = address ? APP_LINKS : [];
+  const links = APP_LINKS;
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -92,6 +96,10 @@ function Nav() {
               </span>
               {humanVerified && <ShieldCheck className="size-4 text-mint" aria-label="Verified human" />}
             </button>
+          ) : restoring ? (
+            <span className="flex h-9 items-center gap-2 rounded-full bg-white/[0.04] px-3.5 text-[12.5px] text-mute ring-1 ring-white/10" aria-live="polite">
+              <LoaderCircle className="size-3.5 animate-spin" /> Reconnecting
+            </span>
           ) : (
             <Button size="sm" onClick={openWallet} icon={<Wallet className="size-3.5" />}>
               Connect
@@ -138,7 +146,7 @@ function Footer() {
           </div>
         </div>
         {[
-          { h: "Product", l: ["Market", "Pay with crypto", "Extension", "My cards"] },
+          { h: "Product", l: ["Trade", "Market", "Pay with crypto", "My cards"] },
           { h: "Trust", l: ["Escrow contract", "World ID", "Verification layer", "Dispute reserve"] },
           { h: "Build", l: ["Docs", "Contracts", "GitHub", "Brand kit"] },
         ].map((c) => (
@@ -168,19 +176,15 @@ function Footer() {
 }
 
 function WalletModal() {
-  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast, balance } =
+  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast } =
     useApp();
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-
   const doConnect = async (w: (typeof choices)[number]) => {
     const ok = await connect(w);
     if (ok) {
       toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
       closeWallet();
-      if (pathname === "/") navigate("/home");
     }
   };
   const doVerify = () => {
@@ -314,17 +318,6 @@ function WalletModal() {
                     <div className="mt-3 flex items-center gap-1.5 text-[12px] text-mute">
                       <span className="size-1.5 rounded-full bg-mint" /> {chain || "Unknown network"}
                     </div>
-                  </div>
-
-                  <div className="rounded-2xl bg-white/[0.03] p-4 ring-1 ring-white/[0.06]">
-                    <div className="flex items-center justify-between">
-                      <span className="label">Escrow balance</span>
-                      <span className="rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber uppercase ring-1 ring-amber/25">demo</span>
-                    </div>
-                    <div className="mt-1 font-display text-3xl font-semibold tabular">
-                      {usdt(balance)} <span className="text-base text-mute">USDC</span>
-                    </div>
-                    <div className="mt-1 text-[11.5px] text-dim">Simulated for the prototype. No funds move.</div>
                   </div>
 
                   <div className={cx("rounded-2xl p-4 ring-1", humanVerified ? "bg-mint/[0.06] ring-mint/25" : "bg-iris/[0.06] ring-iris/25")}>
