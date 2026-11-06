@@ -8,6 +8,7 @@ import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
 import { useLockOrder, type LockPhase } from "../lib/lockOrder";
 import { toOrder } from "../lib/orderbook";
+import { suggestionsFor } from "../lib/suggestions";
 import { useApp } from "../lib/store";
 
 /** Rupees per USDC when a spender posts a new request. */
@@ -275,11 +276,11 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
 async function loadBrand(place: Place, amount: number, book: Order[]) {
   try {
     const { requests } = await api.listOpen(50, place.api);
-    const orders = requests.map(toOrder);
+    const orders = suggestionsFor(requests.map(toOrder));
     const matches = orders.filter((o) => o.amount === amount);
     return { orders, match: matches[0] ?? null, count: matches.length };
   } catch {
-    const orders = book.filter((o) => o.brandId === place.id);
+    const orders = suggestionsFor(book).filter((o) => o.brandId === place.id);
     const matches = orders.filter((o) => o.amount === amount);
     return { orders, match: matches[0] ?? null, count: matches.length };
   }

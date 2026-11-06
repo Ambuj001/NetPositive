@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, brandIdFromApi, type ApiRequest } from "./api";
 import type { Order } from "./data";
 import { FEE_RATE, round2 } from "./engine";
+import { initiatorOf } from "./suggestions";
 import { shortAddr } from "./wallet";
 import { useApp } from "./store";
 
@@ -17,6 +18,7 @@ export function toOrder(r: ApiRequest): Order {
     amount: r.amountInr,
     rate: usdc ? Math.round((r.amountInr / usdc) * 100) / 100 : 0,
     seller: shortAddr(r.crypto_spender),
+    initiator: initiatorOf(r),
     sellerTrades: 0,
     city: "",
     postedMin: Math.max(0, Math.round((Date.now() - created) / 60000)),
