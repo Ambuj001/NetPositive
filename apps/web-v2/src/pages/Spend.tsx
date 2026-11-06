@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Bot, Check, LoaderCircle, Lock, RotateCcw, SendHorizontal, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { BuyerList } from "../components/BuyRequest";
 import { BrandMark, Button, cx } from "../components/ui";
-import { api } from "../lib/api";
+import { api, type BuyIntent } from "../lib/api";
+import { fromOthers } from "../lib/buyIntents";
 import type { Order } from "../lib/data";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
@@ -37,7 +39,8 @@ type Step = "place" | "amount" | "matched" | "posted";
 type Block =
   | { kind: "text"; text: string }
   | { kind: "orders"; orders: Order[]; selectedId: string | null; place: string }
-  | { kind: "posted"; orderId: string };
+  | { kind: "posted"; orderId: string }
+  | { kind: "buyers"; intents: BuyIntent[]; amount: number; place: string };
 type Msg = { id: number; from: "bot" | "user"; blocks: Block[] };
 
 let nextId = 1;
@@ -48,7 +51,7 @@ const user = (text: string): Msg => ({ id: nextId++, from: "user", blocks: [say(
 const greeting = () => [bot(say("Where do you want to spend crypto today?"))];
 
 export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onRestart: () => void; onClose: () => void }) {
-  const { toast } = useApp();
+  const { toast, fullAddress } = useApp();
   const lock = useLockOrder();
   const [msgs, setMsgs] = useState<Msg[]>(greeting);
   const [step, setStep] = useState<Step>("place");
@@ -82,7 +85,9 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
     const label = amountLabel(n);
     push(user(label));
     try {
-      const { orders, match, count } = await loadBrand(place, n, book);
+      const [{ orders, match, count }, buyers] = await Promise.all([loadBrand(place, n, book), loadBuyers(place, n, fullAddress)]);
+      // Buyers who asked for exactly this amount (this store, or no store in particular).
+      const buyerMsg = () => (buyers.length ? [bot(say(`${buyers.length === 1 ? "A buyer is" : `${buyers.length} buyers are`} waiting for a ${label} ${place.label} voucher.`), { kind: "buyers" as const, intents: buyers, amount: n, place: place.label })] : []);
       if (match) {
         const extra = count > 1 ? ` I picked the newest of ${count}.` : "";
         push(
@@ -91,6 +96,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
             { kind: "orders", orders, selectedId: match.id, place: place.label },
           ),
         );
+        push(...buyerMsg());
         setStep("matched");
         return;
       }
@@ -100,6 +106,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           { kind: "orders", orders, selectedId: null, place: place.label },
         ),
       );
+      push(...buyerMsg());
       lock.reset();
       setReview(true);
     } finally {
@@ -193,6 +200,8 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
                     >
                       {b.text}
                     </div>
+                  ) : b.kind === "buyers" ? (
+                    <BuyerList key={i} intents={b.intents} amount={b.amount} place={b.place} />
                   ) : b.kind === "posted" ? (
                     <Posted key={i} orderId={b.orderId} />
                   ) : (
@@ -283,6 +292,16 @@ async function loadBrand(place: Place, amount: number, book: Order[]) {
     const orders = suggestionsFor(book).filter((o) => o.brandId === place.id);
     const matches = orders.filter((o) => o.amount === amount);
     return { orders, match: matches[0] ?? null, count: matches.length };
+  }
+}
+
+/** Open buy requests for this amount and store (or no store). Offline or failing just means no recommendations. */
+async function loadBuyers(place: Place, amount: number, me: string) {
+  try {
+    const { intents } = await api.matchBuyIntents(amount, place.api);
+    return fromOthers(intents, me);
+  } catch {
+    return [];
   }
 }
 

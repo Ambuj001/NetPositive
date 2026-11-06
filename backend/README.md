@@ -55,6 +55,10 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 | POST | `/requests/:id/confirm` | crypto spender | releases USDC to the crypto buyer |
 | POST | `/requests/:id/dispute` | either party | `{reason}` |
 | POST | `/requests/:id/resolve` | admin | `{outcome: release\|refund, note?}` |
+| GET | `/buy-intents?amountInr=&brand=` | anyone | active buy requests that fit: same voucher, or no voucher (any brand). No `brand` means amount only |
+| GET | `/buy-intents/mine` | auth | my active buy request, or `null` |
+| POST | `/buy-intents` | auth 🧍 | `{amountInr, voucher?}`: "I want USDC for this INR amount"; `voucher` is a brand or null. One per wallet, replaces the previous one, expires after 24 h |
+| DELETE | `/buy-intents/mine` | auth | withdraw my buy request |
 | POST | `/internal/sweep` | cron (`x-cron-secret`) | handles timeouts |
 
 ## Frontend integration
@@ -76,6 +80,7 @@ The backend expects the interface documented at the top of [src/services/escrow.
 users/{address}                       reputation {completed, disputes, strikes}, worldIdNullifier, banned
 worldIdNullifiers/{nullifierHash}     → address   (one human ↔ one wallet)
 authNonces/{address}                  one-time sign-in message, 5 min TTL
+buyIntents/{address}                  a crypto buyer's {amountInr, voucher|null, status, expiresAt}; shown to spenders as a recommendation
 requests/{id}                         public lifecycle state
 requests/{id}/private/voucher         AES-256-GCM encrypted {code, pin}, AAD = request id
 requests/{id}/events/{auto}           audit trail

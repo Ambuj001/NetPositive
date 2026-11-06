@@ -15,6 +15,7 @@ Object.assign(process.env, {
   WORLD_ID_SIGNING_KEY: 'ab'.repeat(32),
   WORLD_ID_ENV: 'staging',
   WORLD_ID_MOCK: 'true',
+  WORLD_ID_DEV_BYPASS: 'false', // a developer's local .env may turn the bypass on; these checks are about the real gate
   ESCROW_MODE: 'mock',
   SWEEP_INTERVAL_SECONDS: '0',
   FULFIL_WINDOW_MINUTES: '30',

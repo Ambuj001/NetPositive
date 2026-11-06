@@ -22,6 +22,7 @@ export { FieldValue, Timestamp };
  * users/{address}                    one doc per wallet (lowercase address)
  * worldIdNullifiers/{nullifierHash}  binds one human to one wallet
  * authNonces/{address}               short-lived sign-in challenge
+ * buyIntents/{address}               one active "I want to buy USDC for this INR amount" per crypto buyer (lowercase address)
  * requests/{requestId}               public lifecycle state (readable by clients)
  * requests/{requestId}/private/voucher  encrypted code + pin (backend-only)
  * requests/{requestId}/events/{auto} audit trail of every transition
@@ -31,6 +32,7 @@ export const col = {
   nullifiers: db.collection('worldIdNullifiers'),
   nonces: db.collection('authNonces'),
   requests: db.collection('requests'),
+  buyIntents: db.collection('buyIntents'),
 };
 
 export const voucherRef = (requestId) => col.requests.doc(requestId).collection('private').doc('voucher');
