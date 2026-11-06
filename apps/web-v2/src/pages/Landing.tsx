@@ -97,7 +97,7 @@ function Hero() {
         className="relative mx-auto mt-14 flex w-fit flex-col items-center px-6 md:flex-row"
       >
         <Choice
-          to="/spend"
+          to="/trade?mode=sell"
           tone="mint"
           icon={<ArrowUpRight className="size-5" />}
           line1="Put your crypto"
@@ -107,7 +107,7 @@ function Hero() {
           className="pb-10 md:pr-16 md:pb-0"
         />
         <Choice
-          to="/home"
+          to="/trade"
           tone="amber"
           icon={<ArrowDownLeft className="size-5" />}
           line1="Make more of"

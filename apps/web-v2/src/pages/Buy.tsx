@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowRight, ArrowUpRight, CircleAlert, CreditCard, Refre
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AssistantBar } from "../components/AssistantBar";
-import { Aurora, BrandMark, Button, cx } from "../components/ui";
+import { BrandMark, Button, cx } from "../components/ui";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
 import { useOrderBook, type Source } from "../lib/orderbook";
@@ -29,7 +29,8 @@ export function matchOrders(orders: Order[], spend: number, maxRate?: number) {
   return picked;
 }
 
-export default function Buy() {
+/** The buy side: order book, assistant bar and the buy panel. Shown in the Buy tab of the Trade page. */
+export function BuyView() {
   const { orders, source, reload } = useOrderBook();
   const { acceptOrder } = useApp();
   const nav = useNavigate();
@@ -56,9 +57,8 @@ export default function Buy() {
   };
 
   return (
-    <div className="relative pt-28 pb-10">
-      <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto grid max-w-6xl gap-5 px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="relative">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* ---------------------------------------------------- order book */}
         <div className="min-w-0 space-y-4">
           <section className="hairline rounded-[24px] bg-ink-2/70 p-5 backdrop-blur-xl md:p-6">
