@@ -142,7 +142,36 @@ type ApiClient = {
   confirm: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   dispute: (id: string, reason: string, token: string) => Promise<{ request: ApiRequest }>;
   /** The voucher for the spender: `code`/`pin` for legacy vouchers, `sealed` when it is locked to their vault key. */
-  voucher: (id: string, token: string) => Promise<{ voucher: { requestId: string; brand: string; code?: string; pin?: string | null; sealed?: unknown } }>;
+  voucher: (id: string, token: string) => Promise<{ voucher: VoucherPayload }>;
+  vaultConfig: () => Promise<VaultConfig>;
+  putVaultKey: (body: { publicKey: string; signature: string }, token: string) => Promise<{ key: VaultKeyRecord }>;
+  getVaultKey: (address: string, token: string) => Promise<{ key: VaultKeyRecord }>;
+  /** Buyer hands over the voucher. `sealed` is the vault envelope; `{code, pin}` is only used when the server is in legacy mode. */
+  submitCode: (id: string, body: { sealed: unknown } | { code: string; pin?: string }, token: string) => Promise<{ request: ApiRequest }>;
+};
+
+export type VaultConfig = {
+  mode: "legacy" | "both" | "sealed";
+  envelopeVersion: number;
+  keyMessage: string;
+  adminPublicKey: string | null;
+};
+
+export type VaultKeyRecord = {
+  address: string;
+  publicKey: string;
+  kid: string;
+  signature: string;
+};
+
+export type VoucherPayload = {
+  requestId: string;
+  brand: string;
+  requester?: string;
+  fulfiller?: string;
+  code?: string;
+  pin?: string | null;
+  sealed?: unknown;
 };
 
 /** Callable for World ID routes, with named methods for the order book and sign-in. */
@@ -170,8 +199,14 @@ export const api: ApiClient = Object.assign(call, {
   confirm: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/confirm`, { method: "POST", body: {}, token }),
   dispute: (id: string, reason: string, token: string) =>
     call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/dispute`, { method: "POST", body: { reason }, token }),
-  voucher: (id: string, token: string) =>
-    call<{ voucher: { requestId: string; brand: string; code?: string; pin?: string | null; sealed?: unknown } }>(`/requests/${encodeURIComponent(id)}/voucher`, { token }),
+  voucher: (id: string, token: string) => call<{ voucher: VoucherPayload }>(`/requests/${encodeURIComponent(id)}/voucher`, { token }),
+  vaultConfig: () => call<VaultConfig>("/vault/config"),
+  putVaultKey: (body: { publicKey: string; signature: string }, token: string) =>
+    call<{ key: VaultKeyRecord }>("/vault/key", { method: "PUT", body, token }),
+  getVaultKey: (address: string, token: string) =>
+    call<{ key: VaultKeyRecord }>(`/vault/key/${encodeURIComponent(address)}`, { token }),
+  submitCode: (id: string, body: { sealed: unknown } | { code: string; pin?: string }, token: string) =>
+    call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/submit-code`, { method: "POST", body, token }),
 });
 
 /* --------------------------------------------------------------- display */

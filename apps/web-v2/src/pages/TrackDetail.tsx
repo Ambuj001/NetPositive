@@ -10,6 +10,7 @@ import { inr, usdt } from "../lib/engine";
 import { buildStages, impliedRate, isSettled, nextStep, roleOf, sameAddr, type Role, type Stage, type StageKey, type Tone } from "../lib/lifecycle";
 import { useApp } from "../lib/store";
 import { ReadyAction, SettleActions, type Notice } from "./TrackActions";
+import { SubmitCode, VaultSetup } from "./VoucherTransfer";
 
 /**
  * /track?id=<order id>: one order, in detail, from the viewer's side.
@@ -201,6 +202,7 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
   const actions: Partial<Record<StageKey, ReactNode>> = {};
   if (role === "spender" && next.cta === "ready") actions.ready = <ReadyAction {...common} viewer={viewer} walletRequest={walletRequest} expired={!!req.ready} />;
   if (role === "spender" && next.cta === "settle") actions.outcome = <SettleActions {...common} />;
+  if (role === "buyer" && req.status === "accepted") actions.code = <SubmitCode req={req} onUpdated={common.onUpdated} />;
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -232,6 +234,7 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-5">
           {notice && <NoticeBar notice={notice} onClose={() => setNotice(null)} />}
+          {role === "spender" && (req.status === "pending_funding" || req.status === "open" || req.status === "accepted") && <VaultSetup />}
           {role === "observer" && req.status === "open" ? (
             // Someone who could fill this order: choose how to buy it, then accept.
             <PickRoute req={req} onAccepted={onApplied} onRefresh={onRefresh} />
@@ -334,11 +337,13 @@ function NextCard({ next, id, role, status, token, signIn, signingIn, onChanged 
       {(next.cta === "ready" || next.cta === "settle") && <p className="mt-3 text-[12.5px] text-mute">The {next.cta === "ready" ? "Ready" : "Settle and Dispute"} button{next.cta === "ready" ? "" : "s are"} in the lifecycle below.</p>}
       {next.cta !== "none" && next.cta !== "ready" && next.cta !== "settle" && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {next.cta === "trade" && (
+          {next.cta === "trade" && status === "accepted" && role === "buyer" ? (
+            <p className="text-[12.5px] text-mute">Seal the code in the lifecycle below. It is encrypted on this device to the spender's vault key before it is sent.</p>
+          ) : next.cta === "trade" ? (
             <Button size="sm" to={`/trade/${id}`} icon={<ArrowUpRight className="size-3.5" />}>
               Open trade room
             </Button>
-          )}
+          ) : null}
           {next.cta === "fill" && (
             <Button size="sm" to="/buy" icon={<ArrowUpRight className="size-3.5" />}>
               Fill this order on Buy
