@@ -312,7 +312,21 @@ export function useWallet() {
     }
   }, [session]);
 
+  /** personal_sign with the connected wallet (used for backend sign-in). */
+  const signMessage = useCallback(
+    async (message: string) => {
+      const p = session?.provider;
+      if (!p || !address) throw new Error("Connect a wallet first");
+      const hexMsg = "0x" + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, "0")).join("");
+      const sig = await p.request({ method: "personal_sign", params: [hexMsg, address] });
+      if (typeof sig !== "string" || !/^0x[0-9a-fA-F]+$/.test(sig)) throw new Error("Wallet returned no signature");
+      return sig;
+    },
+    [session, address],
+  );
+
   return {
+    signMessage,
     choices,
     address,
     chainId,

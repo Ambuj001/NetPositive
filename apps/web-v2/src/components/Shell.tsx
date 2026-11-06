@@ -7,7 +7,12 @@ import { usdt } from "../lib/engine";
 import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
-const APP_LINKS = [{ to: "/home", label: "Home" }];
+const APP_LINKS = [
+  { to: "/home", label: "Home" },
+  { to: "/spend", label: "Spend" },
+  { to: "/buy", label: "Buy" },
+  { to: "/track", label: "Track" },
+];
 
 export function Shell() {
   const { pathname } = useLocation();
