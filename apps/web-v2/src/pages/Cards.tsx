@@ -18,7 +18,7 @@ const FACES = [
 const BLANK = { issuer: "", name: "", points: "1", unit: "100", cash: "1", travel: "1" };
 
 export default function Cards() {
-  const { cards, setCards, toast } = useApp();
+  const { cards, setCards, toast, fullAddress, token, signIn, signingIn } = useApp();
   const [selected, setSelected] = useState(cards[0]?.id ?? "");
   const [value, setValue] = useState<"cash" | "travel">("cash");
   // /cards?add=1 (from the "add your cards" pop-up) opens the add dialog straight away.
@@ -70,6 +70,15 @@ export default function Cards() {
             Add card
           </Button>
         </motion.div>
+
+        {fullAddress && !token && (
+          <div className="mt-8 flex flex-col gap-3 rounded-2xl bg-amber/[0.07] p-4 ring-1 ring-amber/30 sm:flex-row sm:items-center">
+            <p className="flex-1 text-[13.5px] leading-relaxed text-fg/85">You're connected but not signed in. Sign in (one free signature) to load the cards saved on your account and to save new ones. Until then you see example cards.</p>
+            <Button variant="amber" size="sm" onClick={() => void signIn()} disabled={signingIn}>
+              {signingIn ? "Check your wallet…" : "Sign in"}
+            </Button>
+          </div>
+        )}
 
         <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
           {/* card stack */}
