@@ -17,6 +17,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { keccak256, stringToHex } from 'viem';
+import { mockResult } from '../test-support/world-mock.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const chatbotDir = path.resolve(here, '../../chatbot');
@@ -97,7 +98,10 @@ async function signIn(account) {
   assert.equal(r.status, 200);
   return r.body.token;
 }
-const proof = (n) => ({ proof: '0x01', merkle_root: '0x02', nullifier_hash: `0x${n.toString(16).padStart(64, '0')}`, verification_level: 'orb' });
+async function worldVerify(token, n) {
+  const rq = await api('POST', '/world-id/request', { token });
+  return api('POST', '/world-id/verify', { token, body: mockResult({ request: rq.body, nullifier: n }) });
+}
 const fakeDepositTx = () => `0x${crypto.randomBytes(32).toString('hex')}`;
 
 // Adapter: chatbot draft -> backend create payload. The rate (INR per USDC) is agreed between the two users in the order book.
@@ -130,8 +134,8 @@ try {
   [ta, tb, tc] = await Promise.all([signIn(alice), signIn(bob), signIn(carol)]);
   const n0 = Date.now();
   await check('seller and buyer verify World ID (mock)', async () => {
-    assert.equal((await api('POST', '/world-id/verify', { token: ta, body: proof(n0) })).status, 200);
-    assert.equal((await api('POST', '/world-id/verify', { token: tb, body: proof(n0 + 1) })).status, 200);
+    assert.equal((await worldVerify(ta, n0)).status, 200);
+    assert.equal((await worldVerify(tb, n0 + 1)).status, 200);
   });
   await check('unverified human cannot create a request (403 world_id_required)', async () => {
     const r = await api('POST', '/requests', { token: tc, body: { brand: 'amazon', amountInr: 1000, amountUsdc: '11.11' } });

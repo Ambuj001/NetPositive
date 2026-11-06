@@ -50,8 +50,13 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 | POST | `/auth/nonce` | anyone | `{address}` → message to sign |
 | POST | `/auth/verify` | anyone | `{address, signature}` → `{token, user}` |
 | GET | `/auth/me` | auth | profile + reputation |
-| GET | `/world-id/config` | anyone | `app_id`, `action` for IDKit |
-| POST | `/world-id/verify` | auth | IDKit result → binds nullifier to wallet |
+| GET | `/world-id/config` | anyone | public IDs for IDKit |
+| POST | `/world-id/request` | auth | signed request for the IDKit widget (signal = wallet) |
+| POST | `/world-id/verify` | auth | IDKit v4 result → verified with World, binds one human to one wallet; refuses banned humans |
+| POST | `/recovery/start` | new wallet | prove you are the same human as a lost wallet; starts the waiting period |
+| GET | `/recovery/mine` | auth | recoveries where I am the new or old wallet |
+| POST | `/recovery/:id/cancel` | old wallet | veto a recovery during the wait |
+| POST | `/recovery/:id/complete` | new wallet | after the wait: account, reputation and live trades move to the new wallet |
 | GET | `/requests?brand=&limit=` | anyone | open requests |
 | GET | `/requests/mine` | auth | `{asRequester, asFulfiller}` |
 | GET | `/requests/:id` | anyone | request state |
@@ -69,7 +74,7 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 ## Frontend integration
 
 1. **Sign in:** `POST /auth/nonce` → `signMessage(message)` → `POST /auth/verify` → store the token.
-2. **World ID:** read `/world-id/config`. Open IDKit with `app_id`, `action` and **`signal = the signed-in wallet address`**, then POST the `onSuccess` result to `/world-id/verify`. Each human can be linked to only one wallet.
+2. **World ID (v4):** `POST /world-id/request` (signed in) returns everything the IDKit widget needs (`app_id`, `action`, `environment`, `signal`, `rp_context`). Run the widget with the **Proof of Human** preset, then POST its result to `/world-id/verify`. Each human can be linked to only one wallet. Full detail: [docs/world-id.md](../docs/world-id.md).
 3. **Fund:** after `POST /requests`, from the user's wallet: `USDC.approve(escrow, amountUsdcBaseUnits)` → `escrow.deposit(escrowId, amountUsdcBaseUnits)` → `POST /requests/:id/fund {txHash}`.
 4. **Live status:** `onSnapshot(doc(db, 'requests', id))` from the client SDK. Rules allow reads of `requests/*` only. Codes live in a backend-only subcollection.
 

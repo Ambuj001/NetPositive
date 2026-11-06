@@ -51,15 +51,15 @@ export const arc = defineChain({
 
 export const publicClient = createPublicClient({ chain: arc, transport: http(config.ARC_RPC_URL) });
 
-const operator = config.ESCROW_OPERATOR_PRIVATE_KEY
-  ? privateKeyToAccount(config.ESCROW_OPERATOR_PRIVATE_KEY)
-  : null;
+const isMock = config.ESCROW_MODE === 'mock';
+if (isMock) console.warn('[escrow] ESCROW_MODE=mock: on-chain checks and payouts are SIMULATED.');
+
+// Only chain mode needs the operator key. Accept it with or without the 0x prefix (viem requires the prefix).
+const operatorKey = config.ESCROW_OPERATOR_PRIVATE_KEY.trim().replace(/^(0x)?/i, '0x');
+const operator = !isMock && config.ESCROW_OPERATOR_PRIVATE_KEY ? privateKeyToAccount(operatorKey) : null;
 const walletClient = operator
   ? createWalletClient({ account: operator, chain: arc, transport: http(config.ARC_RPC_URL) })
   : null;
-
-const isMock = config.ESCROW_MODE === 'mock';
-if (isMock) console.warn('[escrow] ESCROW_MODE=mock: on-chain checks and payouts are SIMULATED.');
 
 /** Deterministic on-chain id for a Firestore request id. The frontend must use the same. */
 export const escrowIdFor = (requestId) => keccak256(stringToHex(requestId));

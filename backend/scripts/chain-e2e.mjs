@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { createPublicClient, createWalletClient, defineChain, formatUnits, getAddress, http, parseAbi } from 'viem';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
+import { mockResult } from '../test-support/world-mock.mjs';
 
 const REAL = Boolean(process.env.CONFIRM_CHAIN_TX);
 const RPC = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.io';
@@ -82,7 +83,8 @@ async function signIn(acct) {
   const v = await api('POST', '/auth/verify', { body: { address: acct.address, signature: await acct.signMessage({ message: n.body.message }) } });
   assert.equal(v.status, 200, v.text);
   const token = v.body.token;
-  const w = await api('POST', '/world-id/verify', { token, body: { proof: '0x01', merkle_root: '0x02', nullifier_hash: `0x${crypto.randomBytes(32).toString('hex')}`, verification_level: 'orb' } });
+  const wreq = await api('POST', '/world-id/request', { token });
+  const w = await api('POST', '/world-id/verify', { token, body: mockResult({ request: wreq.body, nullifier: BigInt(`0x${crypto.randomBytes(16).toString('hex')}`) }) });
   assert.equal(w.status, 200, w.text);
   return token;
 }

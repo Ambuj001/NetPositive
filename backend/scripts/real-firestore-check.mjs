@@ -20,6 +20,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
+import { mockResult } from '../test-support/world-mock.mjs';
 
 const DRY = process.env.DRY_RUN === '1';
 const CLEANUP = process.argv.includes('--cleanup');
@@ -149,10 +150,11 @@ try {
     assert.ok(u.exists);
   });
   await check('World ID (MOCK) binds a nullifier to the wallet', async () => {
-    const nh = `0x${crypto.randomBytes(32).toString('hex')}`;
-    const r = await api('POST', '/world-id/verify', { token: ta, body: { proof: '0x01', merkle_root: '0x02', nullifier_hash: nh, verification_level: 'orb' } });
+    const n = BigInt(`0x${crypto.randomBytes(16).toString('hex')}`);
+    const rq = await api('POST', '/world-id/request', { token: ta });
+    const r = await api('POST', '/world-id/verify', { token: ta, body: mockResult({ request: rq.body, nullifier: n }) });
     assert.equal(r.status, 200, r.text);
-    created.nullifiers.push(nh);
+    created.nullifiers.push(n.toString());
   });
   saveManifest();
 

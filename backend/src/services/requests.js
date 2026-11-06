@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { db, col, voucherRef, eventsRef, FieldValue, Timestamp, serialize } from './firestore.js';
 import { escrowIdFor, verifyDeposit, releaseEscrow, refundEscrow, readEscrowStatus } from './escrow.js';
 import { encrypt, decrypt } from '../lib/crypto.js';
+import { banHuman } from './humans.js';
 import { HttpError, notFound, forbidden, conflict } from '../lib/errors.js';
 
 /**
@@ -224,12 +225,30 @@ export async function disputeRequest(id, actor, reason) {
   return updated;
 }
 
-export async function resolveDispute(id, admin, outcome, note) {
+/**
+ * Who was at fault decides who is banned (the HUMAN, not just the wallet):
+ *   outcome "refund"  → the requester was right: the voucher was bad     → fulfiller at fault
+ *   outcome "release" → the voucher was fine: the complaint was false    → requester at fault
+ * The arbitrator can override with `fault` ("fulfiller" | "requester" | "none") when the evidence says otherwise,
+ * e.g. "none" when it cannot be determined who is lying. The ban happens only after the money has moved.
+ */
+export const defaultFault = (outcome) => (outcome === 'refund' ? 'fulfiller' : 'requester');
+
+export async function resolveDispute(id, admin, outcome, note, fault) {
+  const at = fault ?? defaultFault(outcome);
   await transition(id, admin, 'dispute_resolved', (data) => {
     assertStatus(data, S.DISPUTED);
-    return { resolution: { outcome, note: note ?? null, by: admin, at: Timestamp.now() } };
+    return { resolution: { outcome, fault: at, note: note ?? null, by: admin, at: Timestamp.now() } };
   });
-  return settle(id, admin, outcome, [S.DISPUTED]);
+  const settled = await settle(id, admin, outcome, [S.DISPUTED]);
+
+  if (at !== 'none') {
+    const culprit = settled[at];
+    await banHuman(culprit, { reason: `dispute_fault:${at}`, requestId: id, by: admin });
+    // Public doc: record only WHICH side was banned. Other wallets of that human stay in private collections.
+    await transition(id, admin, 'human_banned', () => ({ bannedParty: at }));
+  }
+  return getRequest(id);
 }
 
 // ---------- Settlement (on-chain) ----------
@@ -251,7 +270,14 @@ async function settle(id, actor, kind, allowedFrom) {
 
   let txHash;
   try {
-    txHash = kind === 'release' ? await releaseEscrow(id, locked.fulfiller) : await refundEscrow(id);
+    // A recovered requester's escrow was deposited by their OLD wallet; refund() would pay that lost wallet,
+    // so it is paid to the new wallet through the operator's release() instead.
+    txHash =
+      kind === 'release'
+        ? await releaseEscrow(id, locked.fulfiller)
+        : locked.refundTo
+          ? await releaseEscrow(id, locked.refundTo)
+          : await refundEscrow(id);
   } catch (err) {
     console.error(`[settle] ${kind} ${id} failed:`, err.message);
     await transition(id, 'system', `${kind}_failed`, (data) => {
@@ -277,6 +303,46 @@ async function finalizeSettle(id, actor, kind, lock, final, txHash) {
     await Promise.all([bumpReputation(done.requester, 'completed'), bumpReputation(done.fulfiller, 'completed')]);
   }
   return done;
+}
+
+// ---------- Wallet recovery ----------
+
+/**
+ * Move a human's live trades from a lost wallet to their new one (called by recovery once the delay has passed).
+ *  - requests the old wallet was still funding are cancelled (nothing was locked yet)
+ *  - requests where it is the requester or fulfiller are rebound; `refundTo` makes any later refund go to the new wallet
+ * Trades in the middle of an on-chain call are refused so a payout can never go to the wrong wallet.
+ */
+export async function rebindParties(oldAddress, newAddress) {
+  const [asRequester, asFulfiller] = await Promise.all([
+    col.requests.where('requester', '==', oldAddress).get(),
+    col.requests.where('fulfiller', '==', oldAddress).get(),
+  ]);
+  const live = [S.OPEN, S.ACCEPTED, S.CODE_SUBMITTED, S.DISPUTED];
+  const summary = { cancelled: 0, requester: 0, fulfiller: 0 };
+
+  for (const d of [...asRequester.docs, ...asFulfiller.docs]) {
+    if ([S.RELEASING, S.REFUNDING].includes(d.data().status)) {
+      throw conflict('settlement_in_progress', `Request ${d.id} is settling right now; try completing recovery again in a minute`);
+    }
+  }
+  for (const d of asRequester.docs) {
+    const status = d.data().status;
+    if (status === S.PENDING_FUNDING) {
+      await transition(d.id, newAddress, 'recovered_cancelled', () => ({ status: S.CANCELLED }));
+      summary.cancelled++;
+    } else if (live.includes(status)) {
+      await transition(d.id, newAddress, 'recovered_requester', () => ({ requester: newAddress, refundTo: newAddress }));
+      summary.requester++;
+    }
+  }
+  for (const d of asFulfiller.docs) {
+    if ([S.ACCEPTED, S.CODE_SUBMITTED, S.DISPUTED].includes(d.data().status)) {
+      await transition(d.id, newAddress, 'recovered_fulfiller', () => ({ fulfiller: newAddress }));
+      summary.fulfiller++;
+    }
+  }
+  return summary;
 }
 
 // ---------- Timeouts (called by the sweeper) ----------
@@ -322,7 +388,7 @@ export async function sweep() {
     for (const d of stale.docs) {
       try {
         const onchain = await readEscrowStatus(d.id);
-        if (onchain === (kind === 'release' ? 'released' : 'refunded')) {
+        if (onchain === (kind === 'release' || d.data().refundTo ? 'released' : 'refunded')) {
           await finalizeSettle(d.id, 'system', kind, lock, final, 'reconciled-from-chain');
         } else {
           // Still funded (or mock): roll back so it can be retried by normal flow.

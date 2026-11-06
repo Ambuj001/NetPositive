@@ -22,6 +22,8 @@ export { FieldValue, Timestamp };
  * users/{address}                    one doc per wallet (lowercase address)
  * worldIdNullifiers/{nullifierHash}  binds one human to one wallet
  * authNonces/{address}               short-lived sign-in challenge
+ * worldRequests/{address}            pending World ID request (nonce), consumed on use
+ * recoveries/{id}                    wallet-recovery requests (same human, new wallet)
  * requests/{requestId}               public lifecycle state (readable by clients)
  * requests/{requestId}/private/voucher  encrypted code + pin (backend-only)
  * requests/{requestId}/events/{auto} audit trail of every transition
@@ -30,6 +32,8 @@ export const col = {
   users: db.collection('users'),
   nullifiers: db.collection('worldIdNullifiers'),
   nonces: db.collection('authNonces'),
+  worldRequests: db.collection('worldRequests'),
+  recoveries: db.collection('recoveries'),
   requests: db.collection('requests'),
 };
 

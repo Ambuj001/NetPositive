@@ -5,6 +5,7 @@ import { HttpError } from './lib/errors.js';
 import authRoutes from './routes/auth.js';
 import worldIdRoutes from './routes/worldid.js';
 import requestRoutes from './routes/requests.js';
+import recoveryRoutes from './routes/recovery.js';
 import internalRoutes from './routes/internal.js';
 
 export function createApp() {
@@ -18,6 +19,7 @@ export function createApp() {
   app.use('/auth', authRoutes);
   app.use('/world-id', worldIdRoutes);
   app.use('/requests', requestRoutes);
+  app.use('/recovery', recoveryRoutes);
   app.use('/internal', internalRoutes);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found', 'Route not found')));
