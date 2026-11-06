@@ -22,6 +22,14 @@ test("a saved route is read back for the same order only", () => {
   assert.equal(readRoute("order-2"), null);
 });
 
+test("the bank is kept with the route when known, and a route without one still reads", () => {
+  saveRoute("order-3", { ...route, issuer: "HDFC" });
+  assert.equal(readRoute("order-3")?.issuer, "HDFC");
+  assert.equal(readRoute("order-1")?.issuer, undefined);
+  store.set("netpositive:route:bad-issuer", JSON.stringify({ ...route, issuer: 5 }));
+  assert.equal(readRoute("bad-issuer"), null);
+});
+
 test("nothing saved reads as null", () => {
   assert.equal(readRoute("never-saved"), null);
 });
