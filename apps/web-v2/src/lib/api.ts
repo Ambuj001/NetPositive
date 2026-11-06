@@ -7,7 +7,7 @@
  * POST /world-id/rp-signature { action } → { sig, nonce, created_at, expires_at, rp_id? }
  * POST /world-id/verify       { rp_id, idkitResponse } → { verified, user }
  * GET  /requests              → { requests }
- * GET  /requests/mine         → { asRequester, asFulfiller }
+ * GET  /requests/mine         → { asCryptoSpender, asCryptoBuyer }
  *
  * In dev, leave VITE_API_URL empty. Vite proxies /api to the backend.
  * Data model: requests/{id}. See backend/README.md.
@@ -34,8 +34,10 @@ export type ReqStatus =
 /** Mirrors the Firestore `requests/{id}` document as serialized by the API (timestamps are ISO strings). */
 export type ApiRequest = {
   id: string;
-  requester: string;
-  fulfiller: string | null;
+  /** Wallet that locked USDC and wants the voucher. */
+  crypto_spender: string;
+  /** Wallet that buys the gift card and receives the USDC. */
+  crypto_buyer: string | null;
   brand: string;
   amountInr: number;
   amountUsdc: string;
@@ -111,9 +113,15 @@ type ApiClient = {
   nonce: (address: string) => Promise<{ message: string }>;
   verify: (address: string, signature: string) => Promise<{ token: string; user: ApiUser }>;
   me: (token: string) => Promise<{ user: ApiUser }>;
-  listOpen: (limit?: number) => Promise<{ requests: ApiRequest[] }>;
-  listMine: (token: string) => Promise<{ asRequester: ApiRequest[]; asFulfiller: ApiRequest[] }>;
+  listOpen: (limit?: number, brand?: string) => Promise<{ requests: ApiRequest[] }>;
+  listMine: (token: string) => Promise<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] }>;
   get: (id: string) => Promise<{ request: ApiRequest }>;
+  /** `pending_funding` request plus the escrow contract the wallet must deposit into. Null contract means mock escrow. */
+  create: (
+    body: { brand: string; amountInr: number; amountUsdc: string },
+    token: string,
+  ) => Promise<{ request: ApiRequest; escrowContract: string | null }>;
+  fund: (id: string, txHash: string, token: string) => Promise<{ request: ApiRequest }>;
   cancel: (id: string, token: string) => Promise<{ request: ApiRequest }>;
 };
 
@@ -123,9 +131,17 @@ export const api: ApiClient = Object.assign(call, {
   nonce: (address: string) => call<{ message: string }>("/auth/nonce", { body: { address } }),
   verify: (address: string, signature: string) => call<{ token: string; user: ApiUser }>("/auth/verify", { body: { address, signature } }),
   me: (token: string) => call<{ user: ApiUser }>("/auth/me", { token }),
-  listOpen: (limit = 50) => call<{ requests: ApiRequest[] }>(`/requests?limit=${limit}`),
-  listMine: (token: string) => call<{ asRequester: ApiRequest[]; asFulfiller: ApiRequest[] }>("/requests/mine", { token }),
+  listOpen: (limit = 50, brand?: string) => {
+    const q = new URLSearchParams({ limit: String(limit) });
+    if (brand) q.set("brand", brand);
+    return call<{ requests: ApiRequest[] }>(`/requests?${q}`);
+  },
+  listMine: (token: string) => call<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] }>("/requests/mine", { token }),
   get: (id: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}`),
+  create: (body: { brand: string; amountInr: number; amountUsdc: string }, token: string) =>
+    call<{ request: ApiRequest; escrowContract: string | null }>("/requests", { body, token }),
+  fund: (id: string, txHash: string, token: string) =>
+    call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/fund`, { method: "POST", body: { txHash }, token }),
   cancel: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/cancel`, { method: "POST", body: {}, token }),
 });
 

@@ -211,13 +211,13 @@ try {
   assert.ok(r.body.reopened >= 1 && r.body.autoReleased >= 1, JSON.stringify(r.body));
   r = await call('GET', `/requests/${ghosted}`);
   assert.equal(r.body.request.status, 'open');
-  assert.equal(r.body.request.fulfiller, null);
+  assert.equal(r.body.request.crypto_buyer, null);
   assert.equal((await call('GET', `/requests/${silent}`)).body.request.status, 'released');
   assert.equal((await call('GET', '/auth/me', { token: tb })).body.user.reputation.strikes, 1);
   step('sweeper: expired accept reopened + strike, expired review auto-released');
 
   r = await call('GET', '/requests/mine', { token: tb });
-  assert.ok(r.body.asFulfiller.length >= 3);
+  assert.ok(r.body.asCryptoBuyer.length >= 3);
   r = await call('POST', '/requests', { token: ta, body: { brand: 'nope', amountInr: -1, amountUsdc: '1.1234567' } });
   assert.equal(r.status, 400);
   assert.equal(r.body.details.length, 3);

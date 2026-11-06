@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { ApiError, api, type ApiUser, type ReqStatus } from "./api";
 import { ORDERS, type Order } from "./data";
 import { clearSession, readSession, writeSession } from "./session";
-import { chainName, preloadConnectors, shortAddr, useWallet, type WalletChoice } from "./wallet";
+import { chainName, preloadConnectors, shortAddr, useWallet, type ChainBalance, type WalletChoice } from "./wallet";
 
 type Toast = { id: number; title: string; body?: string; tone?: "mint" | "amber" | "iris" | "rose" };
 
@@ -22,6 +22,8 @@ type Ctx = {
   walletError: string;
   /** Demo USDC balance used by the simulated escrow (not read from chain). */
   balance: number;
+  /** USDC (or native coin) actually held by the connected wallet. */
+  walletBalance: ChainBalance | null;
   /** True once the server has bound a World ID nullifier to this wallet. */
   humanVerified: boolean;
   /** JWT from POST /auth/verify, if this wallet has signed in. */
@@ -38,6 +40,8 @@ type Ctx = {
   connect: (w: WalletChoice) => Promise<boolean>;
   disconnect: () => void;
   signMessage: (message: string) => Promise<string>;
+  /** Connected wallet RPC, for the Arc USDC approve and escrow deposit. */
+  walletRequest: (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
   applySession: (address: string, token: string, verified: boolean) => void;
   postOrder: (o: Omit<Order, "id" | "postedMin" | "expiresMin" | "seller" | "sellerTrades" | "city">, lock: number) => Order;
   /** Records that I'm filling this order (adds it to the local book if it came from the API). */
@@ -157,6 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pending: wallet.pending,
       walletError: wallet.error,
       balance,
+      walletBalance: wallet.walletBalance,
       humanVerified: humanVerified || !!apiUser?.worldIdNullifier,
       token,
       walletOpen,
@@ -181,6 +186,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         wallet.disconnect();
       },
       signMessage: wallet.signMessage,
+      walletRequest: wallet.request,
       applySession,
       postOrder: (o, lock) => {
         const id = `VR-${24818 + Math.floor(Math.random() * 80)}`;

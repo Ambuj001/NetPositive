@@ -25,6 +25,7 @@ export const BRANDS: Brand[] = [
   { id: "nike", name: "Nike", category: "Fashion", color: "#111111", glyph: "N", domains: ["nike.com"] },
   { id: "tatacliq", name: "Tata CLiQ", category: "Everything", color: "#da1c5c", glyph: "T", domains: ["tatacliq.com"] },
   { id: "bigbasket", name: "BigBasket", category: "Groceries", color: "#84c225", glyph: "b", domains: ["bigbasket.com"] },
+  { id: "blinkit", name: "Blinkit", category: "Groceries", color: "#f8cb46", glyph: "b", domains: ["blinkit.com"] },
   { id: "zomato", name: "Zomato", category: "Food", color: "#e23744", glyph: "Z", domains: ["zomato.com"] },
   { id: "tajhotels", name: "Taj Hotels", category: "Travel", color: "#a0815c", glyph: "T", domains: ["tajhotels.com"] },
 ];
