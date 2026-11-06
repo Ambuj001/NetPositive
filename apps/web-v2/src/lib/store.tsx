@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, ApiError, type ApiUser, type ReqStatus } from "./api";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ApiError, api, type ApiUser, type ReqStatus } from "./api";
 import { ORDERS, type Order } from "./data";
+import { clearSession, readSession, writeSession } from "./session";
 import { chainName, preloadConnectors, shortAddr, useWallet, type WalletChoice } from "./wallet";
 
 type Toast = { id: number; title: string; body?: string; tone?: "mint" | "amber" | "iris" | "rose" };
@@ -21,13 +22,14 @@ type Ctx = {
   walletError: string;
   /** Demo USDC balance used by the simulated escrow (not read from chain). */
   balance: number;
+  /** True once the server has bound a World ID nullifier to this wallet. */
   humanVerified: boolean;
+  /** JWT from POST /auth/verify, if this wallet has signed in. */
+  token: string | null;
   walletOpen: boolean;
   orders: Order[];
   myOrders: LocalOrder[];
   toasts: Toast[];
-  /** Backend session (wallet sign-in). */
-  token: string | null;
   apiUser: ApiUser | null;
   signingIn: boolean;
   signIn: () => Promise<string | null>;
@@ -35,7 +37,8 @@ type Ctx = {
   closeWallet: () => void;
   connect: (w: WalletChoice) => Promise<boolean>;
   disconnect: () => void;
-  verifyHuman: () => void;
+  signMessage: (message: string) => Promise<string>;
+  applySession: (address: string, token: string, verified: boolean) => void;
   postOrder: (o: Omit<Order, "id" | "postedMin" | "expiresMin" | "seller" | "sellerTrades" | "city">, lock: number) => Order;
   /** Records that I'm filling this order (adds it to the local book if it came from the API). */
   acceptOrder: (o: Order) => void;
@@ -44,19 +47,19 @@ type Ctx = {
 };
 
 const AppCtx = createContext<Ctx | null>(null);
-const TOKEN_KEY = (addr: string) => `netpositive:token:${addr.toLowerCase()}`;
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const wallet = useWallet();
   const [balance, setBalance] = useState(120);
   const [humanVerified, setHuman] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   const [walletOpen, setWalletOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>(ORDERS);
   const [myOrders, setMyOrders] = useState<LocalOrder[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [token, setToken] = useState<string | null>(null);
   const [apiUser, setApiUser] = useState<ApiUser | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const sessionGen = useRef(0);
 
   const dismiss = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
   const toast = useCallback(
@@ -68,25 +71,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [dismiss],
   );
 
-  // Restore a saved backend token for this wallet; drop it when the wallet changes.
+  const applySession = useCallback((address: string, nextToken: string, verified: boolean) => {
+    sessionGen.current += 1;
+    writeSession(address, { token: nextToken, verified });
+    setToken(nextToken);
+    setHuman(verified);
+  }, []);
+
+  // One session for World ID and the tracker. Drop it when the wallet changes.
   useEffect(() => {
+    const addr = wallet.address;
     setApiUser(null);
-    if (!wallet.address) return setToken(null);
-    const saved = sessionStorage.getItem(TOKEN_KEY(wallet.address));
-    setToken(saved);
-    if (saved)
-      api
-        .me(saved)
-        .then((r) => setApiUser(r.user))
-        .catch((e) => {
-          if (e instanceof ApiError && e.status === 401) {
-            sessionStorage.removeItem(TOKEN_KEY(wallet.address));
-            setToken(null);
-          }
-        });
+    if (!addr) {
+      setToken(null);
+      setHuman(false);
+      return;
+    }
+    const stored = readSession(addr);
+    if (!stored) {
+      setToken(null);
+      setHuman(false);
+      return;
+    }
+    setToken(stored.token);
+    setHuman(stored.verified);
+    const gen = sessionGen.current;
+    let cancel = false;
+    api
+      .me(stored.token)
+      .then((res) => {
+        if (cancel || gen !== sessionGen.current) return;
+        const verified = !!res.user.worldIdNullifier;
+        writeSession(addr, { token: stored.token, verified });
+        setApiUser(res.user);
+        setHuman(verified);
+      })
+      .catch((error: unknown) => {
+        if (cancel || gen !== sessionGen.current) return;
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearSession(addr);
+          setToken(null);
+          setApiUser(null);
+          setHuman(false);
+        }
+      });
+    return () => {
+      cancel = true;
+    };
   }, [wallet.address]);
 
-  /** Wallet sign-in with the backend: nonce → personal_sign → JWT. */
+  /** Wallet sign-in with the backend: nonce → personal_sign → JWT. Shares the World ID session. */
   const signIn = useCallback(async () => {
     if (!wallet.address) return null;
     setSigningIn(true);
@@ -94,9 +128,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const { message } = await api.nonce(wallet.address);
       const signature = await wallet.signMessage(message);
       const r = await api.verify(wallet.address, signature);
-      sessionStorage.setItem(TOKEN_KEY(wallet.address), r.token);
+      sessionGen.current += 1;
+      const verified = !!r.user.worldIdNullifier;
+      writeSession(wallet.address, { token: r.token, verified });
       setToken(r.token);
       setApiUser(r.user);
+      setHuman(verified);
       toast({ title: "Signed in", body: "Your orders are loading from NetPositive.", tone: "mint" });
       return r.token;
     } catch (e) {
@@ -121,11 +158,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       walletError: wallet.error,
       balance,
       humanVerified: humanVerified || !!apiUser?.worldIdNullifier,
+      token,
       walletOpen,
       orders,
       myOrders,
       toasts,
-      token,
       apiUser,
       signingIn,
       signIn,
@@ -137,13 +174,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closeWallet: () => setWalletOpen(false),
       connect: wallet.connect,
       disconnect: () => {
-        if (wallet.address) sessionStorage.removeItem(TOKEN_KEY(wallet.address));
-        wallet.disconnect();
-        setHuman(false);
+        if (wallet.address) clearSession(wallet.address);
         setToken(null);
+        setHuman(false);
         setApiUser(null);
+        wallet.disconnect();
       },
-      verifyHuman: () => setHuman(true),
+      signMessage: wallet.signMessage,
+      applySession,
       postOrder: (o, lock) => {
         const id = `VR-${24818 + Math.floor(Math.random() * 80)}`;
         const order: Order = { ...o, id, postedMin: 0, expiresMin: 30, seller: "you", sellerTrades: 14, city: "Bengaluru" };
@@ -161,7 +199,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toast,
       dismiss,
     }),
-    [wallet, balance, humanVerified, walletOpen, orders, myOrders, toasts, token, apiUser, signingIn, signIn, toast, dismiss],
+    [wallet, balance, humanVerified, token, walletOpen, orders, myOrders, toasts, apiUser, signingIn, signIn, toast, dismiss, applySession],
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

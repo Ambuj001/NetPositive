@@ -1,51 +1,102 @@
-import { keccak256, toBytes } from 'viem';
+import { hashSignal } from '@worldcoin/idkit-core/hashing';
+import { signRequest } from '@worldcoin/idkit-core/signing';
 import { config } from '../config.js';
 import { HttpError } from '../lib/errors.js';
 
-/**
- * Same as IDKit's hashToField: keccak256(bytes) >> 8, as a 32-byte hex string.
- * The frontend must pass the wallet address as the IDKit `signal`; hex strings are
- * hashed as raw bytes, so checksum vs. lowercase doesn't matter.
- */
-export function hashToField(signal) {
-  // viem's toBytes decodes hex strings as bytes and other strings as UTF-8, matching IDKit.
-  const shifted = BigInt(keccak256(toBytes(signal))) >> 8n;
-  return `0x${shifted.toString(16).padStart(64, '0')}`;
+const ACCEPTED_CREDENTIALS = new Set(['proof_of_human', 'orb']);
+
+export function worldIdReady() {
+  return Boolean(config.WORLD_ID_RP_ID && config.WORLD_ID_SIGNING_KEY);
 }
 
-const LEVEL_RANK = { device: 1, orb: 2 };
+function requireWorldIdConfig() {
+  if (worldIdReady()) return;
+  throw new HttpError(
+    503,
+    'not_configured',
+    'Set WORLD_ID_RP_ID and WORLD_ID_SIGNING_KEY from the Developer Portal. Enable World ID 4.0 there first.',
+  );
+}
 
 /**
- * Verify an IDKit proof against World's cloud verifier.
- * `proof` is the object IDKit's onSuccess hands the frontend:
- *   { proof, merkle_root, nullifier_hash, verification_level }
- * Returns { nullifierHash, verificationLevel } on success.
+ * Sign the Proof of Human request. The signing key never leaves the server.
+ * Returns the rp_context fields IDKit expects, plus the public rp_id.
  */
-export async function verifyWorldIdProof(proof, signal) {
-  const level = proof.verification_level;
-  if ((LEVEL_RANK[level] ?? 0) < LEVEL_RANK[config.WORLD_ID_MIN_LEVEL]) {
-    throw new HttpError(403, 'world_id_level_too_low', `Verification level "${level}" is below required "${config.WORLD_ID_MIN_LEVEL}"`);
+export function signWorldIdRequest() {
+  requireWorldIdConfig();
+  const signed = signRequest({
+    signingKeyHex: config.WORLD_ID_SIGNING_KEY,
+    action: config.WORLD_ID_ACTION,
+  });
+  return {
+    sig: signed.sig,
+    nonce: signed.nonce,
+    created_at: signed.createdAt,
+    expires_at: signed.expiresAt,
+    rp_id: config.WORLD_ID_RP_ID,
+    app_id: config.WORLD_ID_APP_ID,
+    action: config.WORLD_ID_ACTION,
+  };
+}
+
+/** Store hex nullifiers lowercase and decimal nullifiers without leading zeros. */
+export function canonicalNullifier(value) {
+  const raw = String(value ?? '').trim();
+  if (/^0x[0-9a-fA-F]{64}$/.test(raw)) return raw.toLowerCase();
+  if (/^[0-9]+$/.test(raw)) return BigInt(raw).toString(10);
+  throw new HttpError(400, 'world_id_invalid', 'World ID proof is missing a nullifier');
+}
+
+function verifyBase(rpId) {
+  let base = config.WORLD_ID_VERIFY_URL.replace(/\/$/, '');
+  if (base.includes('/api/v2/')) base = 'https://developer.world.org/api/v4/verify';
+  return base.endsWith(`/${rpId}`) ? base : `${base}/${rpId}`;
+}
+
+/**
+ * Check an IDKit result, then ask World's v4 verifier to confirm it.
+ * The signal must be the signed-in wallet. Only Proof of Human (or a legacy Orb proof) is accepted.
+ * Returns { nullifierHash, verificationLevel }.
+ */
+export async function verifyWorldIdProof(payload, wallet) {
+  requireWorldIdConfig();
+  const proof = payload.idkitResponse;
+
+  if (payload.rp_id !== config.WORLD_ID_RP_ID) {
+    throw new HttpError(400, 'world_id_rp', 'This proof is for a different World ID app');
   }
+  if (proof.environment !== config.WORLD_ID_ENV) {
+    throw new HttpError(400, 'world_id_environment', `World ID environment "${proof.environment}" is not accepted`);
+  }
+  if (proof.action !== config.WORLD_ID_ACTION) {
+    throw new HttpError(400, 'world_id_action', 'This proof is for a different action');
+  }
+
+  const item = proof.responses.find((response) => ACCEPTED_CREDENTIALS.has(response.identifier));
+  if (!item) {
+    throw new HttpError(400, 'world_id_credential', 'Proof of Human is required');
+  }
+  if (item.identifier === 'proof_of_human' && item.issuer_schema_id != null && item.issuer_schema_id !== 1) {
+    throw new HttpError(400, 'world_id_credential', 'Proof of Human is required');
+  }
+
+  const expectedSignal = hashSignal(wallet).toLowerCase();
+  if ((item.signal_hash ?? '').toLowerCase() !== expectedSignal) {
+    throw new HttpError(400, 'world_id_signal', 'This proof is not bound to the signed-in wallet');
+  }
+
+  const nullifierHash = canonicalNullifier(item.nullifier);
 
   if (config.WORLD_ID_MOCK) {
-    // Local testing only (config.js refuses this in production).
-    return { nullifierHash: proof.nullifier_hash.toLowerCase(), verificationLevel: level };
+    return { nullifierHash, verificationLevel: item.identifier };
   }
 
-  const url = `${config.WORLD_ID_VERIFY_URL.replace(/\/$/, '')}/${config.WORLD_ID_APP_ID}`;
   let res;
   try {
-    res = await fetch(url, {
+    res = await fetch(verifyBase(config.WORLD_ID_RP_ID), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nullifier_hash: proof.nullifier_hash,
-        merkle_root: proof.merkle_root,
-        proof: proof.proof,
-        verification_level: level,
-        action: config.WORLD_ID_ACTION,
-        signal_hash: hashToField(signal),
-      }),
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...proof, environment: config.WORLD_ID_ENV }),
       signal: AbortSignal.timeout(10_000),
     });
   } catch (err) {
@@ -53,10 +104,9 @@ export async function verifyWorldIdProof(proof, signal) {
   }
 
   const body = await res.json().catch(() => ({}));
-  if (!res.ok || body.success === false) {
-    // e.g. invalid_proof, invalid_merkle_root, max_verifications_reached
-    throw new HttpError(400, body.code ?? 'world_id_invalid', body.detail ?? 'World ID proof rejected', { status: res.status });
+  if (!res.ok || body.success !== true || body.environment !== config.WORLD_ID_ENV) {
+    throw new HttpError(400, body.code ?? 'world_id_invalid', body.detail ?? body.message ?? 'World ID proof rejected', { status: res.status });
   }
 
-  return { nullifierHash: proof.nullifier_hash.toLowerCase(), verificationLevel: level };
+  return { nullifierHash, verificationLevel: item.identifier };
 }

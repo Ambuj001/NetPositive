@@ -16,6 +16,16 @@ const csv = z
       .filter(Boolean),
   );
 
+// viem's privateKeyToAccount slices off a leading "0x". A bare 64-char hex key loses its first byte.
+const hexPrivateKey = (message) =>
+  z
+    .string()
+    .optional()
+    .default('')
+    .transform((v) => v.trim())
+    .refine((v) => v === '' || /^(0x)?[0-9a-fA-F]{64}$/.test(v), message)
+    .transform((v) => (v ? `0x${v.replace(/^0x/i, '')}` : ''));
+
 const schema = z.object({
   PORT: z.coerce.number().int().default(8080),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -36,16 +46,22 @@ const schema = z.object({
   FIRESTORE_EMULATOR_HOST: z.string().optional().default(''),
 
   WORLD_ID_APP_ID: z.string().min(1),
+  WORLD_ID_RP_ID: z.string().default(''),
+  WORLD_ID_SIGNING_KEY: z
+    .string()
+    .default('')
+    .refine((v) => v === '' || /^(0x)?[0-9a-fA-F]{64}$/.test(v), 'WORLD_ID_SIGNING_KEY must be 32 bytes of hex'),
   WORLD_ID_ACTION: z.string().min(1).default('netpositive-account'),
-  WORLD_ID_VERIFY_URL: z.string().url().default('https://developer.worldcoin.org/api/v2/verify'),
-  WORLD_ID_MIN_LEVEL: z.enum(['orb', 'device']).default('orb'),
+  WORLD_ID_ENV: z.enum(['production', 'staging', 'sandbox']).optional(),
+  // Base of POST /api/v4/verify/{rp_id}. A leftover v2 URL is rewritten in the service.
+  WORLD_ID_VERIFY_URL: z.string().url().default('https://developer.world.org/api/v4/verify'),
   WORLD_ID_MOCK: bool,
 
   ESCROW_MODE: z.enum(['chain', 'mock']).default('mock'),
   ARC_RPC_URL: z.string().url().default('https://rpc.testnet.arc.network'),
   ARC_CHAIN_ID: z.coerce.number().int().default(5042002),
   ESCROW_CONTRACT_ADDRESS: z.string().optional().default(''),
-  ESCROW_OPERATOR_PRIVATE_KEY: z.string().optional().default(''),
+  ESCROW_OPERATOR_PRIVATE_KEY: hexPrivateKey('ESCROW_OPERATOR_PRIVATE_KEY must be 32 bytes of hex'),
   USDC_DECIMALS: z.coerce.number().int().default(6),
 });
 
@@ -58,7 +74,10 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const config = parsed.data;
+export const config = {
+  ...parsed.data,
+  WORLD_ID_ENV: parsed.data.WORLD_ID_ENV ?? (parsed.data.NODE_ENV === 'production' ? 'production' : 'staging'),
+};
 
 // Guard rails: dev shortcuts must never reach production.
 if (config.NODE_ENV === 'production') {
@@ -68,6 +87,10 @@ if (config.NODE_ENV === 'production') {
   }
   if (config.WORLD_ID_MOCK) {
     console.error('WORLD_ID_MOCK=true is not allowed in production.');
+    process.exit(1);
+  }
+  if (config.WORLD_ID_ENV !== 'production') {
+    console.error('WORLD_ID_ENV must be production when NODE_ENV=production.');
     process.exit(1);
   }
 }

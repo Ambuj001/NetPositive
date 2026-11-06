@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config.js';
 import { HttpError } from './lib/errors.js';
+import { worldIdReady } from './services/worldid.js';
 import authRoutes from './routes/auth.js';
 import worldIdRoutes from './routes/worldid.js';
 import requestRoutes from './routes/requests.js';
@@ -11,9 +12,9 @@ export function createApp() {
   const app = express();
   app.disable('x-powered-by');
   app.use(cors({ origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : false }));
-  app.use(express.json({ limit: '32kb' }));
+  app.use(express.json({ limit: '256kb' }));
 
-  app.get('/health', (_req, res) => res.json({ ok: true, escrowMode: config.ESCROW_MODE, worldIdMock: config.WORLD_ID_MOCK }));
+  app.get('/health', (_req, res) => res.json({ ok: true, escrowMode: config.ESCROW_MODE, worldIdMock: config.WORLD_ID_MOCK, worldIdReady: worldIdReady() }));
 
   app.use('/auth', authRoutes);
   app.use('/world-id', worldIdRoutes);

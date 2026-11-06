@@ -53,7 +53,8 @@ export default function Track() {
       setLive(await api.listMine(token));
       setState("idle");
     } catch (e) {
-      setState((e as { code?: string }).code === "offline" ? "offline" : "error");
+      const code = (e as { code?: string }).code;
+      setState(code === "offline" || code === "unreachable" ? "offline" : "error");
       setErr(e instanceof Error ? e.message : "Couldn't load orders");
     }
   }, [token]);

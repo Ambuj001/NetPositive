@@ -40,8 +40,9 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 | POST | `/auth/nonce` | anyone | `{address}` → message to sign |
 | POST | `/auth/verify` | anyone | `{address, signature}` → `{token, user}` |
 | GET | `/auth/me` | auth | profile + reputation |
-| GET | `/world-id/config` | anyone | `app_id`, `action` for IDKit |
-| POST | `/world-id/verify` | auth | IDKit result → binds nullifier to wallet |
+| GET | `/world-id/config` | anyone | `app_id`, `rp_id`, `action`, `environment` |
+| POST | `/world-id/rp-signature` | auth | signs the Proof of Human request (`sig`, `nonce`, `created_at`, `expires_at`, `rp_id`) |
+| POST | `/world-id/verify` | auth | `{ rp_id, idkitResponse }` → World v4 verify, then binds the nullifier to the wallet |
 | GET | `/requests?brand=&limit=` | anyone | open requests |
 | GET | `/requests/mine` | auth | `{asRequester, asFulfiller}` |
 | GET | `/requests/:id` | anyone | request state |
@@ -59,7 +60,7 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 ## Frontend integration
 
 1. **Sign in:** `POST /auth/nonce` → `signMessage(message)` → `POST /auth/verify` → store the token.
-2. **World ID:** read `/world-id/config`. Open IDKit with `app_id`, `action` and **`signal = the signed-in wallet address`**, then POST the `onSuccess` result to `/world-id/verify`. Each human can be linked to only one wallet.
+2. **World ID:** sign in, then `POST /world-id/rp-signature`. Open IDKit with Proof of Human, `action`, and **`signal = the signed-in wallet address`**. POST `{ rp_id, idkitResponse }` to `/world-id/verify`. The server forwards the result to World's v4 verifier and keeps one human on one wallet.
 3. **Fund:** after `POST /requests`, from the user's wallet: `USDC.approve(escrow, amountUsdcBaseUnits)` → `escrow.deposit(escrowId, amountUsdcBaseUnits)` → `POST /requests/:id/fund {txHash}`.
 4. **Live status:** `onSnapshot(doc(db, 'requests', id))` from the client SDK. Rules allow reads of `requests/*` only. Codes live in a backend-only subcollection.
 

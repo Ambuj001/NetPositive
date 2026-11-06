@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../lib/store";
 import { usdt } from "../lib/engine";
+import { WorldIdNotice, useWorldId } from "../lib/world";
 import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
@@ -16,6 +17,7 @@ const APP_LINKS = [
 
 export function Shell() {
   const { pathname } = useLocation();
+  const { walletOpen } = useApp();
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [pathname]);
@@ -23,6 +25,7 @@ export function Shell() {
     <div className="relative min-h-dvh overflow-x-clip">
       <div className="noise" />
       <Nav />
+      {!walletOpen && <WorldIdNotice className="fixed bottom-5 left-5 z-[60] w-[min(360px,calc(100vw-40px))] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)]" />}
       <main>
         <Outlet />
       </main>
@@ -173,9 +176,9 @@ function Footer() {
 }
 
 function WalletModal() {
-  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast } =
+  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast } =
     useApp();
-  const [busy, setBusy] = useState<string | null>(null);
+  const { verifyHuman, phase } = useWorldId();
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -187,14 +190,6 @@ function WalletModal() {
       closeWallet();
       if (pathname === "/") navigate("/home");
     }
-  };
-  const doVerify = () => {
-    setBusy("world");
-    setTimeout(() => {
-      verifyHuman();
-      setBusy(null);
-      toast({ title: "Verified human", body: "World ID proof accepted. One person, one account.", tone: "iris" });
-    }, 1800);
   };
 
   return (
@@ -330,20 +325,20 @@ function WalletModal() {
                         <div className="text-[14.5px] font-medium">{humanVerified ? "Verified human" : "Prove you're human"}</div>
                         <div className="mt-0.5 text-[12.5px] leading-relaxed text-mute">
                           {humanVerified
-                            ? "World ID nullifier bound to this account. Banned accounts can't come back."
-                            : "World ID, once. Every trader is one real person, so scammers can't make a new account."}
+                            ? "Proof of Human is bound to this wallet. A banned person can't come back with a new account."
+                            : "Proof of Human, once, bound to this wallet. You can cancel and keep browsing. Posting and accepting stay locked until it succeeds."}
                         </div>
                       </div>
                     </div>
                     {!humanVerified && (
                       <button
-                        onClick={doVerify}
-                        disabled={!!busy}
-                        className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-[14px] font-medium text-ink transition hover:bg-white/90"
+                        onClick={() => void verifyHuman()}
+                        disabled={phase !== "idle"}
+                        className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-[14px] font-medium text-ink transition hover:bg-white/90 disabled:opacity-60"
                       >
-                        {busy === "world" ? (
+                        {phase !== "idle" ? (
                           <>
-                            <LoaderCircle className="size-4 animate-spin" /> Waiting for World App…
+                            <LoaderCircle className="size-4 animate-spin" /> {phase === "world" ? "Waiting for World App…" : "Starting World ID…"}
                           </>
                         ) : (
                           <>
@@ -355,6 +350,7 @@ function WalletModal() {
                         )}
                       </button>
                     )}
+                    <WorldIdNotice className="mt-3" />
                   </div>
 
                   <button onClick={disconnect} className="w-full rounded-full py-2.5 text-[13px] text-mute transition hover:bg-white/5 hover:text-rose">

@@ -28,6 +28,7 @@ import { Aurora, BrandMark, Button, Card, Pill, Row, cx } from "../components/ui
 import { brand } from "../lib/data";
 import { effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
+import { useWorldId } from "../lib/world";
 
 type Role = "seller" | "buyer";
 
@@ -46,7 +47,8 @@ const DEMO_CODES = ["LFS-7Q2K-91XA-3M8D", "LFS-4HWE-22PL-0Z6R", "LFS-9TBC-55MN-1
 
 export default function Trade() {
   const { id = "VR-24817" } = useParams();
-  const { orders, humanVerified, verifyHuman, toast } = useApp();
+  const { orders, address, humanVerified, openWallet, toast } = useApp();
+  const { verifyHuman, phase } = useWorldId();
   const order = orders.find((o) => o.id === id) ?? orders[0];
   const b = brand(order.brandId);
   const q = quote(order.amount, order.rate);
@@ -58,7 +60,6 @@ export default function Trade() {
   const [role, setRole] = useState<Role>("buyer");
   const [auto, setAuto] = useState(false);
   const [route, setRoute] = useState(0);
-  const [verifying, setVerifying] = useState(false);
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
   const [codes, setCodes] = useState<string[]>(Array(nCodes).fill(""));
   const [encrypting, setEncrypting] = useState(false);
@@ -84,19 +85,21 @@ export default function Trade() {
   }, [stage]);
 
   /* ---------- actions ---------- */
-  const accept = () => {
+  const accept = async () => {
     const go = () => {
       setStage(1);
-      push(`Accepted(${order.id}, buyer, nullifier 0x2d…be)`, "fg");
+      push(`Accepted(${order.id}, buyer, nullifier bound)`, "fg");
       toast({ title: "Order accepted", body: `Buy via ${routes[route].cardLabel} · ${routes[route].channel.name}`, tone: "amber" });
     };
-    if (humanVerified) return go();
-    setVerifying(true);
-    setTimeout(() => {
-      verifyHuman();
-      setVerifying(false);
-      go();
-    }, 1400);
+    if (!address) {
+      openWallet();
+      return;
+    }
+    if (!humanVerified) {
+      const ok = await verifyHuman();
+      if (!ok) return;
+    }
+    go();
   };
   const bought = () => {
     setStage(2);
@@ -315,13 +318,19 @@ export default function Trade() {
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                       <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint" : "text-mute")}>
                         {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
-                        {humanVerified ? "Verified human via World ID" : "World ID check runs once on accept"}
+                        {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
                       </div>
-                      <Button variant="amber" size="lg" onClick={accept} disabled={verifying}>
-                        {verifying ? (
+                      <Button variant="amber" size="lg" onClick={() => void accept()} disabled={phase !== "idle"}>
+                        {phase === "world" ? (
                           <>
-                            <LoaderCircle className="size-4 animate-spin" /> Verifying in World App…
+                            <LoaderCircle className="size-4 animate-spin" /> Waiting for World App…
                           </>
+                        ) : phase === "signing" ? (
+                          <>
+                            <LoaderCircle className="size-4 animate-spin" /> Starting World ID…
+                          </>
+                        ) : !address ? (
+                          "Connect wallet"
                         ) : (
                           "Accept order"
                         )}

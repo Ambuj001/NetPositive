@@ -6,12 +6,14 @@ import { Aurora, BrandMark, Button, Card, Pill, Row, cx } from "../components/ui
 import { BRANDS, brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
+import { useWorldId } from "../lib/world";
 
 const PRESETS = [2000, 5000, 10000, 25000];
 const MEDIAN = 89.9;
 
 export default function Sell() {
   const { address, humanVerified, openWallet, balance, postOrder, toast } = useApp();
+  const { verifyHuman, phase: worldPhase } = useWorldId();
   const nav = useNavigate();
   const [brandId, setBrandId] = useState("lifestyle");
   const [amount, setAmount] = useState(10000);
@@ -29,9 +31,12 @@ export default function Sell() {
   );
   const rateDelta = ((rate - MEDIAN) / MEDIAN) * 100;
 
-  const lock = () => {
+  const lock = async () => {
     if (!address) return openWallet();
-    if (!humanVerified) return openWallet();
+    if (!humanVerified) {
+      await verifyHuman();
+      return;
+    }
     setPhase("approve");
     setTimeout(() => setPhase("lock"), 1300);
     setTimeout(() => {
@@ -42,7 +47,17 @@ export default function Sell() {
     }, 2900);
   };
 
-  const cta = !address ? "Connect wallet" : !humanVerified ? "Verify with World ID" : short ? "Not enough USDC" : `Lock ${usdt(q.sellerLocks)} USDC`;
+  const cta = !address
+    ? "Connect wallet"
+    : worldPhase === "world"
+      ? "Waiting for World App…"
+      : worldPhase === "signing"
+        ? "Starting World ID…"
+        : !humanVerified
+          ? "Verify with World ID"
+          : short
+            ? "Not enough USDT"
+            : `Lock ${usdt(q.sellerLocks)} USDT`;
 
   return (
     <div className="relative pt-32">
@@ -242,7 +257,7 @@ export default function Sell() {
                           })}
                         </div>
                       ) : (
-                        <Button className="w-full" size="lg" disabled={!!address && humanVerified && (short || !amount)} onClick={lock} icon={address && humanVerified ? <Lock className="size-4" /> : undefined}>
+                        <Button className="w-full" size="lg" disabled={worldPhase !== "idle" || (!!address && humanVerified && (short || !amount))} onClick={() => void lock()} icon={address && humanVerified && worldPhase === "idle" ? <Lock className="size-4" /> : undefined}>
                           {cta}
                         </Button>
                       )}

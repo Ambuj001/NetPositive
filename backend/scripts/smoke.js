@@ -10,6 +10,9 @@ Object.assign(process.env, {
   FIREBASE_PROJECT_ID: process.env.GCLOUD_PROJECT ?? 'demo-netpositive',
   FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8085',
   WORLD_ID_APP_ID: 'app_staging_test',
+  WORLD_ID_RP_ID: 'rp_test',
+  WORLD_ID_SIGNING_KEY: 'ab'.repeat(32),
+  WORLD_ID_ENV: 'staging',
   WORLD_ID_MOCK: 'true',
   ESCROW_MODE: 'mock',
   SWEEP_INTERVAL_SECONDS: '0',
@@ -21,6 +24,7 @@ const admin = privateKeyToAccount(generatePrivateKey());
 process.env.ADMIN_ADDRESSES = admin.address;
 
 const { createApp } = await import('../src/app.js');
+const { hashSignal } = await import('@worldcoin/idkit-core/hashing');
 const { col, Timestamp } = await import('../src/services/firestore.js');
 // Simulate the passage of time by backdating a deadline (keeps the test deterministic).
 const expire = (id, field) => col.requests.doc(id).update({ [field]: Timestamp.fromMillis(Date.now() - 1000) });
@@ -44,7 +48,25 @@ async function signIn(account) {
   return r.body.token;
 }
 
-const fakeProof = (n) => ({ proof: '0x01', merkle_root: '0x02', nullifier_hash: `0x${n.toString(16).padStart(64, '0')}`, verification_level: 'orb' });
+const fakeProof = (n, address) => ({
+  rp_id: 'rp_test',
+  idkitResponse: {
+    protocol_version: '4.0',
+    nonce: `nonce-${n}`,
+    action: 'netpositive-account',
+    environment: 'staging',
+    responses: [
+      {
+        identifier: 'proof_of_human',
+        signal_hash: hashSignal(address.toLowerCase()),
+        nullifier: `0x${n.toString(16).padStart(64, '0')}`,
+        proof: ['1', '2', '3', '4', '5'],
+        issuer_schema_id: 1,
+        expires_at_min: 1,
+      },
+    ],
+  },
+});
 const fakeTx = () => `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`;
 const step = (name) => console.log(`  ✓ ${name}`);
 
@@ -72,10 +94,27 @@ try {
   assert.equal(r.body.error, 'world_id_required');
   step('World ID gate blocks unverified users');
 
-  assert.equal((await call('POST', '/world-id/verify', { token: ta, body: fakeProof(nonce) })).status, 200);
-  assert.equal((await call('POST', '/world-id/verify', { token: ta, body: fakeProof(nonce) })).status, 200); // idempotent
-  assert.equal((await call('POST', '/world-id/verify', { token: tb, body: fakeProof(nonce + 1) })).status, 200);
-  r = await call('POST', '/world-id/verify', { token: tm, body: fakeProof(nonce) }); // reuse Alice's human
+  r = await call('POST', '/world-id/rp-signature', { token: ta, body: { action: 'netpositive-account' } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.rp_id, 'rp_test');
+  assert.ok(r.body.sig && r.body.nonce);
+  step('RP signature');
+
+  const forged = fakeProof(nonce + 8, alice.address);
+  r = await call('POST', '/world-id/verify', { token: tm, body: forged });
+  assert.equal(r.status, 400);
+  assert.equal(r.body.error, 'world_id_signal');
+
+  const selfie = fakeProof(nonce + 9, alice.address);
+  selfie.idkitResponse.responses[0].identifier = 'selfie';
+  r = await call('POST', '/world-id/verify', { token: ta, body: selfie });
+  assert.equal(r.status, 400);
+  assert.equal(r.body.error, 'world_id_credential');
+
+  assert.equal((await call('POST', '/world-id/verify', { token: ta, body: fakeProof(nonce, alice.address) })).status, 200);
+  assert.equal((await call('POST', '/world-id/verify', { token: ta, body: fakeProof(nonce, alice.address) })).status, 200); // idempotent
+  assert.equal((await call('POST', '/world-id/verify', { token: tb, body: fakeProof(nonce + 1, bob.address) })).status, 200);
+  r = await call('POST', '/world-id/verify', { token: tm, body: fakeProof(nonce, mallory.address) }); // reuse Alice's human
   assert.equal(r.status, 409);
   assert.equal(r.body.error, 'world_id_already_used');
   step('one human ↔ one wallet enforced');

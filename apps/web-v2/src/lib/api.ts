@@ -1,9 +1,21 @@
 /**
- * Client for the NetPositive backend (Express + Firestore, `backend/` on backend-integration).
- * Data model: requests/{id} with the lifecycle below. See backend/README.md.
+ * One client for wallet sign-in, World ID, and the request book.
+ *
+ * POST /auth/nonce            { address } → { message }
+ * POST /auth/verify           { address, signature } → { token, user }
+ * GET  /auth/me               → { user }
+ * POST /world-id/rp-signature { action } → { sig, nonce, created_at, expires_at, rp_id? }
+ * POST /world-id/verify       { rp_id, idkitResponse } → { verified, user }
+ * GET  /requests              → { requests }
+ * GET  /requests/mine         → { asRequester, asFulfiller }
+ *
+ * In dev, leave VITE_API_URL empty. Vite proxies /api to the backend.
+ * Data model: requests/{id}. See backend/README.md.
  */
 
-export const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:8080").replace(/\/$/, "");
+const BASE = ((import.meta.env.VITE_API_URL as string | undefined) || "/api").replace(/\/$/, "");
+
+export const API_URL = BASE;
 
 /* ---------------------------------------------------------------- schema */
 
@@ -49,8 +61,8 @@ export type ApiUser = {
   address: string;
   worldIdNullifier: string | null;
   verificationLevel: string | null;
-  reputation: { completed: number; disputes: number; strikes: number };
-  banned: boolean;
+  reputation?: { completed: number; disputes: number; strikes: number };
+  banned?: boolean;
 };
 
 /** Backend brand ids (config.BRANDS) → frontend brand ids (lib/data.ts). */
@@ -69,26 +81,44 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: { method?: string; body?: object; token?: string | null } = {}): Promise<T> {
+type ApiOpts = { method?: string; body?: unknown; token?: string | null };
+
+async function call<T>(path: string, opts: ApiOpts = {}): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(API_URL + path, {
-      method: init.method ?? (init.body ? "POST" : "GET"),
+    res = await fetch(`${BASE}${path}`, {
+      method: opts.method ?? (opts.body === undefined ? "GET" : "POST"),
       headers: {
-        ...(init.body ? { "Content-Type": "application/json" } : {}),
-        ...(init.token ? { Authorization: `Bearer ${init.token}` } : {}),
+        ...(opts.body === undefined ? {} : { "content-type": "application/json" }),
+        ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
       },
-      body: init.body ? JSON.stringify(init.body) : undefined,
+      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
     });
   } catch {
-    throw new ApiError(0, "offline", "The NetPositive backend isn't reachable.");
+    throw new ApiError(0, "unreachable", "Couldn't reach the server. You can keep browsing. Posting and accepting stay locked.");
   }
+
   const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-  if (!res.ok) throw new ApiError(res.status, data.error ?? "error", data.message ?? `Request failed (${res.status})`);
+  if (!res.ok) {
+    throw new ApiError(res.status, data.error ?? "request_failed", data.message ?? "Request failed");
+  }
   return data as T;
 }
 
-export const api = {
+type ApiClient = {
+  <T>(path: string, opts?: ApiOpts): Promise<T>;
+  health: () => Promise<{ ok: boolean; escrowMode: string; worldIdMock: boolean }>;
+  nonce: (address: string) => Promise<{ message: string }>;
+  verify: (address: string, signature: string) => Promise<{ token: string; user: ApiUser }>;
+  me: (token: string) => Promise<{ user: ApiUser }>;
+  listOpen: (limit?: number) => Promise<{ requests: ApiRequest[] }>;
+  listMine: (token: string) => Promise<{ asRequester: ApiRequest[]; asFulfiller: ApiRequest[] }>;
+  get: (id: string) => Promise<{ request: ApiRequest }>;
+  cancel: (id: string, token: string) => Promise<{ request: ApiRequest }>;
+};
+
+/** Callable for World ID routes, with named methods for the order book and sign-in. */
+export const api: ApiClient = Object.assign(call, {
   health: () => call<{ ok: boolean; escrowMode: string; worldIdMock: boolean }>("/health"),
   nonce: (address: string) => call<{ message: string }>("/auth/nonce", { body: { address } }),
   verify: (address: string, signature: string) => call<{ token: string; user: ApiUser }>("/auth/verify", { body: { address, signature } }),
@@ -97,7 +127,7 @@ export const api = {
   listMine: (token: string) => call<{ asRequester: ApiRequest[]; asFulfiller: ApiRequest[] }>("/requests/mine", { token }),
   get: (id: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}`),
   cancel: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/cancel`, { method: "POST", body: {}, token }),
-};
+});
 
 /* --------------------------------------------------------------- display */
 
