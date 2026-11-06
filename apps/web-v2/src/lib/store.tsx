@@ -37,6 +37,8 @@ type Ctx = {
   apiUser: ApiUser | null;
   signingIn: boolean;
   signIn: () => Promise<string | null>;
+  /** Raw EIP-1193 request on the connected wallet. */
+  walletRequest: (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
   openWallet: () => void;
   closeWallet: () => void;
   connect: (w: WalletChoice) => Promise<boolean>;
@@ -185,6 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiUser,
       signingIn,
       signIn,
+      walletRequest: wallet.request,
       openWallet: () => {
         wallet.clearError();
         preloadConnectors();

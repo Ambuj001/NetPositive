@@ -11,6 +11,7 @@ const APP_LINKS = [
   { to: "/trade", label: "Trade" },
   { to: "/market", label: "Market" },
   { to: "/cards", label: "My cards" },
+  { to: "/dispute", label: "Dispute" },
 ];
 
 export function Shell() {

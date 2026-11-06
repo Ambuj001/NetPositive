@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, Check, Clock, LoaderCircle, PenLine, RefreshC
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Aurora, BrandMark, Button, cx } from "../components/ui";
+import { DisputeSection } from "../components/Dispute";
 import { api, brandIdFromApi, isFinal, STATUS, STEPS, stepIndex, type ApiRequest, type ReqStatus } from "../lib/api";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
@@ -246,6 +247,7 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
           )}
         </div>
       </div>
+      {r.live && <DisputeSection id={r.id} status={r.status} onChanged={onChanged} />}
     </motion.div>
   );
 }

@@ -398,9 +398,20 @@ export function useWallet() {
     [session, address],
   );
 
+  /** Raw EIP-1193 request on the connected wallet (for on-chain steps such as the dispute stake). */
+  const request = useCallback(
+    (args: { method: string; params?: unknown[] | object }) => {
+      const p = session?.provider;
+      if (!p) return Promise.reject(new Error("Connect a wallet first"));
+      return p.request(args);
+    },
+    [session],
+  );
+
   return {
     restoring,
     signMessage,
+    request,
     choices,
     address,
     chainId,
