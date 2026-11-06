@@ -1,8 +1,42 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ApiError, api, type ApiUser, type ReqStatus } from "./api";
 import { ORDERS, type Order } from "./data";
+import { CARDS, type Card as CardT } from "./engine";
 import { clearSession, readSession, writeSession } from "./session";
 import { chainName, preloadConnectors, shortAddr, useWallet, type ChainBalance, type WalletChoice } from "./wallet";
+
+const CARDS_KEY = (addr: string) => `netpositive:cards:${(addr || "guest").toLowerCase()}`;
+
+const num = (v: unknown, min: number, max: number) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
+/** Accepts only well-formed card profiles from storage; anything else falls back to the examples. */
+function isCard(c: unknown): c is CardT {
+  const x = c as CardT;
+  return (
+    !!x &&
+    typeof x.id === "string" &&
+    typeof x.issuer === "string" &&
+    typeof x.name === "string" &&
+    num(x.pointsPer, 0, 100) &&
+    num(x.spendUnit, 0.01, 100000) &&
+    num(x.travelValue, 0, 100) &&
+    num(x.statementValue, 0, 100) &&
+    num(x.bonusCap, 0, 10_000_000) &&
+    num(x.bonusUsed, 0, 10_000_000) &&
+    Array.isArray(x.channels) &&
+    x.channels.length > 0 &&
+    x.channels.every((ch) => typeof ch?.id === "string" && typeof ch.name === "string" && num(ch.multiplier, 0, 100) && num(ch.denomination, 1, 10_000_000))
+  );
+}
+function loadCards(addr: string): CardT[] {
+  try {
+    const raw = localStorage.getItem(CARDS_KEY(addr));
+    if (raw === null) return CARDS;
+    const v = JSON.parse(raw);
+    return Array.isArray(v) && v.every(isCard) ? v : CARDS;
+  } catch {
+    return CARDS;
+  }
+}
 
 type Toast = { id: number; title: string; body?: string; tone?: "mint" | "amber" | "iris" | "rose" };
 
@@ -45,6 +79,9 @@ type Ctx = {
   applySession: (address: string, token: string, verified: boolean) => void;
   postOrder: (o: Omit<Order, "id" | "postedMin" | "expiresMin" | "seller" | "sellerTrades" | "city">, lock: number) => Order;
   /** Records that I'm filling this order (adds it to the local book if it came from the API). */
+  /** Saved card reward profiles (issuer, variant, rates). Never card numbers. Saved per wallet in this browser. */
+  cards: CardT[];
+  setCards: (next: CardT[]) => void;
   acceptOrder: (o: Order) => void;
   toast: (t: Omit<Toast, "id">) => void;
   dismiss: (id: number) => void;
@@ -63,6 +100,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [apiUser, setApiUser] = useState<ApiUser | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const [cards, setCardsState] = useState<CardT[]>(() => loadCards(""));
+
+  // Each wallet has its own saved cards.
+  useEffect(() => setCardsState(loadCards(wallet.address)), [wallet.address]);
+  const setCards = useCallback(
+    (next: CardT[]) => {
+      setCardsState(next);
+      try {
+        localStorage.setItem(CARDS_KEY(wallet.address), JSON.stringify(next));
+      } catch {
+        /* storage blocked: keep for this session only */
+      }
+    },
+    [wallet.address],
+  );
   const sessionGen = useRef(0);
 
   const dismiss = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
@@ -202,10 +254,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           all.some((x) => x.id === o.id) ? all : [{ ...o, status: "accepted", role: "fulfiller", createdAt: new Date().toISOString() }, ...all],
         );
       },
+      cards,
+      setCards,
       toast,
       dismiss,
     }),
-    [wallet, balance, humanVerified, token, walletOpen, orders, myOrders, toasts, apiUser, signingIn, signIn, toast, dismiss, applySession],
+    [wallet, balance, humanVerified, token, walletOpen, orders, myOrders, toasts, apiUser, signingIn, signIn, toast, dismiss, applySession, cards, setCards],
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

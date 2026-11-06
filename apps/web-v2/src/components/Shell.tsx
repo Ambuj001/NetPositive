@@ -11,7 +11,10 @@ import { WalletLogo } from "./WalletLogos";
 
 const APP_LINKS = [
   { to: "/trade", label: "Trade" },
+  { to: "/market", label: "Market" },
+  { to: "/cards", label: "My cards" },
   { to: "/track", label: "Track" },
+  { to: "/dispute", label: "Dispute" },
 ];
 
 export function Shell() {

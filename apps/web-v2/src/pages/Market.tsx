@@ -1,222 +1,182 @@
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Clock, CreditCard, Search, ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Aurora, BrandMark, Button, Card, Counter, Pill, cx } from "../components/ui";
-import { brand } from "../lib/data";
-import { CARDS, effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
+import { ArrowUpRight, ChevronDown, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Aurora, BrandMark, cx } from "../components/ui";
+import { BRANDS, brand, type Order } from "../lib/data";
+import { bestReward, inr, quote, round2, usdt } from "../lib/engine";
+import { useOrderBook, type Source } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 
-const CATS = ["All", "Fashion", "Everything", "Electronics", "Travel", "Jewellery", "Food", "Beauty"];
-type Sort = "saving" | "size" | "new";
+type Sort = "rate" | "amount" | "newest";
+const SORTS: { id: Sort; label: string }[] = [
+  { id: "rate", label: "Best effective rate" },
+  { id: "amount", label: "Largest amount" },
+  { id: "newest", label: "Newest" },
+];
 
 export default function Market() {
-  const { orders } = useApp();
+  const { orders, source, reload } = useOrderBook();
+  const { cards, acceptOrder } = useApp();
   const nav = useNavigate();
-  const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<Sort>("saving");
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setTick((x) => x + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const [cat, setCat] = useState("All");
+  const [sort, setSort] = useState<Sort>("rate");
 
+  const cats = useMemo(() => ["All", ...Array.from(new Set(BRANDS.map((b) => b.category)))], []);
+
+  /** Each open order with what the buyer receives and their net INR/USDC after the best card reward (cash value). */
   const rows = useMemo(() => {
-    const enriched = orders.map((o) => {
-      const qt = quote(o.amount, o.rate);
-      const best = routesFor(o.amount)[0];
-      const eff = effectivePrice(o.amount, best.travelInr, qt.buyerReceives);
-      return { o, qt, best, eff, b: brand(o.brandId) };
-    });
-    return enriched
-      .filter((r) => (cat === "All" || r.b.category === cat) && (r.b.name + r.o.seller).toLowerCase().includes(q.toLowerCase()))
-      .sort((a, b) => (sort === "saving" ? b.best.pctTravel - a.best.pctTravel || a.eff - b.eff : sort === "size" ? b.o.amount - a.o.amount : a.o.postedMin - b.o.postedMin));
-  }, [orders, cat, q, sort]);
+    const needle = q.trim().toLowerCase();
+    const list = orders
+      .filter((o) => o.seller !== "you")
+      .filter((o) => {
+        const b = brand(o.brandId);
+        return (cat === "All" || b.category === cat) && (!needle || b.name.toLowerCase().includes(needle) || o.seller.toLowerCase().includes(needle));
+      })
+      .map((o) => {
+        const receive = quote(o.amount, o.rate).buyerReceives;
+        const { route, rewardInr } = bestReward(o.amount, cards, "cash");
+        return { o, receive, route, net: receive > 0 ? round2((o.amount - rewardInr) / receive) : null };
+      });
+    return list.sort((a, b) =>
+      sort === "rate"
+        ? (a.net ?? Infinity) - (b.net ?? Infinity)
+        : sort === "amount"
+          ? b.o.amount - a.o.amount
+          : a.o.postedMin - b.o.postedMin,
+    );
+  }, [orders, cards, q, cat, sort]);
 
-  const totalUsdt = rows.reduce((s, r) => s + r.qt.sellerLocks, 0);
-  const infinia = CARDS[0];
+  const open = (o: Order) => {
+    acceptOrder(o);
+    nav(`/trade/${o.id}`);
+  };
 
   return (
-    <div className="relative pt-32">
-      <Aurora className="h-[50vh] opacity-50" />
+    <div className="relative pt-32 pb-14">
+      <Aurora className="h-[45vh] opacity-40" />
       <div className="relative mx-auto max-w-6xl px-6">
-        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <Pill tone="amber">Buyer · wants crypto</Pill>
-            <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Buy USDC below market</h1>
-            <p className="mt-3 max-w-xl text-[15.5px] text-mute">
-              Every request is already locked in escrow. We rank each one against the cards saved on your device, so you see your real price per USDC.
-            </p>
+            <div className="label">Marketplace</div>
+            <h1 className="text-gradient mt-3 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Find your next match.</h1>
+            <p className="mt-3 text-[15px] text-mute">Voucher requests, ranked by your estimated cash-value rate.</p>
           </div>
-          <div className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/[0.06]">
-            {[
-              { k: "In escrow", v: <Counter value={totalUsdt} format={(n) => `${Math.round(n).toLocaleString("en-US")}`} />, s: "USDC" },
-              { k: "Open orders", v: <Counter value={rows.length} />, s: "live" },
-              { k: "Median fill", v: "4m 12s", s: "" },
-            ].map((x) => (
-              <div key={x.k} className="bg-ink-2 px-5 py-4">
-                <div className="label">{x.k}</div>
-                <div className="mt-1 font-display text-xl font-semibold tabular">
-                  {x.v} <span className="text-[11px] font-normal text-dim">{x.s}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <SourceTag source={source} onRetry={reload} />
+        </motion.div>
+
+        {/* search + sort */}
+        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+          <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-white/[0.03] px-4 ring-1 ring-white/10 transition focus-within:ring-mint/45">
+            <Search className="size-4 text-dim" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or sellers" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or sellers" />
+          </label>
+          <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-white/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-white/10 transition focus-within:ring-mint/45">
+            <SlidersHorizontal className="size-4 text-dim" />
+            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="appearance-none bg-transparent outline-none" aria-label="Sort orders">
+              {SORTS.map((s) => (
+                <option key={s.id} value={s.id} className="bg-ink-2">
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3.5 size-4 text-dim" />
+          </label>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_300px]">
-          <div>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-dim" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search brand or seller"
-                  className="h-11 w-full rounded-full bg-white/[0.03] pr-4 pl-11 text-[14px] ring-1 ring-white/[0.07] outline-none placeholder:text-dim focus:ring-amber/40"
-                />
-              </div>
-              <div className="flex rounded-full bg-white/[0.03] p-1 ring-1 ring-white/[0.07]">
-                {(
-                  [
-                    ["saving", "Best for me"],
-                    ["size", "Largest"],
-                    ["new", "Newest"],
-                  ] as [Sort, string][]
-                ).map(([k, l]) => (
-                  <button key={k} onClick={() => setSort(k)} className={cx("relative h-9 rounded-full px-4 text-[12.5px] transition", sort === k ? "text-ink" : "text-mute hover:text-fg")}>
-                    {sort === k && <motion.span layoutId="sort" className="absolute inset-0 rounded-full bg-amber" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
-                    <span className="relative">{l}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="scrollbar-none mt-4 flex gap-2 overflow-x-auto pb-1">
-              {CATS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCat(c)}
-                  className={cx("shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] ring-1 transition", cat === c ? "bg-white text-ink ring-white" : "text-mute ring-white/10 hover:text-fg")}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
+        {/* categories */}
+        <div className="scrollbar-none mt-4 flex gap-2 overflow-x-auto pb-1">
+          {cats.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCat(c)}
+              aria-pressed={cat === c}
+              className={cx("h-9 shrink-0 rounded-full px-4 text-[12.5px] ring-1 transition", cat === c ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
 
-            <div className="mt-6 hidden grid-cols-[1.6fr_1fr_1fr_1fr_120px] gap-4 px-5 pb-2 md:grid">
-              {["Voucher", "You receive", "Best route", "Your price", ""].map((h) => (
-                <span key={h} className="label">
-                  {h}
-                </span>
-              ))}
-            </div>
-            <motion.div layout className="space-y-2">
-              <AnimatePresence initial={false}>
-                {rows.map(({ o, qt, best, eff, b }, i) => {
-                  const secs = Math.max(0, o.expiresMin * 60 - tick);
-                  return (
-                    <motion.div
+        {/* order table */}
+        <div className="hairline mt-6 overflow-hidden rounded-[24px] bg-ink-2/70 backdrop-blur-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-[13.5px]">
+              <thead>
+                <tr className="border-b border-white/[0.06] bg-white/[0.015] text-left text-[11.5px] text-dim">
+                  <th className="px-6 py-4 font-normal">Voucher</th>
+                  <th className="px-4 py-4 font-normal">Value</th>
+                  <th className="px-4 py-4 font-normal">You receive</th>
+                  <th className="px-4 py-4 font-normal">Net rate</th>
+                  <th className="w-14 px-6 py-4" />
+                </tr>
+              </thead>
+              <tbody>
+                <AnimatePresence initial={false}>
+                  {rows.map(({ o, receive, route, net }) => (
+                    <motion.tr
                       key={o.id}
                       layout
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      onClick={() => nav(`/trade/${o.id}`)}
-                      className="group hairline relative grid cursor-pointer grid-cols-2 items-center gap-4 rounded-2xl bg-ink-2/70 p-4 transition hover:bg-white/[0.035] md:grid-cols-[1.6fr_1fr_1fr_1fr_120px] md:px-5"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => open(o)}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(o))}
+                      tabIndex={0}
+                      aria-label={`Open ${brand(o.brandId).name} ${inr(o.amount)} order`}
+                      className="group cursor-pointer border-b border-white/[0.05] transition outline-none last:border-0 hover:bg-white/[0.03] focus-visible:bg-white/[0.04]"
                     >
-                      <div className="col-span-2 flex items-center gap-3 md:col-span-1">
-                        <BrandMark id={o.brandId} size={42} />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[15px] font-semibold">{b.name}</span>
-                            <span className="font-display text-[15px] font-semibold tabular text-fg/80">{inr(o.amount)}</span>
-                            {o.seller === "you" && <Pill tone="mint">yours</Pill>}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-dim">
-                            <ShieldCheck className="size-3 text-mint" />
-                            <span className="font-mono">{o.seller}</span>· {o.sellerTrades} trades · ₹{o.rate}/USDC
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="label md:hidden">You receive</div>
-                        <div className="text-[15px] font-semibold tabular">{usdt(qt.buyerReceives)} <span className="text-[11px] text-dim">USDC</span></div>
-                      </div>
-                      <div>
-                        <div className="label md:hidden">Best route</div>
-                        <div className="flex items-center gap-1.5 text-[13px]">
-                          <CreditCard className="size-3.5 text-amber" />
-                          <span className="truncate text-mute">{best.channel.name}</span>
-                        </div>
-                        <div className="text-[13px] font-semibold text-amber tabular">+{best.pctTravel.toFixed(1)}%</div>
-                      </div>
-                      <div>
-                        <div className="label md:hidden">Your price</div>
-                        <div className="font-display text-[18px] font-semibold tabular">₹{eff.toFixed(2)}</div>
-                        <div className="flex items-center gap-1 font-mono text-[10.5px] text-dim">
-                          <Clock className="size-3" /> {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}
-                        </div>
-                      </div>
-                      <div className="col-span-2 md:col-span-1 md:text-right">
-                        <span className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-white/[0.05] px-4 text-[13px] font-medium ring-1 ring-white/10 transition group-hover:bg-amber group-hover:text-ink group-hover:ring-amber md:w-auto">
-                          Fill <ArrowRight className="size-3.5" />
+                      <td className="px-6 py-4">
+                        <span className="flex items-center gap-3.5">
+                          <BrandMark id={o.brandId} size={38} />
+                          <span>
+                            <span className="block font-medium">{brand(o.brandId).name}</span>
+                            <span className="block font-mono text-[11px] text-dim">{o.seller}</span>
+                          </span>
                         </span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-              {rows.length === 0 && <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center text-mute">No orders match. Try another category.</div>}
-            </motion.div>
+                      </td>
+                      <td className="px-4 py-4 tabular">{inr(o.amount)}</td>
+                      <td className="px-4 py-4 tabular">
+                        {usdt(receive)} <span className="text-[10px] text-dim">USDC</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="block font-medium text-mint tabular">{net === null ? "—" : `₹${net.toFixed(2)}`}</span>
+                        <span className="block text-[11px] text-dim">{route ? `${route.cardLabel} · ${route.channel.name}` : "Add a card to rank"}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <ArrowUpRight className="ml-auto size-4 text-dim transition group-hover:text-mint" />
+                      </td>
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              </tbody>
+            </table>
           </div>
-
-          <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
-            <Card glow="rgba(245,181,68,0.1)" className="p-5">
-              <div className="flex items-center justify-between">
-                <span className="label">Ranking with</span>
-                <Link to="/cards" className="flex items-center gap-1 text-[12px] text-mute hover:text-fg">
-                  Manage <ArrowUpRight className="size-3" />
-                </Link>
-              </div>
-              <div className={cx("relative mt-4 aspect-[1.586] overflow-hidden rounded-2xl bg-gradient-to-br p-4 ring-1 ring-white/10", infinia.gradient)}>
-                <div className="absolute -top-10 -right-10 size-40 rounded-full bg-white/5 blur-2xl" />
-                <div className="flex justify-between font-mono text-[10px] uppercase tracking-widest text-white/50">
-                  <span>{infinia.issuer}</span>
-                  <span>Metal</span>
-                </div>
-                <div className="absolute bottom-4 left-4">
-                  <div className="font-display text-xl font-semibold">{infinia.name}</div>
-                  <div className="font-mono text-[10px] text-white/40">no card number stored</div>
-                </div>
-              </div>
-              <div className="mt-4">
-                <div className="flex justify-between text-[12px]">
-                  <span className="text-mute">SmartBuy bonus left</span>
-                  <span className="tabular">3,000 / 3,000</span>
-                </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                  <motion.div className="h-full rounded-full bg-amber" initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }} />
-                </div>
-                <p className="mt-3 text-[11.5px] leading-relaxed text-dim">Resets on the 1st. Orders above ~₹22,500 hit the cap and drop to base rate.</p>
-              </div>
-            </Card>
-            <Card className="p-5">
-              <div className="flex items-center gap-2 text-[13.5px] font-medium">
-                <BadgeCheck className="size-4 text-mint" /> Why it's safe to fill
-              </div>
-              <ul className="mt-3 space-y-2.5 text-[12.5px] leading-relaxed text-mute">
-                <li>Seller's USDC is already in escrow before you see the order.</li>
-                <li>You only spend on your card after accepting, and the contract holds the USDC for you.</li>
-                <li>Payout follows the verifier's signed pass, or 30 min after it automatically.</li>
-              </ul>
-            </Card>
-            <Button variant="outline" className="w-full" to="/trade/VR-24817">
-              Watch the demo trade
-            </Button>
-          </aside>
+          {rows.length === 0 && <div className="py-14 text-center text-[13.5px] text-mute">{source === "loading" ? "Loading orders…" : "No vouchers match your search."}</div>}
         </div>
+        <p className="mt-4 text-[11.5px] text-dim">Rewards use illustrative card rates and statement-credit values. Compare live issuer terms before buying.</p>
       </div>
     </div>
   );
+}
+
+function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void }) {
+  if (source === "live")
+    return (
+      <span className="flex w-fit items-center gap-1.5 rounded-full bg-mint/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-mint uppercase ring-1 ring-mint/25">
+        <span className="size-1.5 animate-pulse rounded-full bg-mint" /> Live order book
+      </span>
+    );
+  if (source === "demo")
+    return (
+      <button
+        onClick={onRetry}
+        title="Backend not reachable. Showing sample orders. Click to retry."
+        className="flex w-fit items-center gap-1.5 rounded-full bg-amber/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-amber uppercase ring-1 ring-amber/25 transition hover:bg-amber/15"
+      >
+        Sample order book <RefreshCw className="size-3" />
+      </button>
+    );
+  return null;
 }
