@@ -8,7 +8,10 @@ const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    fs: { allow: [repoRoot] },
+    // Always 5173. If something already holds it, fail loudly instead of quietly moving to 5174
+    // (the backend's CORS list and the wallet/World ID setup expect 5173).
+    port: 5173,
+    strictPort: true,
     proxy: {
       // Frontend calls /api/*. The backend serves those routes at the root.
       "/api": {
