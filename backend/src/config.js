@@ -34,6 +34,11 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_TTL: z.string().default('12h'),
   VOUCHER_ENC_KEY: z.string().regex(/^[0-9a-fA-F]{64}$/, 'VOUCHER_ENC_KEY must be 64 hex chars (32 bytes)'),
+  // How voucher codes may be submitted: 'sealed' = only client-side-encrypted envelopes (server never sees a code),
+  // 'legacy' = plaintext over TLS, encrypted at rest with VOUCHER_ENC_KEY, 'both' = either (migration).
+  VOUCHER_MODE: z.enum(['legacy', 'both', 'sealed']).default('both'),
+  // Optional X25519 public key (64 hex) of the offline dispute key. If set, sealed vouchers must also be sealed to it.
+  ADMIN_VAULT_PUBLIC_KEY: z.string().regex(/^([0-9a-fA-F]{64})?$/, 'ADMIN_VAULT_PUBLIC_KEY must be 64 hex chars').optional().default('').transform((v) => v.toLowerCase()),
   ADMIN_ADDRESSES: csv.transform((list) => list.map((a) => a.toLowerCase())),
   CRON_SECRET: z.string().optional().default(''),
   SWEEP_INTERVAL_SECONDS: z.coerce.number().int().min(0).default(60),

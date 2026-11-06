@@ -76,12 +76,19 @@ router.post('/:id/accept', requireAuth, requireHuman, async (req, res) => {
   res.json({ request: await svc.acceptRequest(req.params.id, req.user.address) });
 });
 
-/** POST /requests/:id/submit-code { code, pin? } → stored encrypted; review window starts */
+/**
+ * POST /requests/:id/submit-code  { code, pin? }  (legacy plaintext)  OR  { sealed }  (envelope from vault-sdk, sealed in the
+ * fulfiller's browser to the requester's vault key: the server never sees the code). Allowed forms depend on VOUCHER_MODE.
+ * Review window starts.
+ */
 router.post(
   '/:id/submit-code',
   requireAuth,
   requireHuman,
-  validate(z.object({ code: z.string().trim().min(4).max(128), pin: z.string().trim().max(32).optional() })),
+  validate(z.union([
+    z.object({ code: z.string().trim().min(4).max(128), pin: z.string().trim().max(32).optional() }).strict(),
+    z.object({ sealed: z.any() }).strict(),
+  ])),
   async (req, res) => {
     res.json({ request: await svc.submitCode(req.params.id, req.user.address, req.body) });
   },
