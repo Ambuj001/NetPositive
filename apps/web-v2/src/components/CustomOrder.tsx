@@ -24,7 +24,7 @@ export function CustomOrder() {
   const lock = useLockOrder();
   const [type, setType] = useState<OrderType>("market");
   const [placeId, setPlaceId] = useState<(typeof PLACES)[number]["id"]>(PLACES[0].id);
-  const [amount, setAmount] = useState<number>(AMOUNTS[1].inr);
+  const [amount, setAmount] = useState<number>(500);
   const [limit, setLimit] = useState(RATE);
   const [review, setReview] = useState(false);
   const [calcOpen, setCalcOpen] = useState(true);
@@ -225,13 +225,13 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
         />
         <span className="text-[12px] text-dim">INR</span>
       </label>
-      <div className="mt-2.5 grid grid-cols-4 gap-2">
+      <div className="mt-2.5 grid grid-cols-5 gap-1.5">
         {AMOUNTS.map((a) => (
           <button
             key={a.label}
             type="button"
             onClick={() => onChange(a.inr)}
-            className={cx("h-9 rounded-xl text-[12.5px] ring-1 transition tabular", value === a.inr ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
+            className={cx("h-9 rounded-xl text-[12px] ring-1 transition tabular", value === a.inr ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
             title={a.inr === ONE_USD_INR ? `$1 test voucher (${inr(ONE_USD_INR)})` : undefined}
           >
             {a.label}

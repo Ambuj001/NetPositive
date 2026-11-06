@@ -153,14 +153,13 @@ type ApiClient = {
   /** Settle: the spender confirms the voucher works and the escrow releases the USDC to the buyer on-chain. */
   confirm: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   dispute: (id: string, reason: string, token: string) => Promise<{ request: ApiRequest }>;
-  /** The voucher for the spender: `code`/`pin` for legacy vouchers, `sealed` when it is locked to their vault key. */
-  voucher: (id: string, token: string) => Promise<{ voucher: { requestId: string; brand: string; code?: string; pin?: string | null; sealed?: unknown } }>;
   /** Buy requests that fit an amount. With a brand: same voucher or no voucher. Without: amount only. */
   matchBuyIntents: (amountInr: number, brand?: string) => Promise<{ intents: BuyIntent[] }>;
   myBuyIntent: (token: string) => Promise<{ intent: BuyIntent | null }>;
   /** Create or replace my buy request. `voucher` null means none. */
   postBuyIntent: (body: { amountInr: number; voucher: string | null }, token: string) => Promise<{ intent: BuyIntent }>;
   withdrawBuyIntent: (token: string) => Promise<{ ok: boolean }>;
+  /** The voucher for the spender: `code`/`pin` for legacy vouchers, `sealed` when it is locked to their vault key. */
   voucher: (id: string, token: string) => Promise<{ voucher: VoucherPayload }>;
   vaultConfig: () => Promise<VaultConfig>;
   putVaultKey: (body: { publicKey: string; signature: string }, token: string) => Promise<{ key: VaultKeyRecord }>;

@@ -26,6 +26,7 @@ export const PLACES = [
 export type Place = (typeof PLACES)[number];
 export const AMOUNTS = [
   { inr: ONE_USD_INR, label: "$1" },
+  { inr: 250, label: "₹250" },
   { inr: 500, label: "₹500" },
   { inr: 1000, label: "₹1,000" },
   { inr: 2000, label: "₹2,000" },
@@ -146,7 +147,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
       const n = Number(text.replace(/[₹,\s$]/g, ""));
       const opt = AMOUNTS.find((a) => a.inr === n);
       if (opt) return void pickAmount(opt.inr);
-      push(bot(say("Pick ₹500, ₹1,000, ₹2,000, or $1.")));
+      push(bot(say("Pick ₹250, ₹500, ₹1,000, ₹2,000, or $1.")));
     }
   };
 
@@ -248,7 +249,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={step === "place" ? "Where do you want to spend?" : step === "amount" ? "Type 500, 1000, 2000, or $1" : "This order is set."}
+              placeholder={step === "place" ? "Where do you want to spend?" : step === "amount" ? "Type 250, 500, 1000, 2000, or $1" : "This order is set."}
               maxLength={500}
               disabled={step === "matched" || step === "posted"}
               className="h-10 flex-1 bg-transparent text-[14.5px] outline-none placeholder:text-dim disabled:cursor-not-allowed"
