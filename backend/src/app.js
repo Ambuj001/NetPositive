@@ -9,6 +9,7 @@ import requestRoutes from './routes/requests.js';
 import disputeRoutes from './routes/disputes.js';
 import cardRoutes from './routes/cards.js';
 import vaultRoutes from './routes/vault.js';
+import buyIntentRoutes from './routes/buyIntents.js';
 import internalRoutes from './routes/internal.js';
 
 export function createApp() {
@@ -23,6 +24,7 @@ export function createApp() {
   app.use('/world-id', worldIdRoutes);
   app.use('/requests', disputeRoutes); // before requestRoutes: owns /:id/dispute*, /:id/evidence*, /:id/resolve
   app.use('/requests', requestRoutes);
+  app.use('/buy-intents', buyIntentRoutes);
   app.use('/cards', cardRoutes);
   app.use('/vault', vaultRoutes);
   app.use('/internal', internalRoutes);

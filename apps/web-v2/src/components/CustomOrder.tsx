@@ -6,6 +6,7 @@ import { AMOUNTS, PLACES, RATE, ReviewModal, amountLabel } from "../pages/Spend"
 import { inr, quote, usdt } from "../lib/engine";
 import { useLockOrder } from "../lib/lockOrder";
 import { useApp } from "../lib/store";
+import { RecommendedBuyers } from "./BuyRequest";
 import { BrandMark, Button, cx } from "./ui";
 
 /** Largest voucher the order API accepts. */
@@ -23,7 +24,7 @@ export function CustomOrder() {
   const lock = useLockOrder();
   const [type, setType] = useState<OrderType>("market");
   const [placeId, setPlaceId] = useState<(typeof PLACES)[number]["id"]>(PLACES[0].id);
-  const [amount, setAmount] = useState<number>(AMOUNTS[1].inr);
+  const [amount, setAmount] = useState<number>(500);
   const [limit, setLimit] = useState(RATE);
   const [review, setReview] = useState(false);
   const [calcOpen, setCalcOpen] = useState(true);
@@ -36,6 +37,14 @@ export function CustomOrder() {
   const q = quote(validAmount ? amount : 0, validRate ? rate : 1);
   const ready = validAmount && validRate && q.sellerLocks > 0;
   const hint = !validAmount ? `Enter a whole-rupee amount up to ${inr(MAX_INR)}.` : !validRate ? "Enter a rate between ₹1 and ₹1,000 per USDC." : "Preview only · no funds move until you lock";
+
+  /** Open the review for the store and amount entered. Used by the button and by picking a recommended buyer. */
+  const startReview = () => {
+    if (!address) return openWallet();
+    setSavedLocally(null);
+    lock.reset();
+    setReview(true);
+  };
 
   const confirm = async () => {
     if (!ready || lock.phase) return;
@@ -57,6 +66,10 @@ export function CustomOrder() {
       <VoucherPicker value={placeId} onChange={(id) => setPlaceId(id as typeof placeId)} />
       <AmountField label="Voucher value" value={amount} onChange={setAmount} />
       {type === "limit" ? <LimitField label="Your rate" value={limit} onChange={setLimit} /> : <p className="mt-3 text-[11.5px] text-dim">Market rate: ₹{RATE.toFixed(2)} / USDC.</p>}
+
+      {/* Buy requests (Firestore `buyIntents`) that match the store and amount entered above: same amount, and the same
+          voucher or no voucher. It follows the inputs live. */}
+      <RecommendedBuyers amount={validAmount ? amount : 0} brandId={place.api} brandName={place.label} className="mt-5" onPick={startReview} pickDisabled={!ready || !!lock.phase} />
 
       <Divider />
 
@@ -89,12 +102,7 @@ export function CustomOrder() {
         className="mt-5 w-full"
         size="lg"
         disabled={!ready}
-        onClick={() => {
-          if (!address) return openWallet();
-          setSavedLocally(null);
-          lock.reset();
-          setReview(true);
-        }}
+        onClick={startReview}
         icon={<ArrowRight className="size-4" />}
       >
         {address ? "Review order" : "Connect to review"}
@@ -221,13 +229,13 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
         />
         <span className="text-[12px] text-dim">INR</span>
       </label>
-      <div className="mt-2.5 grid grid-cols-4 gap-2">
+      <div className="mt-2.5 grid grid-cols-5 gap-1.5">
         {AMOUNTS.map((a) => (
           <button
             key={a.label}
             type="button"
             onClick={() => onChange(a.inr)}
-            className={cx("h-9 rounded-xl text-[12.5px] ring-1 transition tabular", value === a.inr ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
+            className={cx("h-9 rounded-xl text-[12px] ring-1 transition tabular", value === a.inr ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
           >
             {a.label}
           </button>

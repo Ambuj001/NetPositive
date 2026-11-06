@@ -68,6 +68,18 @@ export type ApiRequest = {
   lastError?: string | null;
 };
 
+/** A crypto buyer's standing "I want to buy USDC for this amount" (Firestore `buyIntents/{address}`). */
+export type BuyIntent = {
+  id: string;
+  /** Wallet that wants the USDC. */
+  crypto_buyer: string;
+  amountInr: number;
+  /** Backend brand id of the voucher they would use, or null for "none": any voucher will do. */
+  voucher: string | null;
+  createdAt: string | null;
+  expiresAt: string | null;
+};
+
 export type ApiUser = {
   address: string;
   worldIdNullifier: string | null;
@@ -149,6 +161,12 @@ type ApiClient = {
   /** Settle: the spender confirms the voucher works and the escrow releases the USDC to the buyer on-chain. */
   confirm: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   dispute: (id: string, reason: string, token: string) => Promise<{ request: ApiRequest }>;
+  /** Buy requests that fit an amount. With a brand: same voucher or no voucher. Without: amount only. */
+  matchBuyIntents: (amountInr: number, brand?: string) => Promise<{ intents: BuyIntent[] }>;
+  myBuyIntent: (token: string) => Promise<{ intent: BuyIntent | null }>;
+  /** Create or replace my buy request. `voucher` null means none. */
+  postBuyIntent: (body: { amountInr: number; voucher: string | null }, token: string) => Promise<{ intent: BuyIntent }>;
+  withdrawBuyIntent: (token: string) => Promise<{ ok: boolean }>;
   /** The voucher for the spender: `code`/`pin` for legacy vouchers, `sealed` when it is locked to their vault key. */
   voucher: (id: string, token: string) => Promise<{ voucher: VoucherPayload }>;
   vaultConfig: () => Promise<VaultConfig>;
@@ -219,6 +237,14 @@ export const api: ApiClient = Object.assign(call, {
     call<{ key: VaultKeyRecord }>(`/vault/key/${encodeURIComponent(address)}`, { token }),
   submitCode: (id: string, body: { sealed: unknown } | { code: string; pin?: string }, token: string) =>
     call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/submit-code`, { method: "POST", body, token }),
+  matchBuyIntents: (amountInr: number, brand?: string) => {
+    const q = new URLSearchParams({ amountInr: String(amountInr) });
+    if (brand) q.set("brand", brand);
+    return call<{ intents: BuyIntent[] }>(`/buy-intents?${q}`);
+  },
+  myBuyIntent: (token: string) => call<{ intent: BuyIntent | null }>("/buy-intents/mine", { token }),
+  postBuyIntent: (body: { amountInr: number; voucher: string | null }, token: string) => call<{ intent: BuyIntent }>("/buy-intents", { body, token }),
+  withdrawBuyIntent: (token: string) => call<{ ok: boolean }>("/buy-intents/mine", { method: "DELETE", token }),
 });
 
 /* --------------------------------------------------------------- display */
