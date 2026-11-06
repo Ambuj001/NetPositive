@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+import {test} from 'node:test'
+const upstream=readFileSync(new URL('./fixtures/backend-ui-Assistant.tsx',import.meta.url),'utf8')
+const actual=readFileSync(new URL('../src/components/UpstreamAssistant.tsx',import.meta.url),'utf8')
+const normalize=(s:string)=>s.replace(/\s+/g,'')
+function handler(source:string,name:string,next:string){const start=source.indexOf(`  const ${name} =`),end=source.indexOf(`  const ${next} =`);assert.ok(start>=0&&end>start);return source.slice(start,end)}
+const adapted=actual.replace('    onStore(t);\n','').replace('      onDraft(d);\n','').replaceAll('      syncAssistantCards(r.portfolio);\n','').replace('    const b = { ...brand(o.brandId), name: o.brandName || brand(o.brandId).name };\n    onRequest(orderId);','    const b = brand(o.brandId);')
+for(const [name,next] of [['search','pickStore'],['pickStore','setAmount'],['addCard','removeCard'],['removeCard','showRequests'],['showRequests','pickRequest'],['pickRequest','askAi'],['askAi','retry'],['retry','submit']] as const){
+ test(`original ${name} conversation behavior is unchanged apart from UI synchronization`,()=>assert.equal(normalize(handler(adapted,name,next)),normalize(handler(upstream,name,next))))
+}
+test('original amount validation, draft payload and confirm transition are preserved',()=>assert.equal(normalize(actual.slice(actual.indexOf('  const setAmount ='),actual.indexOf('  const lock =')).replace('      onDraft(d);\n','')),normalize(upstream.slice(upstream.indexOf('  const setAmount ='),upstream.indexOf('  const lock =')))))
+test('original input dispatch, quick replies, placeholders and active-block rules are preserved',()=>{const start='  const submit =';const end='  return (\n    <div className=';assert.equal(normalize(actual.slice(actual.indexOf(start),actual.indexOf(end,actual.indexOf(start)))),normalize(upstream.slice(upstream.indexOf(start),upstream.indexOf(end,upstream.indexOf(start)))))})
+test('chat has only the original block types and never embeds voucher-entry or tracking screens',()=>{assert.equal(normalize(actual.slice(actual.indexOf('type Block ='),actual.indexOf('type Msg ='))),normalize(upstream.slice(upstream.indexOf('type Block ='),upstream.indexOf('type Msg ='))));assert.ok(!actual.includes('OrderLifecycle'));assert.ok(!actual.includes('VoucherDetails'));assert.ok(actual.includes('onOpenTrade={onOpenTrade}'))})
+test('original greeting, service checks, typing and message scrolling are preserved',()=>{const start='  const role =',end='  const search =';assert.equal(normalize(actual.slice(actual.indexOf(start),actual.indexOf(end))),normalize(upstream.slice(upstream.indexOf(start),upstream.indexOf(end))))})
+test('original recommendation cards, buttons, links and block renderer are preserved',()=>{const render=actual.slice(actual.indexOf('function BlockView(')).replace('Escrow funding and delivery continue in the trade view.','Released only after a signed voucher check. Back to you automatically if nobody fills it in 30 min.').replace('Request {b.orderId}</div>','Request {b.orderId} is live</div>');assert.equal(normalize(render),normalize(upstream.slice(upstream.indexOf('function BlockView('))))})

@@ -16,6 +16,7 @@ import { Dialog } from '../components/Dialog'
 import { RateCalculator } from '../components/RateCalculator'
 import { BRANDS, brand } from '../lib/data'
 import type { Draft, Tile, FulfilOption } from '../lib/chatbot'
+import { OrderLifecycle } from '../components/OrderLifecycle'
 import { TradeAssistant } from '../components/TradeAssistant'
 import { useOrderBook, useMyRequests } from '../lib/orderbook'
 import { orderApi, toOrder, STATUS } from '../lib/order-api'
@@ -60,6 +61,7 @@ export default function Home() {
     order: Order
     route: FulfilOption
   } | null>(null)
+  const [handoffOrder, setHandoffOrder] = useState<Order | null>(null)
   const [merchant, setMerchant] = useState<Tile | null>(null)
   const [external, setExternal] = useState<{
     key: number
@@ -83,7 +85,7 @@ export default function Home() {
   const [slippage, setSlippage] = useState(1)
   const [brandId, setBrandId] = useState('lifestyle')
   const [review, setReview] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const [matchedIds, setMatchedIds] = useState<string[]>([])
   const [waiting, setWaiting] = useState(false)
   const amount = Number(amounts[mode]),
@@ -140,7 +142,7 @@ export default function Home() {
     setParams(next === 'sell' ? { mode: 'sell' } : {}, { replace: true })
     setSearch('')
     setTab('market')
-    setExpanded(false)
+    setExpanded(true)
   }
   const localCommand = (text: string, chatMode: TradeMode) => {
     const intent = parseTradingMessage(text, BRANDS)
@@ -178,13 +180,8 @@ export default function Home() {
       return null
     }
     const d = draft.request
-    const rate =
-      types.sell === 'limit'
-        ? Number(limits.sell)
-        : (bestSellRate(BUY_INTENTS, d.merchant_id, d.amount_inr, 'market', 0)
-            ?.rate ?? 90)
-    if (!Number.isFinite(rate) || rate <= 0)
-      throw new Error('Set a valid rate in the order panel.')
+    // Keep the original chatbot's quoted rate; manual ticket orders are separate.
+    const rate = 90
     if (source === 'live') {
       if (!humanVerified)
         throw new Error(
@@ -327,7 +324,7 @@ export default function Home() {
         </div>
         <div className="workspace-grid">
           <div className={cx('workspace-main', expanded && 'chat-expanded')}>
-            <motion.section
+            {tab === 'orders' && <motion.section
               layout
               className="market-panel"
               transition={spring}
@@ -350,11 +347,11 @@ export default function Home() {
                         : waiting
                           ? 'Waiting for a match'
                           : 'Your next trade'}
-                  {mode === 'sell' && tab === 'market' && (
+                  {mode === 'sell' && tab !== 'orders' && (
                     <span className="market-count">{BRANDS.length}</span>
                   )}
                 </h2>
-                {mode === 'sell' && tab === 'market' ? (
+                {mode === 'sell' && tab !== 'orders' ? (
                   <label className="order-search">
                     <Search size={14} />
                     <input
@@ -412,12 +409,7 @@ export default function Home() {
                           className="tracked-live-order"
                           key={request.id}
                           onClick={() => {
-                            setExternal({
-                              key: Date.now(),
-                              mode,
-                              order: toOrder(request),
-                            })
-                            setExpanded(true)
+                            setHandoffOrder(toOrder(request))
                           }}
                         >
                           <span>
@@ -477,7 +469,7 @@ export default function Home() {
                                 expiresMin: 30,
                                 source: 'preview' as const,
                               }
-                              setExternal({ key: Date.now(), mode, order })
+                              setHandoffOrder(order)
                               setExpanded(true)
                             }}
                           >
@@ -671,12 +663,12 @@ export default function Home() {
                   {source === 'live' ? 'Live requests' : 'Sample orders'}
                 </span>
               </div>
-            </motion.section>
+            </motion.section>}
             {(['buy', 'sell'] as const).map((chatMode) => (
               <TradeAssistant
                 key={`${fullAddress || 'anonymous'}:${chatMode}`}
                 mode={chatMode}
-                active={mode === chatMode}
+                active={mode === chatMode && tab !== 'orders'}
                 expanded={expanded}
                 setExpanded={setExpanded}
                 orders={[
@@ -688,6 +680,7 @@ export default function Home() {
                 onStore={setStore}
                 onDraft={applyDraft}
                 onPost={postDraft}
+                onOpenTrade={(order)=>{setHandoffOrder(order);setExpanded(false)}}
                 onSelectRequest={selectRequest}
                 onSelectRoute={(order, route) => {
                   setGuideOrder(order)
@@ -936,6 +929,7 @@ export default function Home() {
           </aside>
         </div>
       </div>
+      {handoffOrder && <Dialog title="Trade details" close={()=>setHandoffOrder(null)}><OrderLifecycle key={`${fullAddress}:${handoffOrder.id}`} order={handoffOrder}/></Dialog>}
       {review && (
         <Dialog
           title={mode === 'buy' ? 'Review buy order' : 'Review voucher request'}

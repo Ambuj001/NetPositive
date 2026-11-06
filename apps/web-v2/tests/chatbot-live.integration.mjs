@@ -1,74 +1,22 @@
 import assert from 'node:assert/strict'
-import { AssistantFlow } from '../src/lib/assistant-flow.ts'
-import { chatbot } from '../src/lib/chatbot.ts'
-const id = `integration_${Date.now()}`
-let draft
-const bridge = {
-  onStore() {},
-  onDraft(value) {
-    draft = value
-  },
-  onPost: async () => 'preview-integration',
-  onRequest: () => ({
-    brand: draft.request.voucher_brand,
-    amount: draft.request.amount_inr,
-  }),
-  onPortfolio() {},
-  localCommand: () => null,
-}
+import {chatbot} from '../src/lib/chatbot.ts'
+const id=`integration_${Date.now()}`
 try {
-  const seller = new AssistantFlow('sell', `${id}_seller`, bridge)
-  await seller.start()
-  assert.equal(seller.state.online, true)
-  await seller.search('Nike shoes from Amazon')
-  const tiles = seller.state.messages
-    .at(-1)
-    .blocks.find((b) => b.kind === 'tiles')
-  assert.ok(tiles)
-  const store = tiles.data.selected || tiles.data.tiles?.[0]
-  assert.ok(store)
-  seller.pickStore(store)
-  await seller.send('5.5k')
-  assert.equal(seller.state.step, 'confirm')
-  assert.equal(draft.request.amount_inr, 5500)
-  assert.equal(
-    draft.request.suggested_split.reduce((a, b) => a + b, 0),
-    5500,
-  )
-  await seller.post()
-  assert.equal(seller.state.step, 'posted')
-  console.log(
-    'PASS real merchant search → store → amount → draft → preview-post callback',
-  )
-  const buyer = new AssistantFlow('buy', id, bridge)
-  await buyer.start()
-  assert.equal(buyer.state.online, true)
-  await buyer.addCard('HDFC Infinia')
-  assert.deepEqual(buyer.state.portfolio, ['HDFC Infinia'])
-  buyer.showRequests()
-  await buyer.pickRequest('sample-request')
-  const result = buyer.state.messages
-    .at(-1)
-    .blocks.find((b) => b.kind === 'options')
-  assert.ok(result?.data.options.length)
-  assert.equal(result.data.options[0].best, true)
-  assert.ok(
-    result.data.options.every((o) => buyer.state.portfolio.includes(o.card)),
-  )
-  assert.equal(result.data.must_match.total_amount_inr, 5500)
-  assert.ok(result.data.options[0].source)
-  assert.ok(result.data.options[0].checked_on)
-  buyer.chooseRoute('sample-request', result.data.options[0])
-  assert.equal(buyer.state.step, 'purchase')
-  console.log(
-    'PASS real buyer portfolio → owned-card ranking → source dates → route selection',
-  )
-  await buyer.removeCard('HDFC Infinia')
-  assert.equal(buyer.state.portfolio.length, 0)
-  console.log('PASS real portfolio removal')
-} finally {
-  const portfolio = await chatbot.portfolio(id).catch(() => ({ cards: [] }))
-  for (const card of portfolio.cards) await chatbot.removeCard(id, card)
-  await chatbot.reset(id, 'buyer').catch(() => {})
-  await chatbot.reset(`${id}_seller`, 'seller').catch(() => {})
-}
+ assert.equal((await chatbot.health()).ok,true)
+ const search=await chatbot.suggest('Nike shoes from Amazon')
+ const store=search.selected||search.tiles?.[0];assert.ok(store)
+ const draft=await chatbot.draft(store.merchant_id,5500,search.item)
+ assert.equal(draft.request.amount_inr,5500)
+ assert.equal(draft.request.suggested_split.reduce((a,b)=>a+b,0),5500)
+ console.log('PASS original seller endpoint sequence: suggest → pick store → draft')
+ await chatbot.addCard(id,'HDFC Infinia')
+ const pf=await chatbot.portfolio(id);assert.deepEqual(pf.cards,['HDFC Infinia'])
+ const fulfil=await chatbot.fulfil(id,draft.request.voucher_brand,draft.request.amount_inr)
+ assert.ok(fulfil.options.length);assert.equal(fulfil.options[0].best,true)
+ assert.ok(fulfil.options.every(o=>pf.cards.includes(o.card)))
+ assert.equal(fulfil.must_match.total_amount_inr,5500)
+ assert.ok(fulfil.options[0].source);assert.ok(fulfil.options[0].checked_on)
+ console.log('PASS original buyer endpoint sequence: portfolio → add → fulfil → portal options')
+ await chatbot.removeCard(id,'HDFC Infinia');assert.equal((await chatbot.portfolio(id)).cards.length,0)
+ console.log('PASS portfolio removal')
+} finally {for(const card of (await chatbot.portfolio(id).catch(()=>({cards:[]}))).cards)await chatbot.removeCard(id,card);await chatbot.reset(id,'buyer').catch(()=>{})}

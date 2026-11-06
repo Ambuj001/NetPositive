@@ -8,21 +8,25 @@
 
 ## Preserved guided paths
 
-Seller: store shortcuts or product search → locked store / alternatives / fallback tiles → selected store → amount (₹250–₹2,00,000) → backend voucher draft and denomination split → review/post → inline request tracker.
+`UpstreamAssistant.tsx` retains the original `backend-_ui` Assistant conversation instead of reimplementing its state machine. The source snapshot is kept in `tests/fixtures/backend-ui-Assistant.tsx`; parity tests compare search, store selection, amount validation, card add/remove, request selection, AI fallback, retry, input dispatch, quick replies and active-block rules.
 
-Buyer: wallet-scoped service portfolio → add/remove known cards or explicitly import saved cards → choose request → ranked researched routes, with source, date, confidence, steps and bank portal → ranked or custom card/portal → purchase checklist → code, PIN and future-month expiry → inline backend status.
+Seller: original greeting → store shortcuts or product search → locked store / alternatives / fallback tiles → selected store → amount (₹250–₹2,00,000) → backend voucher draft and denomination split → Lock & post → Follow the trade.
 
-The recommendations come from the original deterministic Python engine. No LLM calculates rewards. Missing free-form AI credentials do not disable merchant, portfolio, draft or fulfil endpoints. Cash/card order commands still update the existing ticket locally.
+Buyer: service portfolio → original quick-add cards or typed card name → Continue / show requests → pick request → ranked researched routes, source/date badges, steps and portal links → Accept & open trade.
 
-Portfolio changes also update the local card list. Cards absent from the local illustrative calculator keep their name without fabricated earning rules. Selecting a researched recommendation sends its value to the calculator with its explicit travel-value basis and checked date. Local cash/travel assumptions remain available separately.
+There is one chatbot panel in the Trade workspace, beside the current order ticket. The previous empty “Your next trade” panel and added inline checklist, voucher-entry and lifecycle screens are not rendered in chat. My orders remains accessible separately. The source message animation, typing indicator, autoscroll, restart, close, quick replies and block enablement are retained. A scoped stylesheet applies the current light theme.
 
-Both roles keep their own conversation in the mounted Trade workspace. Changing wallets remounts the conversation. Stale asynchronous responses are ignored, action buttons on older blocks are disabled, and simultaneous actions are serialized. Restart clears the upstream role conversation and reinitializes the guided flow. Anonymous chats use an isolated session identifier, not a shared guest portfolio.
+The recommendations use the unchanged deterministic Python service. Free-form AI uses the original optional OpenRouter configuration and original missing-key reply. No replacement local parser intercepts the original dispatch. Card add/remove also updates the app portfolio; store/draft/request selection updates the existing ticket without changing the conversation step.
 
-## Real requests and previews
+Each role keeps its own mounted conversation after first use. Wallet changes remount it; anonymous sessions use an isolated guest identifier. Upstream action handling and validation are retained, including its original limitations.
 
-The order book reads `GET /requests` every 15 seconds and labels a fallback as sample data. My orders loads the same requester/fulfiller split as the source Track page, every 10 seconds after sign-in. Inline live tracking uses the existing account API for create, deposit receipt registration, accept, submit code/PIN, reveal, confirm, cancel and dispute links. Backend errors never advance live status.
+## App handoffs
 
-Preview posting and buyer continuation remain possible without funded escrow. They are labelled preview, do not invent verifier signatures or payouts, and never display sample transitions as real on-chain settlement. The removed autoplay simulator is not reintroduced.
+The original post action is connected to the current `Home` callback rather than the upstream mock-wallet store. It opens wallet connection when necessary, creates an authenticated request when the account service is available, or saves a labelled preview without moving funds. Posting errors remain errors. A live request still requires its escrow deposit; a successful create call is not presented as funded settlement.
+
+The original Follow the trade / Accept & open trade buttons open the existing `OrderLifecycle` in a separate trade-details dialog. This replaces navigation to the upstream trade page, since the simulator route is removed here. Voucher codes, PINs and tracking controls do not appear as chatbot messages or additional conversation steps.
+
+The order book reads `GET /requests` every 15 seconds and labels its fallback as sample data. My orders reads the requester/fulfiller split every 10 seconds after sign-in. The separate live trade-details UI uses the current account API for create/deposit, accept, submit code/PIN, reveal, confirm, cancel and dispute actions. Backend errors never advance live status.
 
 ## Current service boundaries
 
@@ -45,4 +49,4 @@ npm --prefix apps/web-v2 run test:chatbot-live
 python3 -m unittest discover -s chatbot/tests -p 'test_*.py'
 ```
 
-The frontend workflow runs the build, frontend logic tests, all 72 upstream Python tests and a real local guided-service integration test. Browser visual QA and real wallet/World/Arc settlement verification are distinct checks; they are not established by these tests.
+The frontend workflow runs the build, frontend logic and source-parity tests, all 72 upstream Python tests and a real local guided-service integration test. Browser visual QA and real wallet/World/Arc settlement verification are distinct checks; they are not established by these tests.
