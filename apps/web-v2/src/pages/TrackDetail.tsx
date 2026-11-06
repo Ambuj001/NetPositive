@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, ArrowUpRight, Check, Clock, Copy, LoaderCircle, Minus, RefreshCw, Search, Wallet, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { BuyOnPortal } from "../components/BuyOnPortal";
 import { PickRoute } from "../components/PickRoute";
 import { Aurora, BrandMark, Button, Pill, Row, cx } from "../components/ui";
 import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest, type ReqStatus } from "../lib/api";
@@ -240,7 +241,7 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
             <PickRoute req={req} onAccepted={onApplied} onRefresh={onRefresh} />
           ) : (
             <>
-              <NextCard next={next} id={req.id} role={role} status={req.status} token={token} signIn={signIn} signingIn={signingIn} onChanged={onRefresh} />
+              <NextCard req={req} next={next} id={req.id} role={role} status={req.status} token={token} signIn={signIn} signingIn={signingIn} onChanged={onRefresh} />
               <Timeline stages={stages} viewer={viewer} actions={actions} />
             </>
           )}
@@ -304,7 +305,7 @@ function RoleBanner({ role, viewer, req, openWallet }: { role: Role; viewer: str
 
 /* --------------------------------------------------------------- next step */
 
-function NextCard({ next, id, role, status, token, signIn, signingIn, onChanged }: { next: ReturnType<typeof nextStep>; id: string; role: Role; status: ReqStatus; token: string | null; signIn: () => Promise<string | null>; signingIn: boolean; onChanged: () => void }) {
+function NextCard({ req, next, id, role, status, token, signIn, signingIn, onChanged }: { req: ApiRequest; next: ReturnType<typeof nextStep>; id: string; role: Role; status: ReqStatus; token: string | null; signIn: () => Promise<string | null>; signingIn: boolean; onChanged: () => void }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -338,7 +339,11 @@ function NextCard({ next, id, role, status, token, signIn, signingIn, onChanged 
       {next.cta !== "none" && next.cta !== "ready" && next.cta !== "settle" && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {next.cta === "trade" && status === "accepted" && role === "buyer" ? (
-            <p className="text-[12.5px] text-mute">Seal the code in the lifecycle below. It is encrypted on this device to the spender's vault key before it is sent.</p>
+            <>
+              {/* The buyer's next move: buy the voucher on their bank's page, then seal the code below. */}
+              <BuyOnPortal req={req} />
+              <p className="basis-full text-[12.5px] text-mute">Then seal the code in the lifecycle below. It is encrypted on this device to the spender's vault key before it is sent.</p>
+            </>
           ) : next.cta === "trade" ? (
             <Button size="sm" to={`/trade/${id}`} icon={<ArrowUpRight className="size-3.5" />}>
               Open trade room
