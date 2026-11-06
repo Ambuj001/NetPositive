@@ -56,6 +56,11 @@ export type ApiRequest = {
   codeSubmittedAt?: string | null;
   settledAt?: string | null;
   disputeReason?: string | null;
+  /** Wallet that opened the dispute. */
+  disputedBy?: string | null;
+  disputedAt?: string | null;
+  /** Set when an admin has ruled on a dispute. */
+  resolution?: { outcome: "release" | "refund"; note: string | null; by: string; at: string } | null;
   lastError?: string | null;
 };
 
