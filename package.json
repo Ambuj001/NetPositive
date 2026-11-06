@@ -6,12 +6,14 @@
     "apps/web"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @netpositive/web",
-    "build": "npm run build --workspace @netpositive/web",
-    "preview": "npm run preview --workspace @netpositive/web",
-    "typecheck": "npm run typecheck --workspace @netpositive/web",
-    "test": "npm run test --workspace @netpositive/web",
-    "format": "prettier --write apps/web/src apps/web/vite.config.ts"
+    "dev": "npm --prefix apps/web-v2 run dev",
+    "build": "npm --prefix apps/web-v2 run build",
+    "preview": "npm --prefix apps/web-v2 run preview",
+    "typecheck": "npm --prefix apps/web-v2 run typecheck",
+    "test": "npm --prefix apps/web-v2 run test",
+    "format": "prettier --write apps/web/src apps/web/vite.config.ts",
+    "setup:frontend": "npm ci --prefix apps/web-v2",
+    "chatbot": "npm --prefix apps/web-v2 run chatbot"
   },
   "engines": {
     "node": ">=22.12.0"

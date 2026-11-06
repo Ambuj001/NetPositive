@@ -1,10 +1,10 @@
 name: Frontend
 on:
   push:
-    branches: [frontend, main]
-    paths: ['apps/web/**', 'package*.json', '.github/workflows/frontend.yml']
+    branches: [frontend-2, frontened-2, frontend, main]
+    paths: ['apps/web-v2/**', 'chatbot/**', 'package*.json', '.github/workflows/frontend.yml']
   pull_request:
-    paths: ['apps/web/**', 'package*.json', '.github/workflows/frontend.yml']
+    paths: ['apps/web-v2/**', 'chatbot/**', 'package*.json', '.github/workflows/frontend.yml']
 permissions:
   contents: read
 jobs:
@@ -16,7 +16,22 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+          cache-dependency-path: apps/web-v2/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: npm ci
-      - run: npm run typecheck
+        working-directory: apps/web-v2
       - run: npm test
+        working-directory: apps/web-v2
       - run: npm run build
+        working-directory: apps/web-v2
+      - run: python -m unittest discover -s chatbot/tests -p 'test_*.py'
+      - name: Check guided chatbot integration
+        run: |
+          python -u chatbot/server.py > /tmp/netpositive-chatbot.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8787/health > /dev/null; then break; fi
+            sleep 0.2
+          done
+          npm --prefix apps/web-v2 run test:chatbot-live

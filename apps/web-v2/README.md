@@ -1,64 +1,73 @@
-# NetPositive web v2
+# NetPositive frontend
 
-Dark-theme frontend for NetPositive: crypto holders pay for shops with gift vouchers, card holders fill those vouchers on their best reward route and get paid in USDT from escrow.
+Light product UI for voucher-based USDC trading. Source lives in `apps/web-v2`.
 
-This is a standalone package. It is not part of the root npm workspace, so it does not change `apps/web` or the existing CI.
-
-## Run
-
-Requires Node 22.12+.
+## Local preview
 
 ```sh
 cd apps/web-v2
-npm ci
-npm run dev        # http://localhost:5173
-npm run typecheck
-npm run build      # output in apps/web-v2/dist
+npm install
+npm run dev -- --host 127.0.0.1 --port 5174
 ```
 
-## Pages
+## Routes
 
-| Route | What it shows |
+| Route | Purpose |
 | --- | --- |
-| `/home` | After connecting a wallet: choose **Spend USDC** or **Buy USDC**, then the NetPositive AI assistant opens |
-| `/` | Landing: seller ⇄ escrow ⇄ buyer hero, animated trade flow, six-step walkthrough, route calculator, trust model, comparison |
-| `/sell` | Seller: pick voucher brand, amount and rate, lock USDT in escrow |
-| `/market` | Buyer: order book ranked by the buyer's real price per USDT after card rewards |
-| `/cards` | Buyer's card portfolio (issuer, variant, caps; no card numbers) |
-| `/trade/:id` | Live trade room with "View as Seller / View as Buyer", autoplay demo, verification, release and dispute |
+| `/` | Landing page with intersecting Pay / Buy actions and an effective-rate example |
+| `/home` | Buy USDC: amount, Market / Limit, 1–8% slippage, preview matching, calculator |
+| `/home?mode=sell` | Pay with crypto: voucher catalogue, buyer demand, voucher amount, rate and fee |
+| `/market` | Search, category filters, cash-value effective-rate sorting and order selection |
+| `/cards` | Wallet-scoped local card portfolio, custom rates, bonus cap usage |
+| `/profile` | Wallet, local username, signed account session, World ID |
+| `/profile?tab=disputes` | Load disputes and report issues on eligible real backend requests |
 
-## AI assistant (`/home`)
+`/sell` redirects to Pay with crypto inside Trade. The old `/trade/:id` simulator redirects to Trade. No simulator remains in product navigation.
 
-The assistant talks to the chatbot API from the `ai-chatbot` branch (`chatbot/server.py`). Start it before using `/home`:
+## Implemented behavior and boundaries
+
+- Trade modes preserve separate amounts and order types. Whole-voucher matching respects buy limit prices and market slippage. No partial voucher fills or overspending.
+- Preview orders are scoped to the connected wallet and can be cancelled during the session. They do not fund escrow or move USDC.
+- The calculator uses the same saved card portfolio as Cards and Market. Statement value is the default; travel value is an explicit selection. Bonus caps, discounted qualifying spend, denomination splits and per-transaction rounding apply to the illustrative model. These are not current issuer offer feeds.
+- The assistant expands on focus. Available orders shrink with a height transition and remain scrollable. Collapse restores the market area. Optional chatbot service uses `VITE_CHATBOT_URL`; an offline/local helper can still fill order amounts and explain fees.
+- Card metadata and usernames persist in localStorage, scoped by wallet. No PAN, CVV, voucher secret or bearer token is written there. Usernames are local aliases, not globally reserved handles.
+- Wallet connection uses the existing provider discovery and SDK connectors. Account sign-in requests a nonce and signs the fixed backend sign-in message with that same provider. Account changes invalidate the session and identity UI.
+- World ID uses `@worldcoin/idkit` 4.6, server-signed RP context, Proof of Human, and server-side proof verification. No timer or local boolean can mark a trader verified. The World signing credential stays on the backend. Mock services are refused for verification.
+- Disputes load from authenticated real requests. Only `code_submitted` requests offer reporting. Submitting a reason calls the existing dispute endpoint; no fake resolution or refund is displayed.
+
+## Backend contract
+
+The frontend targets the API contract already present on `origin/testing` (`backend/src/routes`). No backend branch is merged into this checkout.
+
+| Endpoint | Use |
+| --- | --- |
+| `GET /health` | Availability and `worldIdMock` status |
+| `POST /auth/nonce` | Wallet-bound sign-in message |
+| `POST /auth/verify` | Sign-in signature → memory-only bearer session and user |
+| `GET /auth/me` | Authenticated user profile |
+| `POST /world-id/request` | Signed `{ app_id, action, signal, rp_context, environment }` |
+| `POST /world-id/verify` | Forward IDKit result unchanged; accept only explicit verified result |
+| `GET /requests/mine` | `{ asRequester, asFulfiller }` used for history and disputes |
+| `POST /requests/:id/dispute` | Authenticated `{ reason }` |
+
+Vite proxies `/api` to port 8080. For a separate deployment, set `VITE_API_URL` to the HTTPS backend origin and configure its CORS for the frontend. Do not place signing keys or backend credentials in Vite variables.
+
+World ID end-to-end completion requires that backend to be running with real RP/app configuration, `WORLD_ID_MOCK=false`, and a user completing World App/the configured staging flow. Dispute data requires real authenticated backend trades. A disconnected or unavailable service is shown as such, not as an empty successful response.
+
+## Checks
 
 ```sh
-git checkout ai-chatbot -- chatbot   # or use a separate worktree
-cd chatbot && python3 server.py      # http://127.0.0.1:8787
+npm run typecheck
+npm run build
+npm test
 ```
 
-| Option | Steps | API calls |
-| --- | --- | --- |
-| Spend USDC (seller) | what to buy → pick a store → amount → review → lock USDC in escrow | `/merchants/suggest`, `/request/draft` |
-| Buy USDC (buyer) | add your cards → pick an open request → ranked card + channel routes with bank-portal links → accept | `/portfolio`, `/portfolio/add`, `/request/fulfil` |
+Tests cover fee accounting, net reward valuations, rounding and caps, slippage/limit boundaries, sign-in message validation and offline/mismatched account responses. Browser QA is separate; if computer access is disabled, build success is not a visual or wallet end-to-end check.
 
-Free-text questions go to `/chat`, which needs `OPENROUTER_API_KEY` in `chatbot/.env`. Without the key the guided steps still work and the assistant says AI answers are off. If the server isn't running, the chat shows how to start it and a Retry button. The user id sent to the API is the connected wallet address. Set `VITE_CHATBOT_URL` to point at another host.
+World integration reference: https://docs.world.org/world-id/idkit/react and https://docs.world.org/world-id/idkit/signatures.
 
-## Stack
+## Integrated chatbot lifecycle
 
-React 19, TypeScript, Vite, Tailwind CSS v4, Motion, React Router, Lucide icons. Fonts are self-hosted through Fontsource.
+See [`docs/frontend/chatbot-integration.md`](../../docs/frontend/chatbot-integration.md) for the precise upstream commits, behavior mapping and live API boundaries. The guide, portfolio and order actions now live inside Trade's existing expanding chat rather than opening the removed simulator.
 
-## Integration boundary
-
-**Wallet connection is real.** `src/lib/wallet.ts` lists these wallets: Base, MetaMask, Coinbase Wallet, Rainbow, Rabby, Trust Wallet, Phantom, Brave Wallet and WalletConnect, plus any other extension found via EIP-6963.
-
-- Installed extensions open their own approval popup (`eth_requestAccounts`).
-- **Base** opens the Base Account passkey popup (`@base-org/account`), no extension needed.
-- **Coinbase Wallet** uses the extension if installed, otherwise the Coinbase popup (`@coinbase/wallet-sdk`).
-- **WalletConnect** shows a QR code for mobile wallets. It needs a free project ID from https://cloud.reown.com in `.env` as `VITE_WALLETCONNECT_PROJECT_ID` (see `.env.example`). Without it the option is shown as "Setup".
-- Wallets that aren't installed link to their download page.
-
-The app shows the approved address and network and follows account and network changes. It never signs messages or sends transactions.
-
-Everything after connection is a UI prototype: World ID, the USDT escrow balance, voucher verification and contract events are simulated in the browser with demo data (`src/lib/store.tsx`, `src/lib/data.ts`). No funds move.
-
-Reward maths lives in `src/lib/engine.ts` and reproduces the Product Walkthrough V3 example (₹10,000 Lifestyle voucher at ₹90/USDT: seller locks 112.22 USDT, buyer receives 111.11 USDT + 1,650 Infinia points via SmartBuy 5X). Card rates are illustrative and must be refreshed from issuer terms before real recommendations.
+Start the original local recommendation service with `npm run chatbot`. Run `npm run test:chatbot-live` against it to check seller discovery/drafting and buyer portfolio/route ranking. Free-form responses require the service's optional OpenRouter configuration; guided actions do not.

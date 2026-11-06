@@ -4,12 +4,14 @@ Payment and rewards optimisation research for credit, debit and crypto cards, in
 
 ## Frontend preview
 
-The first frontend is in `apps/web` on the `frontend` branch. See [setup and implementation details](docs/frontend/README.md).
+The current light UI and integrated chatbot are in `apps/web-v2` on `frontend-2`. See [frontend setup](apps/web-v2/README.md) and [chatbot integration notes](docs/frontend/chatbot-integration.md). The earlier `apps/web` frontend is retained as an archive.
 
 ```sh
-npm ci
+npm run setup:frontend
 npm run dev
 ```
+
+Start the guided recommendation service in another terminal with `npm run chatbot` (Python 3.12+).
 
 Requires Node 22.12+ and npm 10+. Run `npm test` and `npm run build` to check it. Wallet access uses Arc Testnet; voucher exchanges remain previews.
 
