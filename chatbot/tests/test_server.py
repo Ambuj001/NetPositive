@@ -55,7 +55,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(res["redirect"]["second_option"]["name"], "CRED")
 
     def test_verify_guide_endpoint(self):
-        st, g = self.call("POST", "/request/verify_guide", {"brand": "Amazon", "amount": 5000})
+        st, g, _ = self.call("POST", "/request/verify_guide", {"brand": "Amazon", "amount": 5000})
         self.assertEqual((st, g["check_each_voucher"][0]["expected_paise"]), (200, 500000))
         self.assertEqual(self.call("POST", "/request/verify_guide", {"brand": "Amazon"})[0], 400)
 
