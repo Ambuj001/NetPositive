@@ -280,33 +280,51 @@ try {
     const r = await chat('POST', '/merchants/suggest', { body: { query: q } });
     for (const t of r.body.tiles ?? []) tiles.set(t.merchant_id, t.name);
   }
-  const supported = [...tiles.keys()].filter((id) => BRANDS.includes(id));
-  const unsupported = [...tiles.keys()].filter((id) => !BRANDS.includes(id));
-  await check(`every supported chatbot merchant (${supported.join(', ')}) can be drafted and created`, async () => {
-    for (const id of supported) {
+  const offered = [...tiles.keys()];
+  const chatbotBrands = JSON.parse(fs.readFileSync(path.join(chatbotDir, 'data', 'backend_brands.json'), 'utf8')).brands;
+  await check('CONTRACT: the chatbot\'s copy of the backend brand list equals the backend\'s BRANDS (fails on drift)', async () => {
+    assert.deepEqual([...chatbotBrands].sort(), [...BRANDS].sort(), 'chatbot/data/backend_brands.json is out of sync with backend/src/config.js BRANDS');
+  });
+  await check(`every merchant the chatbot ever offers (${offered.join(', ')}) is accepted by the backend`, async () => {
+    assert.ok(offered.length >= 4, 'chatbot offered too few merchants');
+    for (const id of offered) {
+      assert.ok(BRANDS.includes(id), `chatbot offered "${id}", which the backend does not support`);
       const d = (await chat('POST', '/request/draft', { body: { merchant: id, amount: 500 } })).body;
+      assert.equal(d.ok, true, `${id}: draft failed`);
       const r = await api('POST', '/requests', { token: ta, body: toBackendPayload(d) });
       assert.equal(r.status, 201, `${id}: ${r.text}`);
     }
   });
-  await check(`unsupported merchants (${unsupported.join(', ')}) fail cleanly with 400, never 500`, async () => {
-    for (const id of unsupported) {
+  const unsupportedByBackend = ['ajio', 'nike', 'lifestyle', 'croma', 'tatacliq', 'nykaa', 'bookmyshow', 'tanishq', 'tajhotels'];
+  await check(`the chatbot refuses to draft merchants the backend rejects (${unsupportedByBackend.join(', ')})`, async () => {
+    for (const id of unsupportedByBackend) {
+      assert.ok(!BRANDS.includes(id), `${id} became supported by the backend: update this list and backend_brands.json`);
       const d = (await chat('POST', '/request/draft', { body: { merchant: id, amount: 500 } })).body;
-      const r = await api('POST', '/requests', { token: ta, body: toBackendPayload(d) });
+      assert.equal(d.error, 'not_requestable', `${id}: ${JSON.stringify(d).slice(0, 120)}`);
+    }
+  });
+  await check('and the backend itself still rejects those brands with a clean 400 (defence in depth)', async () => {
+    for (const id of unsupportedByBackend) {
+      const r = await api('POST', '/requests', { token: ta, body: { brand: id, amountInr: 500, amountUsdc: '5.56' } });
       assert.equal(r.status, 400, `${id}: ${r.status}`);
     }
   });
-  if (unsupported.length) finding(`INTEGRATION GAP: the chatbot offers merchants the backend rejects: ${unsupported.map((i) => tiles.get(i)).join(', ')}. The seller could pick one and then fail at POST /requests. Fix: share one brand list (or have the chatbot filter its tiles to the backend's BRANDS).`);
+  await check('a named-but-unsupported store is reported as not requestable, with working alternatives', async () => {
+    const r = (await chat('POST', '/merchants/suggest', { body: { query: 'shoes from ajio' } })).body;
+    assert.equal(r.requestable, false);
+    assert.ok(r.alternatives.length > 0 && r.alternatives.every((t) => BRANDS.includes(t.merchant_id)));
+  });
   const backendOnly = BRANDS.filter((b) => !tiles.has(b));
-  if (backendOnly.length) finding(`Backend supports brands the chatbot never suggests: ${backendOnly.join(', ')}.`);
+  if (backendOnly.length) finding(`Backend supports brands the chatbot never suggests: ${backendOnly.join(', ')} (the chatbot has no voucher mapping for them).`);
+  finding('Chatbot offers fewer merchants than before because it now only offers what the backend supports. To add a merchant (e.g. AJIO): add it to backend BRANDS + chatbot/data/backend_brands.json (the CONTRACT check forces both).');
   await check('chatbot allows INR > 100,000 but the backend caps it (the seller gets a clear 400)', async () => {
     const d = (await chat('POST', '/request/draft', { body: { merchant: 'amazon', amount: 150000 } })).body;
     assert.equal(d.ok, true);
     const r = await api('POST', '/requests', { token: ta, body: toBackendPayload(d) });
     assert.equal(r.status, 400);
   });
-  finding('INTEGRATION GAP: the chatbot has no INR<->USDC rate or fee logic (walkthrough: 1% fee, user-set rate). This simulation used a fixed Rs 90/USDC adapter. The backend locks amountUsdc exactly and pays all of it to the fulfiller, so the 1% fee is not implemented anywhere yet.');
-  finding('INTEGRATION GAP: amountInr must be an integer <= 100,000 in the backend, while the chatbot accepts any positive number up to Rs 10 crore.');
+  finding('OPEN ITEM (needs a product decision): INR<->USDC rate and 1% fee are not implemented anywhere. This simulation used a fixed Rs 90/USDC adapter. Details and the questions to answer: docs/open-items.md');
+  finding('OPEN ITEM: amountInr must be a whole number <= 100,000 in the backend, while the chatbot accepts any positive amount up to Rs 10 crore (the seller gets a clean 400, not a crash).');
 
   // =====================================================================
   head('6. Bonus: buyer side (chatbot ranking -> accept -> submit code -> confirm)');

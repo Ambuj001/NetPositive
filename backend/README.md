@@ -92,6 +92,8 @@ requests/{id}/events/{auto}           audit trail
 
 Deploy rules and indexes with `firebase deploy --only firestore` (see `firestore.rules` and `firestore.indexes.json`).
 
+> **Open item: the INR<->USDC rate and the 1% fee are not implemented anywhere yet.** See [docs/open-items.md](../docs/open-items.md) for what the walkthrough specifies, what the code does, and the decisions needed.
+
 ## Not done yet
 
 - Gift-card API path (Pay2All / Qwikcilver) for instant fulfilment

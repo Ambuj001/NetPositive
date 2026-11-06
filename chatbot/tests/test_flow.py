@@ -17,15 +17,29 @@ def names(tiles):
 class Suggest(unittest.TestCase):
     def test_generic_product_gives_ranked_tiles(self):
         r = flow.suggest_merchants("shoes")
-        self.assertEqual((r["mode"], names(r["tiles"])), ("tiles", ["Amazon", "Flipkart", "Myntra", "AJIO"]))
+        self.assertEqual((r["mode"], names(r["tiles"])), ("tiles", ["Amazon", "Flipkart", "Myntra"]))  # AJIO is not supported by the escrow
         self.assertIsNone(r["selected"])
+        self.assertTrue(all(t["requestable"] for t in r["tiles"]))
 
-    def test_brand_query_includes_brand_store_last(self):
+    def test_brand_query_only_offers_supported_stores(self):
         r = flow.suggest_merchants("nike shoes")
         self.assertEqual(r["mode"], "tiles")
-        self.assertEqual(set(names(r["tiles"])), {"Amazon", "Myntra", "Flipkart", "AJIO", "Nike"})
-        self.assertEqual(names(r["tiles"])[-1], "Nike")
+        self.assertEqual(set(names(r["tiles"])), {"Amazon", "Myntra", "Flipkart"})
+        self.assertNotIn("Nike", names(r["tiles"]))  # Nike's own store is not supported by the escrow backend
         self.assertLessEqual(len(r["tiles"]), flow.MAX_TILES)
+
+    def test_unsupported_named_store_is_not_requestable(self):
+        for q, store in [("shoes from ajio", "AJIO"), ("croma", "Croma"), ("jewellery from tanishq", "Tanishq")]:
+            r = flow.suggest_merchants(q)
+            self.assertEqual((r["mode"], r["selected"]["name"], r["requestable"]), ("store_locked", store, False), q)
+            self.assertTrue(any("can't be requested yet" in n for n in r["notes"]), q)
+            self.assertTrue(all(t["requestable"] for t in r["alternatives"]), q)
+
+    def test_known_product_with_no_supported_store(self):
+        for q in ["movies", "jewellery", "hotel"]:
+            r = flow.suggest_merchants(q)
+            self.assertEqual((r["mode"], r["tiles"]), ("no_requestable_store", []), q)
+            self.assertTrue(any("None of the stores that sell this can be requested yet" in n for n in r["notes"]), q)
 
     def test_named_store_is_locked_with_alternatives(self):
         r = flow.suggest_merchants("Nike shoes from Amazon")
@@ -79,12 +93,18 @@ class Suggest(unittest.TestCase):
             r = flow.suggest_merchants(q)
             for t in r.get("tiles", []) + r.get("alternatives", []):
                 self.assertTrue(t["voucher_brand"], (q, t))
-            self.assertTrue(r.get("tiles") or r.get("selected"), q)
+                self.assertIn(t["merchant_id"], flow.BACKEND_BRANDS, (q, t))  # never offer what the backend would reject
+                self.assertTrue(t["requestable"], (q, t))
+            self.assertTrue(r.get("tiles") or r.get("selected") or r["mode"] == "no_requestable_store", q)
+
+    def test_backend_brand_copy_is_valid(self):
+        for b in flow.BACKEND_BRANDS:
+            self.assertIn(b, matrix.MERCHANTS, b)  # every backend brand maps to a chatbot merchant
 
 
 class Draft(unittest.TestCase):
     def test_by_id_and_by_name(self):
-        for m in ["amazon", "Amazon", "Tata CLiQ"]:
+        for m in ["amazon", "Amazon", "Myntra"]:
             self.assertTrue(flow.draft_request(m, 10000, "Nike shoes")["ok"], m)
         d = flow.draft_request("amazon", 10000, "Nike shoes")
         self.assertEqual(d["request"], {"voucher_brand": "Amazon", "merchant": "Amazon", "merchant_id": "amazon",
@@ -94,6 +114,8 @@ class Draft(unittest.TestCase):
     def test_errors(self):
         self.assertEqual(flow.draft_request("nope store", 1000)["error"], "unknown_merchant")
         self.assertEqual(flow.draft_request("blinkit", 1000)["error"], "no_voucher")
+        for unsupported in ["ajio", "nike", "Tata CLiQ", "croma", "tanishq"]:  # have vouchers, but the escrow backend rejects them
+            self.assertEqual(flow.draft_request(unsupported, 1000)["error"], "not_requestable", unsupported)
         self.assertEqual(flow.draft_request(None, 1000)["error"], "unknown_merchant")
         for bad in [None, 0, -5, "abc", float("inf")]:
             self.assertIn("error", flow.draft_request("amazon", bad), bad)

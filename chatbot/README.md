@@ -23,6 +23,7 @@ The LLM never computes rewards and never sees cards outside the caller's portfol
 - `data/cards.json` - card catalogue (35 cards, each mapped to the MCC matrix), hand-researched voucher routes (SmartBuy/InstaDeals/iShop...), seller options.
 - `data/mcc_matrix.json` - **630 rows = 30 cards x 21 categories**, parsed from `card-mcc-reward-matrix-v2.pdf` by `tools/parse_mcc_matrix.py` (validated: every card has all 21 categories).
 - `data/portals.json` - bank voucher portal landing pages (HDFC/ICICI/Axis/Amex/Kotak; SBI has none yet) and the CRED second option (no reward data, so none is claimed).
+- `data/backend_brands.json` - copy of the brands the escrow backend accepts. The chatbot only offers/drafts these; a contract test in `backend/scripts/integration-sim.js` fails if it drifts from backend `BRANDS`.
 - `data/merchants.json` - domains/aliases -> category group, voucher brand, merchant-specific offers (Amazon Pay ICICI @ Amazon, Flipkart Axis, Tata Neu).
 - `matrix.py` - matrix lookups + merchant resolution (dot-boundary domain matching, so `amazon.in.evil.com` does not match).
 - `engine.py` - all recommendation logic and per-user portfolios (thread-safe, atomic writes).
@@ -49,6 +50,8 @@ fetch("http://127.0.0.1:8787/recommend", {method: "POST", headers: {"Content-Typ
 
 `V` verified from issuer terms | `S` secondary source, confirm | `A` base rate **assumed** for this MCC (394 of 630 rows) | `X` excluded | `U` unknown.
 Rankings use the stated %, ties broken by confidence; `A`/`S` results are always flagged. Weekend-only boosts rank on the weekday rate. `has_cap` flags mean a monthly/cycle cap applies; caps already used are not tracked in the extension flow yet.
+
+> **Open item: the INR<->USDC rate and the 1% fee are not implemented anywhere yet.** See [docs/open-items.md](../docs/open-items.md) for what the walkthrough specifies, what the code does, and the decisions needed.
 
 ## Known gaps / before production
 

@@ -17,12 +17,19 @@ FALLBACK = _P["_meta"]["fallback"]
 MAX_QUERY = 200
 _CUE = re.compile(r"\b(from|on|at|via|through)\b")
 _STRONG_CUES = {"from", "via", "through"}
+# Brands the escrow backend accepts. A seller must never be offered anything else (it would fail at POST /requests).
+BACKEND_BRANDS = frozenset(json.loads((Path(__file__).parent / "data" / "backend_brands.json").read_text(encoding="utf-8"))["brands"])
+
+
+def _requestable(m):
+    """Can a seller actually post a request for this merchant? Needs a voucher AND backend support."""
+    return bool(m["voucher_brand"]) and m["id"] in BACKEND_BRANDS
 
 
 def _tile(m):
     g = matrix.GROUPS.get(m["group"]) if m["group"] else None
     return {"merchant_id": m["id"], "name": m["name"], "voucher_brand": m["voucher_brand"],
-            "category": g["label"] if g else None, "site": m["domains"][0]}
+            "category": g["label"] if g else None, "site": m["domains"][0], "requestable": _requestable(m)}
 
 
 def _norm_query(q):
@@ -45,7 +52,7 @@ def _product_tiles(text, exclude=()):
                     order.setdefault(mid, len(order))
     ranked = sorted(scores, key=lambda mid: (-scores[mid], order[mid]))
     tiles = [_tile(matrix.MERCHANTS[mid]) for mid in ranked
-             if mid in matrix.MERCHANTS and mid not in exclude and matrix.MERCHANTS[mid]["voucher_brand"]]
+             if mid in matrix.MERCHANTS and mid not in exclude and _requestable(matrix.MERCHANTS[mid])]
     return tiles[:MAX_TILES], bool(scores)
 
 
@@ -79,15 +86,21 @@ def suggest_merchants(query):
         tiles, _ = _product_tiles(_norm_query(item or ""), exclude={store["id"]})
         sel = _tile(store)
         out = {"query": query, "item": item, "mode": "store_locked", "selected": sel,
-               "voucher_available": bool(store["voucher_brand"]), "alternatives": tiles, "notes": notes}
+               "voucher_available": bool(store["voucher_brand"]), "requestable": _requestable(store),
+               "alternatives": tiles, "notes": notes}
         if not store["voucher_brand"]:
             out["notes"].append(f"No voucher is mapped for {store['name']}, so it can't be requested yet. Pick another store.")
+        elif not _requestable(store):
+            out["notes"].append(f"{store['name']} can't be requested yet: the escrow doesn't support it. Pick another store.")
         return out
 
     tiles, matched = _product_tiles(text)
-    if matched and tiles:
+    if tiles:
         return {"query": query, "item": text or None, "mode": "tiles", "selected": None, "tiles": tiles, "notes": notes}
-    tiles = [_tile(matrix.MERCHANTS[m]) for m in FALLBACK if matrix.MERCHANTS[m]["voucher_brand"]]
+    if matched:  # we know the product, but none of the stores that sell it can be requested yet
+        notes.append("None of the stores that sell this can be requested yet (not supported by the escrow). Ask the seller for another item.")
+        return {"query": query, "item": text or None, "mode": "no_requestable_store", "selected": None, "tiles": [], "notes": notes}
+    tiles = [_tile(matrix.MERCHANTS[m]) for m in FALLBACK if _requestable(matrix.MERCHANTS[m])]
     notes.append("I couldn't tell what product this is, so these are the biggest general stores. Ask the user what they want to buy.")
     return {"query": query, "item": text or None, "mode": "fallback", "selected": None, "tiles": tiles, "notes": notes}
 
@@ -105,6 +118,8 @@ def draft_request(merchant, amount, item=None):
         return {"error": "unknown_merchant", "message": "Pick one of the suggested merchants."}
     if not m["voucher_brand"]:
         return {"error": "no_voucher", "message": f"No voucher is mapped for {m['name']}."}
+    if not _requestable(m):
+        return {"error": "not_requestable", "message": f"{m['name']} can't be requested yet: the escrow doesn't support it. Pick another store."}
     return {"ok": True,
             "request": {"voucher_brand": m["voucher_brand"], "merchant": m["name"], "merchant_id": m["id"],
                         "item": item if isinstance(item, str) and item.strip() else None, "amount_inr": amt,
