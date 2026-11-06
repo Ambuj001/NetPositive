@@ -3,6 +3,7 @@ import { Shell } from "./components/Shell";
 import { AppProvider } from "./lib/store";
 import { WorldIdProvider } from "./lib/world";
 import Cards from "./pages/Cards";
+import DisputePage from "./pages/DisputePage";
 import TradeHub from "./pages/TradeHub";
 import Track from "./pages/Track";
 import Landing from "./pages/Landing";
@@ -32,6 +33,9 @@ export default function App() {
               <Route path="market" element={<Market />} />
               <Route path="sell" element={<Sell />} />
               <Route path="cards" element={<Cards />} />
+              <Route path="dispute" element={<DisputePage />} />
+              <Route path="dispute/:id" element={<DisputePage />} />
+              <Route path="disputes" element={<Navigate to="/dispute" replace />} />
               <Route path="trade/:id" element={<TradeRoute />} />
               <Route path="*" element={<Landing />} />
             </Route>
