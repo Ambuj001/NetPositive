@@ -56,7 +56,7 @@ export type Order = {
 };
 
 export const ORDERS: Order[] = [
-  { id: "VR-24817", brandId: "lifestyle", amount: 10000, rate: 90, seller: "seller.eth", sellerTrades: 14, city: "Bengaluru", postedMin: 2, expiresMin: 28 },
+  { id: "VR-24817", brandId: "lifestyle", amount: 10000, rate: 90, seller: "spender.eth", sellerTrades: 14, city: "Bengaluru", postedMin: 2, expiresMin: 28 },
   { id: "VR-24816", brandId: "amazon", amount: 25000, rate: 89.6, seller: "0xmeera", sellerTrades: 41, city: "Mumbai", postedMin: 4, expiresMin: 26 },
   { id: "VR-24814", brandId: "myntra", amount: 5000, rate: 90.4, seller: "kabir.base", sellerTrades: 7, city: "Delhi", postedMin: 6, expiresMin: 24 },
   { id: "VR-24811", brandId: "croma", amount: 40000, rate: 89.2, seller: "ishaan.eth", sellerTrades: 63, city: "Hyderabad", postedMin: 9, expiresMin: 21 },

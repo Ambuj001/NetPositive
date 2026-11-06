@@ -32,7 +32,6 @@ export default function Cards() {
   }, [params, setParams]);
   const card = cards.find((c) => c.id === selected) ?? cards[0];
   const routes = card ? routesFor(10000, [card]).sort((a, b) => (value === "cash" ? b.statementInr - a.statementInr : b.travelInr - a.travelInr)) : [];
-  const update = (patch: Partial<Card>) => card && setCards(cards.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
 
   const add = (c: Card) => {
     setCards(cards.some((x) => x.id === c.id) ? cards : [...cards, c]);
@@ -64,7 +63,6 @@ export default function Cards() {
           <div>
             <div className="label">Your portfolio</div>
             <h1 className="text-gradient mt-3 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Make every card count.</h1>
-            <p className="mt-3 text-[15px] text-mute">Save card variants and reward assumptions. No card numbers.</p>
           </div>
           <Button variant="amber" onClick={() => setAdding(true)} icon={<Plus className="size-4" />}>
             Add card
@@ -126,7 +124,6 @@ export default function Cards() {
                 </div>
               )}
             </div>
-            <p className="mt-5 text-[11.5px] text-dim">Saved in this browser, separately for each connected wallet. Example cards use illustrative rates.</p>
           </section>
 
           {/* details */}
@@ -156,36 +153,6 @@ export default function Cards() {
                       <div className="mt-1 text-[16px] font-medium tabular">{inr(card.travelValue, 2)} / point</div>
                     </div>
                   </div>
-                </section>
-
-                <section className="hairline rounded-[26px] bg-ink-2/70 p-6 backdrop-blur-xl">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-[16px] font-semibold">Bonus cap used</h2>
-                    <span className="text-[12px] text-dim tabular">
-                      {card.bonusCap ? `${card.bonusUsed.toLocaleString("en-IN")} / ${card.bonusCap.toLocaleString("en-IN")} pts` : "No bonus cap"}
-                    </span>
-                  </div>
-                  {card.bonusCap > 0 ? (
-                    <>
-                      <input
-                        type="range"
-                        min={0}
-                        max={card.bonusCap}
-                        step={50}
-                        value={card.bonusUsed}
-                        onChange={(e) => update({ bonusUsed: Number(e.target.value) })}
-                        className="range mt-5"
-                        style={{ "--p": `${(card.bonusUsed / card.bonusCap) * 100}%` } as React.CSSProperties}
-                        aria-label="Bonus points used this period"
-                      />
-                      <p className="mt-4 text-[12px] text-dim">Update after purchases. Reset manually at the start of your reward period.</p>
-                      <button onClick={() => update({ bonusUsed: 0 })} className="mt-1.5 text-[12.5px] text-mint underline decoration-mint/30 underline-offset-4 hover:decoration-mint">
-                        Reset used points
-                      </button>
-                    </>
-                  ) : (
-                    <p className="mt-3 text-[12px] text-dim">This card earns the same rate on every purchase.</p>
-                  )}
                 </section>
 
                 <section className="hairline rounded-[26px] bg-ink-2/70 p-6 backdrop-blur-xl">

@@ -231,8 +231,8 @@ export const STATUS: Record<ReqStatus, { label: string; tone: "mint" | "amber" |
   disputed: { label: "Disputed", tone: "rose", note: "Under review by an admin." },
   releasing: { label: "Releasing", tone: "iris", note: "Sending USDC to the buyer on-chain." },
   released: { label: "Completed", tone: "mint", note: "USDC released. Trade settled." },
-  refunding: { label: "Refunding", tone: "iris", note: "Returning USDC to the seller on-chain." },
-  refunded: { label: "Refunded", tone: "mute", note: "USDC returned to the seller." },
+  refunding: { label: "Refunding", tone: "iris", note: "Returning USDC to the spender on-chain." },
+  refunded: { label: "Refunded", tone: "mute", note: "USDC returned to the spender." },
   cancelled: { label: "Cancelled", tone: "mute", note: "Cancelled before funding." },
 };
 

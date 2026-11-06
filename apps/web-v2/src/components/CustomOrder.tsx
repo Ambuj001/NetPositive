@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, ChevronDown, CreditCard } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AMOUNTS, PLACES, RATE, ONE_USD_INR, ReviewModal, amountLabel } from "../pages/Spend";
+import { AMOUNTS, PLACES, RATE, ReviewModal, amountLabel } from "../pages/Spend";
 import { inr, quote, usdt } from "../lib/engine";
 import { useLockOrder } from "../lib/lockOrder";
 import { useApp } from "../lib/store";
@@ -69,7 +69,7 @@ export function CustomOrder() {
       </div>
       <div className="mt-4 space-y-2 border-b border-white/[0.07] pb-3 text-[12.5px]">
         <Line k="Buyer receives" v={`${usdt(q.buyerReceives)} USDC`} />
-        <Line k="Seller fee · 1%" v={`${usdt(q.fee)} USDC`} />
+        <Line k="Spender fee · 1%" v={`${usdt(q.fee)} USDC`} />
       </div>
       <div className="mt-3 flex justify-between text-[13px]">
         <span className="text-mute">Total USDC you lock</span>
@@ -228,7 +228,6 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
             type="button"
             onClick={() => onChange(a.inr)}
             className={cx("h-9 rounded-xl text-[12.5px] ring-1 transition tabular", value === a.inr ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
-            title={a.inr === ONE_USD_INR ? `$1 test voucher (${inr(ONE_USD_INR)})` : undefined}
           >
             {a.label}
           </button>

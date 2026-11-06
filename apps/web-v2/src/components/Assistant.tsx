@@ -220,7 +220,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
   };
 
   const showRequests = () => {
-    push(user("Show requests"), bot(say("These sellers have already locked their USDC in escrow. Pick one and I'll rank your cards for it."), { kind: "requests" }));
+    push(user("Show requests"), bot(say("These spenders have already locked their USDC in escrow. Pick one and I'll rank your cards for it."), { kind: "requests" }));
     setStep("pick_request");
   };
 

@@ -99,14 +99,24 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1300, height: 950, deviceScaleFactor: 1, mobile: false });
 
   console.log(`App ${APP}   fake wallet ${acct.address}   (throwaway; cleaned up at the end)\n`);
-  await send('Page.navigate', { url: `${APP}/trade` });
-  await waitFor(`document.body && document.body.innerText.includes('Trade')`, 30000, 'the app to load');
-
-  await check('before connecting there is no pop-up', async () => { await sleep(1500); assert.equal(await promptOpen(), false); });
-  await check('connect the fake wallet from the header (connects, then registers via the dev bypass and signs in)', async () => {
-    assert.ok(await clickText('button', 'Connect'), 'no Connect button');
-    await waitFor(`document.body.innerText.includes('MetaMask')`, 10000, 'the wallet list');
+  const here = () => evalJS('location.pathname');
+  await send('Page.navigate', { url: `${APP}/` });
+  await waitFor(`document.body && document.body.innerText.includes('Open the market')`, 30000, 'the landing page to load');
+  await check('pressing "Open the market" without a wallet asks to connect first and stays on the landing page', async () => {
+    assert.ok(await clickText('a', 'Open the market'), 'no Open the market button');
+    await waitFor(`/installed in this browser/i.test(document.body.innerText)`, 10000, 'the wallet list');
+    assert.equal(await here(), '/');
+    assert.equal(await promptOpen(), false);
+    console.log('        screenshot:', await shot('0-open-market-asks-to-connect'));
+  });
+  await check('opening an inside page directly (/trade) is blocked too: back to the landing page with the wallet list', async () => {
+    await send('Page.navigate', { url: `${APP}/trade` });
+    await waitFor(`location.pathname === '/' && /installed in this browser/i.test(document.body.innerText)`, 20000, 'redirect to the landing page with the wallet list');
+    assert.ok(!(await evalJS(`document.body.innerText.includes('Available orders')`)), 'order book is visible without a wallet');
+  });
+  await check('connect the fake wallet (connects, registers via the dev bypass, signs in) and land on the page that was asked for', async () => {
     assert.ok(await clickText('button', 'MetaMask'), 'no MetaMask row');
+    try { await waitFor(`location.pathname === '/trade'`, 30000, 'to land on /trade after connecting'); } catch (e) { console.log('        screenshot:', await shot('connect-failure')); console.log('        page text:', String(await evalJS('document.body.innerText')).replace(/\s+/g, ' ').slice(-700)); console.log('        errors:', consoleErrors.slice(-4)); throw e; }
     await waitFor(`document.body.innerText.includes('${acct.address.slice(0, 6)}')`, 20000, 'the wallet address in the header');
   });
   await check('the account now exists in Firestore with a session', async () => {
@@ -144,9 +154,11 @@ try {
     await waitFor(`location.pathname === '/cards' && document.body.innerText.includes('Infinia')`, 10000, 'Infinia on the My cards page');
     console.log('        screenshot:', await shot('3-my-cards'));
   });
-  await check('after a full reload the card is still there (read back from Firestore) and the pop-up stays away', async () => {
+  await check('after a full reload the app is locked until the wallet is connected again, then the card is still there (read back from Firestore) and the pop-up stays away', async () => {
     await send('Page.navigate', { url: `${APP}/cards` });
-    await waitFor(`document.body.innerText.includes('Infinia')`, 25000, 'Infinia after reload');
+    await waitFor(`location.pathname === '/' && /installed in this browser/i.test(document.body.innerText)`, 25000, 'the landing page asking to connect');
+    assert.ok(await clickText('button', 'MetaMask'), 'no MetaMask row');
+    await waitFor(`location.pathname === '/cards' && document.body.innerText.includes('Infinia')`, 30000, 'Infinia after reconnecting');
     await sleep(2000);
     assert.equal(await promptOpen(), false);
   });

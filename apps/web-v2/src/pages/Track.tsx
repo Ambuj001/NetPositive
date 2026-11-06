@@ -109,7 +109,7 @@ function TrackList() {
           <div>
             <div className="label">Track</div>
             <h1 className="text-gradient mt-2 font-display text-4xl font-semibold tracking-[-0.03em]">Your orders</h1>
-            <p className="mt-2 text-[14px] text-mute">{active ? `${active} in progress.` : "Nothing in progress."} Status updates every 10 seconds.</p>
+            {active > 0 && <p className="mt-2 text-[14px] text-mute">{active} in progress.</p>}
           </div>
           <div className="flex items-center gap-2">
             {token ? (

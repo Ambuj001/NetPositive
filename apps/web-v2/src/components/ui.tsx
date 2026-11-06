@@ -147,7 +147,7 @@ export function Pill({
 /* ------------------------------------------------------- Persona chip */
 export function Persona({ who }: { who: "seller" | "buyer" | "verifier" }) {
   const m = {
-    seller: { label: "Seller", cls: "text-mint ring-mint/40" },
+    seller: { label: "Spender", cls: "text-mint ring-mint/40" },
     buyer: { label: "Buyer", cls: "text-amber ring-amber/40" },
     verifier: { label: "Verification layer", cls: "text-iris ring-iris/40" },
   }[who];

@@ -5,7 +5,6 @@ import {
   ArrowUpRight,
   BadgeCheck,
   Check,
-  Cpu,
   FileCheck,
   FingerprintPattern,
   KeyRound,
@@ -13,7 +12,6 @@ import {
   Scale,
   ShieldCheck,
   Smartphone,
-  TriangleAlert,
   X,
 } from "lucide-react";
 import { useMemo, useRef, useState, type ReactNode } from "react";
@@ -34,7 +32,6 @@ export default function Landing() {
       <Calculator />
       <Trust />
       <Compare />
-      <Limits />
       <FinalCta />
     </>
   );
@@ -234,12 +231,11 @@ function TwoPeople() {
         eyebrow="One trade, two winners"
         title={
           <>
-            The seller wants to shop.
+            The spender wants to shop.
             <br />
             The buyer wants USDC.
           </>
         }
-        sub="The seller holds crypto but Lifestyle only takes rupees. The buyer has a premium card with unused reward caps. NetPositive turns the voucher into the bridge between them."
       />
 
       <div className="mt-14 grid gap-4 md:grid-cols-2">
@@ -247,9 +243,8 @@ function TwoPeople() {
           [
             {
               who: "seller" as const,
-              name: "Seller",
-              tag: "Seller of crypto",
-              blurb: "Holds 120 USDC. Wants ₹10,000 of clothes at Lifestyle this weekend, without cashing out through an exchange.",
+              name: "Spender",
+              tag: "Spender of crypto",
               gives: `${usdt(q.sellerLocks)} USDC`,
               gets: "₹10,000 Lifestyle vouchers",
               price: "₹89.11",
@@ -312,7 +307,6 @@ function TwoPeople() {
         ))}
       </div>
       <p className="mt-5 max-w-3xl text-[12px] leading-relaxed text-dim">
-        Example rate ₹90 per USDC, set by the two users. Card numbers from Infinia terms and SmartBuy offer as checked 4 Nov 2026: 5 points per ₹150, brand vouchers 5X, voucher bonus capped at 3,000 points a month, ₹1 per point on flights and hotels, up to ₹0.30 as statement credit.
       </p>
     </section>
   );
@@ -323,21 +317,21 @@ const STEPS: { who: "seller" | "buyer" | "verifier"; title: string; body: string
   {
     who: "seller",
     title: "The extension spots the merchant",
-    body: "The seller opens Lifestyle's site. The extension recognises the merchant and compares every way to pay with crypto, including prepaid crypto cards with their real limits. Not in their region, so the NetPositive voucher route wins.",
+    body: "The spender opens Lifestyle's site. The extension recognises the merchant and compares every way to pay with crypto, including prepaid crypto cards with their real limits. Not in their region, so the NetPositive voucher route wins.",
     tech: ["Content script reads the domain only", "Crypto card catalogue with caps, staking, countries", "Merchant → voucher brand map"],
     screen: () => <ScreenDetect />,
   },
   {
     who: "seller",
-    title: "Seller locks USDC and the request goes live",
-    body: "The seller picks one of hundreds of suggested vouchers or types any brand and amount. Their USDC moves into escrow, so buyers know the crypto is really there.",
+    title: "Spender locks USDC and the request goes live",
+    body: "The spender picks one of hundreds of suggested vouchers or types any brand and amount. Their USDC moves into escrow, so buyers know the crypto is really there.",
     tech: ["Escrow holds USDC against order ID (brand, amount, rate, deadline)", "Order appears in the buyer order book", "World ID on first use"],
     screen: () => <ScreenRequest />,
   },
   {
     who: "buyer",
     title: "The buyer's extension ranks every way to buy it",
-    body: "The buyer sees the seller's request with the answer already worked out from their saved cards: which card, which channel, and how much monthly cap they have left.",
+    body: "The buyer sees the spender's request with the answer already worked out from their saved cards: which card, which channel, and how much monthly cap they have left.",
     tech: ["Card portfolio stored on device only, no card numbers", "Base rate × channel multiplier, minus caps and rounding", "Channel rates refreshed from official pages"],
     screen: () => <ScreenRoutes />,
   },
@@ -350,16 +344,16 @@ const STEPS: { who: "seller" | "buyer" | "verifier"; title: string; body: string
   },
   {
     who: "verifier",
-    title: "Codes are checked live before the seller sees them",
+    title: "Codes are checked live before the spender sees them",
     body: "The buyer pastes the codes. They travel encrypted to the verification layer, which checks balance and status on the issuer's page, or the merchant's own portal for jewellers and large vouchers. Only a pass moves the trade.",
     tech: ["Codes encrypted on device to the verifier key", "Verifier signs order ID, amount, status, time", "Escrow accepts only a signed pass · stretch: zkTLS proof"],
     screen: () => <ScreenVerify />,
   },
   {
     who: "seller",
-    title: "Seller gets the codes, escrow pays the buyer",
-    body: "Codes open only for the seller. The verifier re-checks the balance right before release, because the buyer also saw the codes. Then 111.11 USDC goes to the buyer and the 1.11 USDC fee is split.",
-    tech: ["Codes re-encrypted to the seller's key", "Second check right before release", "0.56 USDC → dispute reserve · 0.55 USDC platform"],
+    title: "Spender gets the codes, escrow pays the buyer",
+    body: "Codes open only for the spender. The verifier re-checks the balance right before release, because the buyer also saw the codes. Then 111.11 USDC goes to the buyer and the 1.11 USDC fee is split.",
+    tech: ["Codes re-encrypted to the spender's key", "Second check right before release", "0.56 USDC → dispute reserve · 0.55 USDC platform"],
     screen: () => <ScreenReveal />,
   },
 ];
@@ -371,7 +365,7 @@ function Walkthrough() {
       <SectionHead
         eyebrow="How it works"
         title="Six steps. Screen by screen."
-        sub="One browser extension for both sides. The seller's crypto never leaves the contract until a verified voucher is in their hands."
+        sub="One browser extension for both sides. The spender's crypto never leaves the contract until a verified voucher is in their hands."
       />
       <div className="mt-16 grid gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-20">
         <div className="hidden md:block">
@@ -569,7 +563,7 @@ function Calculator() {
             </div>
             <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-white/[0.06] text-center">
               {[
-                ["Seller locks", `${usdt(q.sellerLocks)}`],
+                ["Spender locks", `${usdt(q.sellerLocks)}`],
                 ["Fee (1%)", `${usdt(q.fee)}`],
                 ["Buyer saves", inr(Math.round(reward))],
               ].map(([k, v]) => (
@@ -631,13 +625,12 @@ function Trust() {
       <SectionHead
         eyebrow="Trust model"
         title="Nobody, including us, can take the crypto in between."
-        sub="Every layer exists to remove one way a P2P trade goes wrong."
       />
       <div className="mt-14 grid auto-rows-[minmax(220px,auto)] gap-4 md:grid-cols-6">
-        <Bento className="md:col-span-4" icon={<Lock />} tone="mint" title="USDC escrow contract" body="Seller's USDC is locked against an order ID with brand, amount, rate and deadline. It moves only on a signed pass from the verifier, or back to the seller on timeout.">
+        <Bento className="md:col-span-4" icon={<Lock />} tone="mint" title="USDC escrow" body="USDC is locked per order. It moves only on a signed pass, or back on timeout.">
           <EscrowViz />
         </Bento>
-        <Bento className="md:col-span-2" icon={<FingerprintPattern />} tone="iris" title="One human, one account" body="World ID on first use. Banned scammers can't spin up a new account.">
+        <Bento className="md:col-span-2" icon={<FingerprintPattern />} tone="iris" title="One human, one account" body="World ID on first use. Banned accounts can't come back.">
           <div className="mt-6 flex justify-center">
             <div className="relative grid size-24 place-items-center">
               <span className="absolute inset-0 animate-spin-slow rounded-full border border-dashed border-iris/40" />
@@ -650,11 +643,10 @@ function Trust() {
             </div>
           </div>
         </Bento>
-        <Bento className="md:col-span-2" icon={<FileCheck />} tone="iris" title="Signed voucher checks" body="Balance and status are read from the issuer or merchant portal, signed, and checked twice: before reveal and right before release." />
-        <Bento className="md:col-span-2" icon={<Smartphone />} tone="amber" title="Cards stay on device" body="Issuer, variant and caps used. Never a card number. The route engine runs locally." />
-        <Bento className="md:col-span-2" icon={<KeyRound />} tone="mint" title="Codes for one key only" body="Encrypted on the buyer's device to the verifier key, re-encrypted to the seller's key, deleted after the trade." />
-        <Bento className="md:col-span-3" icon={<Scale />} tone="rose" title="Dispute reserve" body="Half of every fee funds a reserve. If a voucher was spent before the seller's first use, the verifier pulls its history and refunds them from the reserve." />
-        <Bento className="md:col-span-3" icon={<Cpu />} tone="iris" title="Stretch: zkTLS proofs" body="Replace our signature with a zkTLS proof of the issuer's balance page, so the escrow doesn't have to trust the verifier at all." />
+        <Bento className="md:col-span-2" icon={<FileCheck />} tone="iris" title="Signed voucher checks" body="Balance is checked and signed before reveal and before release." />
+        <Bento className="md:col-span-2" icon={<Smartphone />} tone="amber" title="No card numbers" body="Only issuer and variant are saved. Never a card number." />
+        <Bento className="md:col-span-2" icon={<KeyRound />} tone="mint" title="Sealed codes" body="Encrypted on the buyer's device. Only the spender can open them." />
+        <Bento className="md:col-span-6 [&_p]:max-w-xl" icon={<Scale />} tone="rose" title="Dispute reserve" body="Half of every fee funds a reserve that refunds a voucher spent too early." />
       </div>
     </section>
   );
@@ -736,18 +728,17 @@ function Compare() {
     ["Card rewards for the buyer", [true, false, false]],
     ["Crypto held in escrow", [true, "Platform-held", false]],
     ["Verified-human counterparties", [true, "KYC only", "—"]],
-    ["Fee", ["1% seller", "0–1% + spread", "1–3% + FX"]],
+    ["Fee", ["1% spender", "0–1% + spread", "1–3% + FX"]],
     ["Works in India", [true, true, "Limited"]],
   ];
   return (
     <section className="relative mx-auto max-w-6xl px-6 pt-36">
-      <SectionHead eyebrow="Why this rail" title="Better for both sides than what exists today." />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8, ease }}
-        className="hairline mt-12 overflow-x-auto rounded-3xl bg-ink-2/60"
+        className="hairline overflow-x-auto rounded-3xl bg-ink-2/60"
       >
         <table className="w-full min-w-[640px] text-left text-[14px]">
           <thead>
@@ -778,30 +769,6 @@ function Compare() {
   );
 }
 
-/* =============================================================== LIMITS */
-function Limits() {
-  return (
-    <section className="relative mx-auto max-w-6xl px-6 pt-28">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="flex flex-col gap-6 rounded-3xl border border-dashed border-amber/30 bg-amber/[0.03] p-7 md:flex-row md:items-center md:p-9"
-      >
-        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-amber/10 text-amber ring-1 ring-amber/20">
-          <TriangleAlert className="size-5" />
-        </span>
-        <div className="flex-1">
-          <div className="label !text-amber">Limits we say out loud</div>
-          <p className="mt-2 text-[15.5px] leading-relaxed text-fg/90">
-            Escrow, World ID and live checks cut fraud and repeat offenders. A voucher can still be spent by the person who bought it in the seconds between check and use, which is why we re-check right before release and keep a dispute reserve.
-          </p>
-        </div>
-      </motion.div>
-    </section>
-  );
-}
-
 /* ============================================================ FINAL CTA */
 function FinalCta() {
   return (
@@ -812,7 +779,7 @@ function FinalCta() {
         <div className="relative">
           <div className="mx-auto mb-8 flex w-fit items-center gap-3 rounded-full bg-white/[0.04] p-1.5 pr-4 ring-1 ring-white/10">
             <ShieldCheck className="ml-1.5 size-4 text-mint" />
-            <span className="text-[13px] text-mute">Try the full trade as seller and buyer</span>
+            <span className="text-[13px] text-mute">Try the full trade as spender and buyer</span>
           </div>
           <h2 className="text-gradient mx-auto max-w-3xl font-display text-5xl font-semibold leading-[1] tracking-[-0.04em] md:text-7xl">Your crypto, at the checkout.</h2>
           <p className="mx-auto mt-6 max-w-lg text-[16px] text-mute">Post a voucher request in under a minute, or fill one and earn USDC on rewards you were leaving on the table.</p>
