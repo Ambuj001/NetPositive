@@ -5,6 +5,7 @@ import { HttpError } from './lib/errors.js';
 import authRoutes from './routes/auth.js';
 import worldIdRoutes from './routes/worldid.js';
 import requestRoutes from './routes/requests.js';
+import recoveryRoutes from './routes/recovery.js';
 import internalRoutes from './routes/internal.js';
 
 export function createApp() {
@@ -18,6 +19,7 @@ export function createApp() {
   app.use('/auth', authRoutes);
   app.use('/world-id', worldIdRoutes);
   app.use('/requests', requestRoutes);
+  app.use('/recovery', recoveryRoutes);
   app.use('/internal', internalRoutes);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found', 'Route not found')));
@@ -29,6 +31,9 @@ export function createApp() {
     }
     if (err.type === 'entity.parse.failed') {
       return res.status(400).json({ error: 'invalid_json', message: 'Malformed JSON body' });
+    }
+    if (err.type === 'entity.too.large') {
+      return res.status(413).json({ error: 'payload_too_large', message: 'Request body is too large' });
     }
     console.error(err);
     res.status(500).json({ error: 'internal_error', message: 'Something went wrong' });

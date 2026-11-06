@@ -19,6 +19,16 @@ npm run smoke               # or: full lifecycle test in a throwaway emulator
 
 `ESCROW_MODE=mock` and `WORLD_ID_MOCK=true` are refused when `NODE_ENV=production`.
 
+## Testing without Java/Firebase (in-memory Firestore)
+
+`npm run smoke:mem` runs the full lifecycle smoke test against an in-memory Firestore stand-in (`test-support/`), loaded through a Node module hook, so the backend source is untouched and **no Java, emulator or Firebase project is needed**.
+
+`npm run sim` runs the chatbot + backend integration simulation: the Python chatbot API (`../chatbot/server.py`) and this backend side by side. It covers seller query -> merchant choice -> request draft -> `POST /requests` -> simulated escrow deposit -> `POST /requests/:id/fund` -> open and listed, plus validation/abuse cases and the buyer side.
+
+- Uses throwaway secrets generated at start-up; never reads `.env`; refuses to run if real Firebase credentials are set.
+- `ESCROW_MODE=mock` and `WORLD_ID_MOCK=true`: **no funds move and no chain is contacted.**
+- The stand-in does not model composite-index requirements, security rules or latency. Use the real emulator (`npm run smoke`) for those before release.
+
 ## Lifecycle
 
 ```
@@ -40,8 +50,13 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 | POST | `/auth/nonce` | anyone | `{address}` → message to sign |
 | POST | `/auth/verify` | anyone | `{address, signature}` → `{token, user}` |
 | GET | `/auth/me` | auth | profile + reputation |
-| GET | `/world-id/config` | anyone | `app_id`, `action` for IDKit |
-| POST | `/world-id/verify` | auth | IDKit result → binds nullifier to wallet |
+| GET | `/world-id/config` | anyone | public IDs for IDKit |
+| POST | `/world-id/request` | auth | signed request for the IDKit widget (signal = wallet) |
+| POST | `/world-id/verify` | auth | IDKit v4 result → verified with World, binds one human to one wallet; refuses banned humans |
+| POST | `/recovery/start` | new wallet | prove you are the same human as a lost wallet; starts the waiting period |
+| GET | `/recovery/mine` | auth | recoveries where I am the new or old wallet |
+| POST | `/recovery/:id/cancel` | old wallet | veto a recovery during the wait |
+| POST | `/recovery/:id/complete` | new wallet | after the wait: account, reputation and live trades move to the new wallet |
 | GET | `/requests?brand=&limit=` | anyone | open requests |
 | GET | `/requests/mine` | auth | `{asRequester, asFulfiller}` |
 | GET | `/requests/:id` | anyone | request state |
@@ -59,7 +74,7 @@ All authenticated routes need `Authorization: Bearer <token>`. 🧍 = World ID r
 ## Frontend integration
 
 1. **Sign in:** `POST /auth/nonce` → `signMessage(message)` → `POST /auth/verify` → store the token.
-2. **World ID:** read `/world-id/config`. Open IDKit with `app_id`, `action` and **`signal = the signed-in wallet address`**, then POST the `onSuccess` result to `/world-id/verify`. Each human can be linked to only one wallet.
+2. **World ID (v4):** `POST /world-id/request` (signed in) returns everything the IDKit widget needs (`app_id`, `action`, `environment`, `signal`, `rp_context`). Run the widget with the **Proof of Human** preset, then POST its result to `/world-id/verify`. Each human can be linked to only one wallet. Full detail: [docs/world-id.md](../docs/world-id.md).
 3. **Fund:** after `POST /requests`, from the user's wallet: `USDC.approve(escrow, amountUsdcBaseUnits)` → `escrow.deposit(escrowId, amountUsdcBaseUnits)` → `POST /requests/:id/fund {txHash}`.
 4. **Live status:** `onSnapshot(doc(db, 'requests', id))` from the client SDK. Rules allow reads of `requests/*` only. Codes live in a backend-only subcollection.
 
@@ -81,6 +96,8 @@ requests/{id}/events/{auto}           audit trail
 ```
 
 Deploy rules and indexes with `firebase deploy --only firestore` (see `firestore.rules` and `firestore.indexes.json`).
+
+> **Open item: the INR<->USDC rate and the 1% fee are not implemented anywhere yet.** See [docs/open-items.md](../docs/open-items.md) for what the walkthrough specifies, what the code does, and the decisions needed.
 
 ## Not done yet
 

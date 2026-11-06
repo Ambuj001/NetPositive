@@ -12,9 +12,15 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "emulator": "firebase emulators:start --only firestore --project demo-netpositive",
-    "smoke": "firebase emulators:exec --only firestore --project demo-netpositive \"node scripts/smoke.js\""
+    "test:world": "node --import ./test-support/register.mjs scripts/world-upstream.test.js",
+    "test:smoke-memory": "node --import ./test-support/register.mjs scripts/smoke.js",
+    "smoke": "firebase emulators:exec --only firestore --project demo-netpositive \"node scripts/smoke.js\"",
+    "smoke:mem": "node --import ./test-support/register.mjs scripts/smoke.js",
+    "sim": "node --import ./test-support/register.mjs scripts/integration-sim.js",
+    "dev:memory": "node --import ./test-support/register.mjs src/index.js"
   },
   "dependencies": {
+    "@worldcoin/idkit-core": "^4.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",

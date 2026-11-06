@@ -3,6 +3,12 @@
 Checks a **Woohoo** voucher in the user's *own* browser session and reports balance, status and expiry.
 The card number and PIN never leave the device: no server, no analytics, no network calls from the extension.
 
+## Who uses it
+
+The **seller of crypto** (the requester, the person who bears the risk). After the buyer submits the code, the seller reveals it in the app
+(`GET /requests/:id/voucher`), checks it here in their own browser, then confirms (releases the crypto) or disputes. No Woohoo API is needed.
+The chatbot gives the steps: `POST /request/verify_guide` / tool `verify_received_voucher`.
+
 ## How it works
 
 1. The extension opens as a **side panel** (click the toolbar icon, like MetaMask). It takes the card number, PIN and an optional expected amount, then opens `woohoo.in/profile/check-balance` in a **background tab** (the user stays in the side panel).

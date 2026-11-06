@@ -22,12 +22,14 @@
 </head>
 <body>
   <h1>Voucher check</h1>
-  <p class="note">Checks the voucher on Woohoo in a background tab, using your own login. The code never leaves this device. You must be logged in to woohoo.in.</p>
+  <p class="note">Checks a voucher on Woohoo in a background tab, using your own login. For the seller of crypto: check the code the buyer submitted before you confirm. The code never leaves this device. You must be logged in to woohoo.in.</p>
   <form id="f" autocomplete="off">
     <label for="code">Card number</label>
     <input id="code" inputmode="numeric" required />
     <label for="pin">PIN</label>
     <input id="pin" type="password" inputmode="numeric" required />
+    <label for="amt">Expected amount in ₹ (optional, fails the check if the balance is lower)</label>
+    <input id="amt" inputmode="decimal" placeholder="e.g. 5000" />
     <button id="go" type="submit">Check voucher</button>
   </form>
   <div id="status" role="status" aria-live="polite"></div>

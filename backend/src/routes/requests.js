@@ -96,14 +96,24 @@ router.post('/:id/dispute', requireAuth, validate(z.object({ reason: z.string().
 
 // ---------- Admin ----------
 
-/** POST /requests/:id/resolve { outcome: "release" | "refund", note? } */
+/**
+ * POST /requests/:id/resolve { outcome: "release" | "refund", note?, fault? }
+ * The party at fault is banned as a HUMAN (every wallet they used). Default: refund → fulfiller at fault,
+ * release → requester at fault. Pass fault: "none" when it cannot be determined who is lying.
+ */
 router.post(
   '/:id/resolve',
   requireAuth,
   requireAdmin,
-  validate(z.object({ outcome: z.enum(['release', 'refund']), note: z.string().max(1000).optional() })),
+  validate(
+    z.object({
+      outcome: z.enum(['release', 'refund']),
+      note: z.string().max(1000).optional(),
+      fault: z.enum(['requester', 'fulfiller', 'none']).optional(),
+    }),
+  ),
   async (req, res) => {
-    res.json({ request: await svc.resolveDispute(req.params.id, req.user.address, req.body.outcome, req.body.note) });
+    res.json({ request: await svc.resolveDispute(req.params.id, req.user.address, req.body.outcome, req.body.note, req.body.fault) });
   },
 );
 

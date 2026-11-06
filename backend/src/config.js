@@ -35,11 +35,21 @@ const schema = z.object({
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional().default(''),
   FIRESTORE_EMULATOR_HOST: z.string().optional().default(''),
 
+  // World ID v4 (IDKit 4.x). App + RP IDs come from the World Developer Portal.
+  // The signing key is SECRET: keep it in .env only, never commit or paste it anywhere.
   WORLD_ID_APP_ID: z.string().min(1),
-  WORLD_ID_ACTION: z.string().min(1).default('netpositive-account'),
-  WORLD_ID_VERIFY_URL: z.string().url().default('https://developer.worldcoin.org/api/v2/verify'),
-  WORLD_ID_MIN_LEVEL: z.enum(['orb', 'device']).default('orb'),
+  WORLD_RP_ID: z.string().optional().default(''),
+  WORLD_RP_SIGNING_KEY: z.string().optional().default(''),
+  // staging = the web simulator; sandbox = the World ID Sandbox phone app; production = the real World App.
+  WORLD_ENVIRONMENT: z.enum(['staging', 'sandbox', 'production']).default('staging'),
+  // One action for sign-up, recovery and bans, so the same human always yields the same nullifier.
+  // In the Developer Portal this action MUST allow repeated verifications (not "max 1"),
+  // otherwise a person cannot prove themselves again from a new wallet to recover.
+  WORLD_ID_ACTION: z.string().min(1).default('netpositive-trader-v1'),
   WORLD_ID_MOCK: bool,
+
+  // How long a wallet-recovery request waits before it can be completed (the old wallet can cancel meanwhile).
+  RECOVERY_DELAY_MINUTES: z.coerce.number().min(0).default(60),
 
   ESCROW_MODE: z.enum(['chain', 'mock']).default('mock'),
   ARC_RPC_URL: z.string().url().default('https://rpc.testnet.arc.network'),
