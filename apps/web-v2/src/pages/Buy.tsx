@@ -33,7 +33,7 @@ export function matchOrders(orders: Order[], spend: number, maxRate?: number) {
 /** The buy side: order book, assistant bar and the buy panel. Shown in the Buy tab of the Trade page. */
 export function BuyView() {
   const { orders, source, reload } = useOrderBook();
-  const { acceptOrder, fullAddress } = useApp();
+  const { fullAddress } = useApp();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"market" | "limit">("market");
@@ -53,12 +53,8 @@ export function BuyView() {
   const receive = matched.reduce((s, o) => s + quote(o.amount, o.rate).buyerReceives, 0);
 
   const isMine = (o: Order) => sameAddr(o.spender, fullAddress);
-  const go = (o: Order) => {
-    // Your own order: open its details on Track. Someone else's: accept it and open the buy room.
-    if (isMine(o)) return nav(`/track?id=${encodeURIComponent(o.id)}`);
-    acceptOrder(o);
-    nav(`/trade/${o.id}`);
-  };
+  // Every order opens on Track. For your own it is your order; for someone else's you choose how to buy it and accept.
+  const go = (o: Order) => nav(`/track?id=${encodeURIComponent(o.id)}`);
 
   return (
     <div className="relative">
@@ -288,10 +284,7 @@ export function BuyView() {
         onClose={() => setReview(false)}
         matched={matched}
         receive={receive}
-        onAccept={() => {
-          matched.forEach(acceptOrder);
-          nav(`/trade/${matched[0].id}`);
-        }}
+        onAccept={() => go(matched[0])}
       />
     </div>
   );
@@ -379,7 +372,7 @@ function ReviewModal({ open, onClose, matched, receive, onAccept }: { open: bool
               </p>
             )}
             <Button className="mt-5 w-full" size="lg" onClick={onAccept} icon={<ArrowRight className="size-4" />}>
-              Accept {matched.length > 1 ? "first order" : "order"} & start
+              Open {matched.length > 1 ? "first order" : "order"} to buy it
             </Button>
           </motion.div>
         </motion.div>
