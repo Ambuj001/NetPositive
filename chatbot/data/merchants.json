@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "mcc_disclaimer": "Merchant MCCs are set by the network/acquirer and banks state many as best effort. Category here is our best mapping, not a guarantee.",
+    "voucher_disclaimer": "voucher_brand is the brand name to look up in the voucher catalogue; availability is not verified here."
+  },
+  "merchants": [
+    {"id":"amazon","name":"Amazon","domains":["amazon.in"],"aliases":["amazon","amazon india","amazon.in"],"group":"ONLINE","voucher_brand":"Amazon","tags":[]},
+    {"id":"flipkart","name":"Flipkart","domains":["flipkart.com"],"aliases":["flipkart"],"group":"ONLINE","voucher_brand":"Flipkart","tags":["flipkart_group"]},
+    {"id":"myntra","name":"Myntra","domains":["myntra.com"],"aliases":["myntra"],"group":"ONLINE","voucher_brand":"Myntra","tags":["flipkart_group"]},
+    {"id":"ajio","name":"AJIO","domains":["ajio.com"],"aliases":["ajio"],"group":"ONLINE","voucher_brand":"AJIO","tags":[]},
+    {"id":"nykaa","name":"Nykaa","domains":["nykaa.com"],"aliases":["nykaa"],"group":"ONLINE","voucher_brand":"Nykaa","tags":[]},
+    {"id":"nike","name":"Nike","domains":["nike.com"],"aliases":["nike","nike india"],"group":"ONLINE","voucher_brand":"Nike","tags":[]},
+    {"id":"croma","name":"Croma","domains":["croma.com"],"aliases":["croma"],"group":"ONLINE","voucher_brand":"Croma","tags":["tata_brand"]},
+    {"id":"tatacliq","name":"Tata CLiQ","domains":["tatacliq.com"],"aliases":["tata cliq","tatacliq"],"group":"ONLINE","voucher_brand":"Tata CLiQ","tags":["tata_brand"]},
+    {"id":"bigbasket","name":"BigBasket","domains":["bigbasket.com"],"aliases":["bigbasket","big basket"],"group":"GROC","voucher_brand":"BigBasket","tags":["tata_brand"]},
+    {"id":"blinkit","name":"Blinkit","domains":["blinkit.com"],"aliases":["blinkit"],"group":"GROC","voucher_brand":null,"tags":[]},
+    {"id":"swiggy","name":"Swiggy","domains":["swiggy.com"],"aliases":["swiggy"],"group":"DINE","voucher_brand":"Swiggy","tags":[]},
+    {"id":"zomato","name":"Zomato","domains":["zomato.com"],"aliases":["zomato"],"group":"DINE","voucher_brand":"Zomato","tags":[]},
+    {"id":"bookmyshow","name":"BookMyShow","domains":["bookmyshow.com"],"aliases":["bookmyshow","book my show"],"group":"MOVIE","voucher_brand":"BookMyShow","tags":[]},
+    {"id":"lifestyle","name":"Lifestyle","domains":["lifestylestores.com"],"aliases":["lifestyle","lifestyle stores"],"group":"DEPT","voucher_brand":"Lifestyle","tags":[]},
+    {"id":"tanishq","name":"Tanishq","domains":["tanishq.co.in"],"aliases":["tanishq"],"group":"JEWEL","voucher_brand":"Tanishq","tags":[]},
+    {"id":"indigo","name":"IndiGo","domains":["goindigo.in"],"aliases":["indigo"],"group":"AIR","voucher_brand":null,"tags":[]},
+    {"id":"airindia","name":"Air India","domains":["airindia.com"],"aliases":["air india"],"group":"AIR","voucher_brand":null,"tags":[]},
+    {"id":"irctc","name":"IRCTC","domains":["irctc.co.in"],"aliases":["irctc"],"group":"RAIL","voucher_brand":null,"tags":[]},
+    {"id":"tajhotels","name":"Taj Hotels","domains":["tajhotels.com"],"aliases":["taj hotels","taj"],"group":"HOTEL","voucher_brand":"Taj","tags":[]},
+    {"id":"makemytrip","name":"MakeMyTrip","domains":["makemytrip.com"],"aliases":["makemytrip","make my trip","mmt"],"group":null,"voucher_brand":null,"tags":[],"note":"Online travel agency: not the same as booking directly with an airline/hotel, so the 'direct' airline/hotel categories may not apply. No category data yet."}
+  ],
+  "category_keywords": {
+    "ONLINE": ["online shopping","e-commerce","ecommerce","clothes","shoes","electronics","fashion","online retail"],
+    "GEN": ["offline","in store","retail store"],
+    "GROC": ["grocery","groceries","supermarket"],
+    "DEPT": ["department store"],
+    "DINE": ["dining","restaurant","restaurants","food delivery","food"],
+    "MOVIE": ["movie","movies","cinema"],
+    "FUEL": ["fuel","petrol","diesel"],
+    "UTIL": ["utility","utilities","electricity","water bill","gas bill"],
+    "TEL": ["telecom","mobile recharge","broadband","cable"],
+    "INS": ["insurance"],
+    "RENT": ["rent"],
+    "WALLET": ["wallet load","wallet top up","wallet topup"],
+    "EDU": ["education","school fees","college fees","tuition"],
+    "GOVT": ["tax","government","challan"],
+    "GAME": ["gaming","online gaming"],
+    "JEWEL": ["jewellery","jewelry","gold"],
+    "RAIL": ["rail","train"],
+    "AIR": ["flight","flights","airline","airlines"],
+    "HOTEL": ["hotel","hotels"]
+  },
+  "offers": [
+    {"id":"amazonpay_amazon","card_id":"icici_amazon_pay","merchants":["amazon"],"reward_pct_prime":5.0,"reward_pct_nonprime":3.0,"status":"S","note":"Amazon Pay ICICI at Amazon: 5% with Prime, 3% without.","source":"MCC matrix v2 (cardadvisor + CardInsider)"},
+    {"id":"flipkartaxis_fk","card_id":"axis_flipkart","tags":["flipkart_group"],"reward_pct":5.0,"status":"S","note":"Flipkart Axis: 5% on Flipkart/Myntra/Cleartrip.","source":"MCC matrix v2 (cardadvisor)"},
+    {"id":"tataneu_tata","card_id":"hdfc_tata_neu","tags":["tata_brand"],"reward_pct":5.0,"status":"S","note":"Tata Neu Infinity: 5% on Tata brands only when you shop via the Tata Neu app/site. Confirm this brand is a Tata Neu partner.","source":"MCC matrix v2 (MITC + cardadvisor)"}
+  ]
+}

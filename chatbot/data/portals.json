@@ -1,0 +1,14 @@
+{
+  "_meta": {
+    "source": "URLs supplied by the product owner on 2026-11-05. Landing pages only: no per-brand deep links are known.",
+    "cred_note": "CRED is offered as a second option for every card. No CRED reward data is held, so no reward is claimed; the user is just sent there to compare."
+  },
+  "portals": {
+    "HDFC": {"name": "HDFC GyFTR Instant Vouchers", "url": "https://www.gyftr.com/instantvouchers", "note": "Our research says the accelerated 5X route is the 'accelerated rewards' tab inside HDFC SmartBuy; this link is the GyFTR instant-vouchers page."},
+    "ICICI": {"name": "ICICI iShop Rewards", "url": "https://www.ishoprewards.com/shopping-vouchers", "note": ""},
+    "Axis": {"name": "Axis EDGE Rewards (GyFTR)", "url": "https://www.gyftr.com/edgerewards", "note": ""},
+    "Amex": {"name": "Amex Rewards Gift Cards", "url": "https://global.americanexpress.com/rewards/gift-cards", "note": ""},
+    "Kotak": {"name": "Kotak GyFTR Instant Vouchers", "url": "https://www.gyftr.com/kotak-instantvouchers/", "note": ""}
+  },
+  "cred": {"name": "CRED", "url": "https://cred.club", "note": "Alternative to check. We hold no CRED reward data, so no reward is shown."}
+}
