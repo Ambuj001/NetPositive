@@ -88,3 +88,7 @@ Deploy rules and indexes with `firebase deploy --only firestore` (see `firestore
 - Gift-card API path (Pay2All / Qwikcilver) for instant fulfilment
 - Rate limiting (add `express-rate-limit` before the hackathon demo is public)
 - Automatic code validity checks; disputes are resolved manually by `ADMIN_ADDRESSES`
+
+## Voucher vault
+
+Voucher codes can be sealed in the browser so the server never sees them. See [docs/vault.md](../docs/vault.md); tests: `npm run vault:test` and `npm run vault:e2e`.
