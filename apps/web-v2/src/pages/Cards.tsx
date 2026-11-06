@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, CreditCard, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Aurora, Button, cx } from "../components/ui";
 import { CARDS, inr, routesFor, type Card } from "../lib/engine";
 import { useApp } from "../lib/store";
@@ -56,7 +56,15 @@ export default function Cards() {
   const { cards, setCards, toast } = useApp();
   const [selected, setSelected] = useState(cards[0]?.id ?? "");
   const [value, setValue] = useState<"cash" | "travel">("cash");
-  const [adding, setAdding] = useState(false);
+  // /cards?add=1 (from the "add your cards" pop-up) opens the add dialog straight away.
+  const [params, setParams] = useSearchParams();
+  const [adding, setAdding] = useState(params.get("add") === "1");
+  useEffect(() => {
+    if (params.get("add") === "1") {
+      setAdding(true);
+      setParams({}, { replace: true });
+    }
+  }, [params, setParams]);
   const card = cards.find((c) => c.id === selected) ?? cards[0];
   const routes = card ? routesFor(10000, [card]).sort((a, b) => (value === "cash" ? b.statementInr - a.statementInr : b.travelInr - a.travelInr)) : [];
   const update = (patch: Partial<Card>) => card && setCards(cards.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));

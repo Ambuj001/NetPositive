@@ -22,6 +22,7 @@ export { FieldValue, Timestamp };
  * users/{address}                    one doc per wallet (lowercase address)
  * worldIdNullifiers/{nullifierHash}  binds one human to one wallet
  * authNonces/{address}               short-lived sign-in challenge
+ * users/{address}/cards/{cardId}    saved card reward profiles (no card numbers), see services/cards.js
  * requests/{requestId}               public lifecycle state (readable by clients)
  * requests/{requestId}/private/voucher  encrypted code + pin (backend-only)
  * requests/{requestId}/events/{auto} audit trail of every transition

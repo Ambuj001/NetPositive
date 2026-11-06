@@ -12,6 +12,8 @@
  * In dev, leave VITE_API_URL empty. Vite proxies /api to the backend.
  * Data model: requests/{id}. See backend/README.md.
  */
+import type { Card } from "./engine";
+
 
 const BASE = ((import.meta.env.VITE_API_URL as string | undefined) || "/api").replace(/\/$/, "");
 
@@ -132,6 +134,12 @@ type ApiClient = {
     token: string,
   ) => Promise<{ request: ApiRequest; escrowContract: string | null }>;
   fund: (id: string, txHash: string, token: string) => Promise<{ request: ApiRequest }>;
+  /** The signed-in wallet's saved card reward profiles (never card numbers), and whether they closed the "add your cards" pop-up. */
+  cardsList: (token: string) => Promise<{ cards: Card[]; promptDismissed: boolean }>;
+  /** Add a card, or update it if it is already saved. */
+  cardSave: (card: Card, token: string) => Promise<{ card: Card }>;
+  cardRemove: (id: string, token: string) => Promise<{ ok: true }>;
+  cardsPromptDismiss: (token: string) => Promise<{ ok: true }>;
   /** A World-ID-verified buyer takes an open order. Locks it to them for the fulfil window. */
   accept: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   cancel: (id: string, token: string) => Promise<{ request: ApiRequest }>;
@@ -162,6 +170,10 @@ export const api: ApiClient = Object.assign(call, {
     call<{ request: ApiRequest; escrowContract: string | null }>("/requests", { body, token }),
   fund: (id: string, txHash: string, token: string) =>
     call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/fund`, { method: "POST", body: { txHash }, token }),
+  cardsList: (token: string) => call<{ cards: Card[]; promptDismissed: boolean }>("/cards", { token }),
+  cardSave: (card: Card, token: string) => call<{ card: Card }>(`/cards/${encodeURIComponent(card.id)}`, { method: "PUT", body: card, token }),
+  cardRemove: (id: string, token: string) => call<{ ok: true }>(`/cards/${encodeURIComponent(id)}`, { method: "DELETE", body: {}, token }),
+  cardsPromptDismiss: (token: string) => call<{ ok: true }>("/cards/prompt/dismiss", { method: "POST", body: {}, token }),
   accept: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/accept`, { method: "POST", body: {}, token }),
   cancel: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/cancel`, { method: "POST", body: {}, token }),
   readyPermit: (id: string, token: string) => call<{ validUntil: number; typedData: unknown }>(`/requests/${encodeURIComponent(id)}/ready-permit`, { token }),

@@ -19,6 +19,7 @@
     "sim": "node --import ./test-support/register.mjs scripts/integration-sim.js",
     "chain:e2e": "node --import ./test-support/register.mjs scripts/chain-e2e.mjs",
     "full:e2e": "node scripts/full-e2e.mjs",
+    "cards:test": "node --import ./test-support/register.mjs scripts/cards-test.mjs",
     "dispute:test": "node --import ./test-support/register.mjs scripts/dispute-test.mjs && node --import ./test-support/register.mjs scripts/dispute-test.mjs nobond"
   },
   "dependencies": {
