@@ -1,3 +1,7 @@
+import {Dialog as ProtectionDialog} from '../components/disputes/DisputeDialog';
+import {DisputePreview} from '../components/disputes/DisputePreview';
+import '../components/disputes/disputes.css';
+import '../components/disputes/surface.css';
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowUpRight,
@@ -20,7 +24,6 @@ import {
   ShieldCheck,
   ShoppingBag,
   Unlock,
-  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -863,83 +866,4 @@ function Scramble({ className }: { className?: string }) {
   return <span className={cx("font-mono text-[13px] text-iris", className)}>0x{s}</span>;
 }
 
-function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose: () => void; q: ReturnType<typeof quote>; brandName: string }) {
-  const [n, setN] = useState(-1);
-  useEffect(() => {
-    if (!open) setN(-1);
-  }, [open]);
-  useEffect(() => {
-    if (n < 0 || n >= 3) return;
-    const t = setTimeout(() => setN((x) => x + 1), 1000);
-    return () => clearTimeout(t);
-  }, [n]);
-  const steps = ["Verifier pulls the voucher's redemption history", "Compares first redemption with your delivery time", "Decides from the record, not from either side's word"];
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-          <motion.div
-            role="dialog"
-            aria-modal
-            aria-label="Dispute"
-            onClick={(e) => e.stopPropagation()}
-            initial={{ y: 30, scale: 0.96, opacity: 0 }}
-            animate={{ y: 0, scale: 1, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 26 }}
-            className="hairline relative w-full max-w-[460px] rounded-[28px] bg-ink-2 p-6"
-          >
-            <div className="flex items-center justify-between">
-              <Pill tone="rose">Dispute</Pill>
-              <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-mute hover:bg-white/5" aria-label="Close">
-                <X className="size-4" />
-              </button>
-            </div>
-            <h3 className="mt-4 font-display text-2xl font-semibold tracking-tight">{brandName} voucher didn't work?</h3>
-            <div className="mt-5 space-y-2">
-              {steps.map((s, i) => (
-                <div key={s} className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition", i < n ? "ring-mint/20" : i === n ? "ring-iris/40" : "ring-white/[0.06]")}>
-                  <span className={cx("grid size-5 place-items-center rounded-full font-mono text-[10px]", i < n ? "bg-mint text-ink" : "text-iris")}>
-                    {i < n ? <Check className="size-3" /> : i === n ? <LoaderCircle className="size-4 animate-spin" /> : i + 1}
-                  </span>
-                  <span className={n >= 0 && i <= n ? "text-fg" : "text-mute"}>{s}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-[12px]">
-              <div className="rounded-xl bg-mint/[0.05] p-3 ring-1 ring-mint/20">
-                <div className="font-medium text-mint">Spent before your first use</div>
-                <div className="mt-1 text-mute">Refunded from the reserve</div>
-              </div>
-              <div className="rounded-xl bg-white/[0.02] p-3 ring-1 ring-white/[0.07]">
-                <div className="font-medium">Spent after delivery</div>
-                <div className="mt-1 text-mute">Trade stands</div>
-              </div>
-            </div>
-            <AnimatePresence>
-              {n >= 3 && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-mint/[0.07] p-4 ring-1 ring-mint/30">
-                  <div className="text-[14px] font-medium">Code 2 was redeemed 3 min before your first use</div>
-                  <div className="mt-1 text-[12.5px] text-mute">
-                    {usdt(q.sellerLocks / 2)} USDC refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <div className="mt-5">
-              {n < 0 ? (
-                <Button className="w-full" onClick={() => setN(0)}>
-                  Open dispute with voucher history
-                </Button>
-              ) : (
-                <Button variant="outline" className="w-full" onClick={onClose} disabled={n < 3}>
-                  {n < 3 ? "Checking…" : "Done"}
-                </Button>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
+function DisputeModal({open,onClose}:{open:boolean;onClose:()=>void;q:ReturnType<typeof quote>;brandName:string}){if(!open)return null;return <div className="dispute-surface"><ProtectionDialog title="Dispute design preview" close={onClose}><DisputePreview/></ProtectionDialog></div>;}

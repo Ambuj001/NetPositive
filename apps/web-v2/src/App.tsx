@@ -34,6 +34,7 @@ export default function App() {
             <Route path="cards" element={<Cards />} />
             <Route path="track" element={<Track />} />
             <Route path="dispute" element={<DisputePage />} />
+            <Route path="disputes" element={<Navigate to="/dispute" replace />} />
             <Route path="dispute/:id" element={<DisputePage />} />
             <Route path="sell" element={<Sell />} />
             <Route path="home" element={<ToTrade />} />

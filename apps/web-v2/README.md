@@ -62,3 +62,7 @@ The app shows the approved address and network and follows account and network c
 Everything after connection is a UI prototype: World ID, the USDT escrow balance, voucher verification and contract events are simulated in the browser with demo data (`src/lib/store.tsx`, `src/lib/data.ts`). No funds move.
 
 Reward maths lives in `src/lib/engine.ts` and reproduces the Product Walkthrough V3 example (₹10,000 Lifestyle voucher at ₹90/USDT: seller locks 112.22 USDT, buyer receives 111.11 USDT + 1,650 Infinia points via SmartBuy 5X). Card rates are illustrative and must be refreshed from issuer terms before real recommendations.
+
+## Updated dispute module
+
+`/dispute` shows the buyer/provider design preview and authenticated timed-protocol trades. `/dispute/:id` and Track use the same component. The old fixed 1 USDC submission UI is replaced by the 1% principal-bond policy, with a fixed minute-15 cutoff, private screenshot hooks and replacement/reputation outcomes. Existing legacy cases remain readable. New protocol server/contract enforcement is pending; no silent fallback to the old fixed-bond endpoints occurs. See `../../docs/frontend/dispute-protocol.md` for the backend adapter contract and current limits. Run `npm test` and `npm run build` here.
