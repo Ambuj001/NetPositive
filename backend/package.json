@@ -18,7 +18,8 @@
     "vault:e2e": "node --import ./test-support/register.mjs scripts/vault-e2e.mjs both && node --import ./test-support/register.mjs scripts/vault-e2e.mjs sealed",
     "sim": "node --import ./test-support/register.mjs scripts/integration-sim.js",
     "chain:e2e": "node --import ./test-support/register.mjs scripts/chain-e2e.mjs",
-    "full:e2e": "node scripts/full-e2e.mjs"
+    "full:e2e": "node scripts/full-e2e.mjs",
+    "dispute:test": "node --import ./test-support/register.mjs scripts/dispute-test.mjs && node --import ./test-support/register.mjs scripts/dispute-test.mjs nobond"
   },
   "dependencies": {
     "@noble/ciphers": "^1.3.0",

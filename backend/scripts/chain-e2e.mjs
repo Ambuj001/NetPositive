@@ -3,7 +3,7 @@
 //
 // DRY RUN (default; escrow is mocked, no chain access, validates this script and the backend flow):
 //   node --import ./test-support/register.mjs scripts/chain-e2e.mjs
-// REAL TESTNET RUN (sends real transactions; spends ~0.2 testnet USDC + gas, most of it returned):
+// REAL TESTNET RUN (sends real transactions; spends ~0.5 testnet USDC + gas, most of it returned):
 //   OPERATOR_PK=<key of the contract operator> [DEPOSITOR_PK=<funded wallet; defaults to the operator>] \
 //   ESCROW_CONTRACT_ADDRESS=0x... CONFIRM_CHAIN_TX=<same contract address> \
 //   node --import ./test-support/register.mjs scripts/chain-e2e.mjs
@@ -41,6 +41,7 @@ Object.assign(process.env, {
   FIREBASE_PROJECT_ID: 'demo-netpositive',
   ...WORLD_ID_TEST_ENV,
   SWEEP_INTERVAL_SECONDS: '0',
+  DISPUTE_BOND_USDC: '0.05', // dispute stake used in section 3b
   CORS_ORIGINS: 'http://localhost:3000',
   ARC_RPC_URL: RPC,
   ARC_CHAIN_ID: String(CHAIN_ID),
@@ -48,6 +49,8 @@ Object.assign(process.env, {
   ...(REAL && { ESCROW_CONTRACT_ADDRESS: contract, ESCROW_OPERATOR_PRIVATE_KEY: operatorKey }),
 });
 
+const adminAcct = privateKeyToAccount(generatePrivateKey());
+process.env.ADMIN_ADDRESSES = adminAcct.address;
 const { createApp } = await import('../src/app.js');
 const { escrowIdFor, ESCROW_ABI } = await import('../src/services/escrow.js');
 
@@ -101,7 +104,7 @@ try {
       assert.ok((await pub.getCode({ address: contract }))?.length > 2, 'no code at address');
       assert.equal((await pub.readContract({ address: contract, abi: ownerAbi, functionName: 'operator' })).toLowerCase(), operatorAcct.address.toLowerCase());
     });
-    await check(`depositor holds enough USDC (needs >= 0.2, has ${formatUnits(await bal(requester.address), 6)})`, async () => assert.ok((await bal(requester.address)) >= 2n * AMOUNT_BASE + 50000n));
+    await check(`depositor holds enough USDC (needs >= 0.55, has ${formatUnits(await bal(requester.address), 6)})`, async () => assert.ok((await bal(requester.address)) >= 4n * AMOUNT_BASE + 150000n));
     console.log(`  info  contract feeBps = ${await pub.readContract({ address: contract, abi: ownerAbi, functionName: 'feeBps' })} (payout expected = amount minus fee)`);
   }
 
@@ -169,6 +172,75 @@ try {
       assert.equal(status, 3);
       assert.ok((await bal(requester.address)) - before >= AMOUNT_BASE - 50000n); // refunded minus nothing (gas is paid by the operator)
     }
+  });
+
+  console.log('\n== 3b. Disputes with a REAL stake (0.05 USDC) held in the same escrow contract ==');
+  const BOND_BASE = 50000n;
+  const statusOf = async (id) => (await pub.readContract({ address: contract, abi: ESCROW_ABI, functionName: 'escrows', args: [id] }))[2];
+  let tAdmin;
+  await check('admin signs in', async () => { const n = await api('POST', '/auth/nonce', { body: { address: adminAcct.address } }); const v = await api('POST', '/auth/verify', { body: { address: adminAcct.address, signature: await adminAcct.signMessage({ message: n.body.message }) } }); assert.equal(v.status, 200, v.text); tAdmin = v.body.token; });
+  async function disputedTrade(brand) {
+    const r = await api('POST', '/requests', { token: tReq, body: { brand, amountInr: AMOUNT_INR, amountUsdc: AMOUNT_USDC } }); assert.equal(r.status, 201, r.text);
+    const id = r.body.request.id; let h = fakeTx();
+    if (REAL) { await tx(requester, { address: USDC, abi: erc20, functionName: 'approve', args: [contract, AMOUNT_BASE] }); h = await tx(requester, { address: contract, abi: ESCROW_ABI, functionName: 'deposit', args: [escrowIdFor(id), AMOUNT_BASE] }); }
+    assert.equal((await api('POST', `/requests/${id}/fund`, { token: tReq, body: { txHash: h } })).status, 200);
+    assert.equal((await api('POST', `/requests/${id}/accept`, { token: tFul })).status, 200);
+    assert.equal((await api('POST', `/requests/${id}/submit-code`, { token: tFul, body: { code: 'TEST-CODE-0002', pin: '4321' } })).status, 200);
+    const t = await api('POST', `/requests/${id}/dispute/bond`, { token: tReq }); assert.equal(t.status, 200, t.text);
+    assert.equal(t.body.bond.amountBaseUnits, String(BOND_BASE));
+    return { id, bondId: t.body.bond.escrowId };
+  }
+  async function stake(bondId) {
+    if (!REAL) return fakeTx();
+    await tx(requester, { address: USDC, abi: erc20, functionName: 'approve', args: [contract, BOND_BASE] });
+    return tx(requester, { address: contract, abi: ESCROW_ABI, functionName: 'deposit', args: [bondId, BOND_BASE] });
+  }
+  let d1;
+  await check('stake is checked on-chain: a tx that is not a deposit to the escrow is refused and the trade stays untouched', async () => {
+    d1 = await disputedTrade('flipkart');
+    if (!REAL) return;
+    const bogus = await tx(requester, { address: USDC, abi: erc20, functionName: 'approve', args: [contract, 0n] });
+    const r = await api('POST', `/requests/${d1.id}/dispute`, { token: tReq, body: { category: 'invalid_code', reason: 'the code does not work', bondTxHash: bogus } });
+    assert.equal(r.status, 400, r.text);
+    assert.equal((await api('GET', `/requests/${d1.id}`)).body.request.status, 'code_submitted');
+  });
+  await check('requester stakes 0.05 USDC on-chain and raises the dispute with a reason and a screenshot', async () => {
+    const h = await stake(d1.bondId);
+    const r = await api('POST', `/requests/${d1.id}/dispute`, { token: tReq, body: { category: 'already_redeemed', reason: 'The brand site says this code was already redeemed', bondTxHash: h } });
+    assert.equal(r.status, 200, r.text); assert.equal(r.body.request.dispute.bond.status, 'held');
+    if (REAL) assert.equal(await statusOf(d1.bondId), 1); // Funded
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), crypto.randomBytes(500)]);
+    const up = await fetch(`${BASE}/requests/${d1.id}/evidence?note=site-error`, { method: 'POST', headers: { 'content-type': 'image/png', authorization: `Bearer ${tReq}` }, body: png });
+    assert.equal(up.status, 201);
+  });
+  await check('admin decides the disputer is RIGHT: stake refunded to them, trade refunded, other side struck', async () => {
+    const before = REAL ? await bal(requester.address) : 0n;
+    const r = await api('POST', `/requests/${d1.id}/resolve`, { token: tAdmin, body: { verdict: 'disputer_right', note: 'verified at the brand site' } });
+    assert.equal(r.status, 200, r.text); assert.equal(r.body.request.status, 'refunded'); assert.equal(r.body.request.dispute.bond.status, 'returned');
+    if (REAL) {
+      assert.equal(await statusOf(d1.bondId), 3); assert.equal(await statusOf(escrowIdFor(d1.id)), 3); // both Refunded
+      assert.equal((await bal(requester.address)) - before, AMOUNT_BASE + BOND_BASE); // trade amount AND stake came back
+    }
+    assert.equal((await api('GET', '/auth/me', { token: tFul })).body.user.reputation.strikes, 1);
+  });
+  let d2;
+  await check('a second dispute: requester stakes, raises it, and the admin decides the disputer is WRONG', async () => {
+    d2 = await disputedTrade('zomato');
+    const h = await stake(d2.bondId);
+    const r = await api('POST', `/requests/${d2.id}/dispute`, { token: tReq, body: { category: 'invalid_code', reason: 'Trying to get my crypto back', bondTxHash: h } });
+    assert.equal(r.status, 200, r.text);
+    const fulBefore = REAL ? await bal(fulfiller.address) : 0n;
+    const res = await api('POST', `/requests/${d2.id}/resolve`, { token: tAdmin, body: { verdict: 'disputer_wrong', note: 'code is valid' } });
+    assert.equal(res.status, 200, res.text); assert.equal(res.body.request.status, 'released'); assert.equal(res.body.request.dispute.bond.status, 'forfeited');
+    if (REAL) {
+      assert.equal(await statusOf(d2.bondId), 2); assert.equal(await statusOf(escrowIdFor(d2.id)), 2); // both Released
+      const fee = ((AMOUNT_BASE + BOND_BASE) * (await pub.readContract({ address: contract, abi: ownerAbi, functionName: 'feeBps' }))) / 10000n;
+      assert.ok((await bal(fulfiller.address)) - fulBefore >= AMOUNT_BASE + BOND_BASE - fee - 1n, 'the fulfiller must receive the trade AND the forfeited stake');
+    }
+  });
+  await check('the false disputer is banned (cannot use the API any more)', async () => {
+    const r = await api('GET', '/requests/mine', { token: tReq });
+    assert.equal(r.status, 403); assert.equal(r.body.error, 'banned');
   });
 
   if (REAL) {

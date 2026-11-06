@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { BRANDS, config } from '../config.js';
-import { requireAuth, requireHuman, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requireHuman } from '../middleware/auth.js';
 import { validate, txHash } from '../middleware/validate.js';
 import * as svc from '../services/requests.js';
 
@@ -94,24 +94,6 @@ router.post(
   },
 );
 
-// ---------- Either party ----------
-
-/** POST /requests/:id/dispute { reason } */
-router.post('/:id/dispute', requireAuth, validate(z.object({ reason: z.string().trim().min(5).max(1000) })), async (req, res) => {
-  res.json({ request: await svc.disputeRequest(req.params.id, req.user.address, req.body.reason) });
-});
-
-// ---------- Admin ----------
-
-/** POST /requests/:id/resolve { outcome: "release" | "refund", note? } */
-router.post(
-  '/:id/resolve',
-  requireAuth,
-  requireAdmin,
-  validate(z.object({ outcome: z.enum(['release', 'refund']), note: z.string().max(1000).optional() })),
-  async (req, res) => {
-    res.json({ request: await svc.resolveDispute(req.params.id, req.user.address, req.body.outcome, req.body.note) });
-  },
-);
+// Disputes, evidence and admin resolution: see routes/disputes.js
 
 export default router;

@@ -46,6 +46,12 @@ const schema = z.object({
   FULFIL_WINDOW_MINUTES: z.coerce.number().positive().default(30),
   REVIEW_WINDOW_MINUTES: z.coerce.number().positive().default(60),
 
+  // Dispute: the person raising it stakes this much USDC (same escrow contract). "0" turns the stake off.
+  // Judged right -> stake returned. Judged wrong -> stake goes to the other party and the account is banned.
+  DISPUTE_BOND_USDC: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Decimal string, e.g. "1" or "0.5"').default('1'),
+  DISPUTE_MAX_EVIDENCE_PER_PARTY: z.coerce.number().int().min(0).max(10).default(4),
+  DISPUTE_MAX_IMAGE_BYTES: z.coerce.number().int().min(10_000).max(700_000).default(500_000),
+
   FIREBASE_PROJECT_ID: z.string().min(1),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional().default(''),
   FIRESTORE_EMULATOR_HOST: z.string().optional().default(''),

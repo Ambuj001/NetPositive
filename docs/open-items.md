@@ -64,3 +64,7 @@ If `feeBps` were set, the fee is taken **out of** the amount (fulfiller gets `am
 - **Voucher vault (sealed codes) is built on the server side** (`docs/vault.md`, `VOUCHER_MODE`). The frontend must use `backend/vault-sdk` before the mode can be `sealed`; recovery for non-deterministic wallets and migration of old vouchers are not built.
 - **Private code transfer contracts** (`KeyRegistry`, `CodeMailbox`) are deployed on Arc testnet (`contracts/private-transfer/`) but nothing in the backend or frontend calls them yet: no event indexer, no `ready`/`delivered` request states, no deadlines.
 - **JSON body limit is 256 KB** on `backend-integration` (was 32 KB); fine for World ID proofs but larger than most endpoints need.
+
+## Disputes
+
+A first version is built on `integration-e2e`: stake (USDC) + category/reason + screenshots in Firestore + admin verdict (stake back, or stake to the other party and ban). See [disputes.md](disputes.md) for the flow, what is tested and what is still undecided (timers, stake size, admin screen, strike threshold).
