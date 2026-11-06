@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { col, db, FieldValue, serialize } from '../services/firestore.js';
-import { signWorldIdRequest, verifyWorldIdProof, worldIdReady } from '../services/worldid.js';
+import { devBypassNullifier, signWorldIdRequest, verifyWorldIdProof, worldIdReady } from '../services/worldid.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { badRequest, conflict } from '../lib/errors.js';
+import { badRequest, conflict, HttpError } from '../lib/errors.js';
 
 const router = Router();
 
@@ -63,9 +63,12 @@ router.post('/rp-signature', requireAuth, (req, res) => {
  *   - same human, other wallet → 409 (one human, one account)
  *   - wallet already bound to a different human → 409
  */
-router.post('/verify', requireAuth, validate(verifyBody), async (req, res) => {
+// With WORLD_ID_DEV_BYPASS (local only) no proof is needed, so the body is not validated.
+router.post('/verify', requireAuth, validate(config.WORLD_ID_DEV_BYPASS ? z.any() : verifyBody), async (req, res) => {
   const wallet = req.user.address;
-  const { nullifierHash, verificationLevel } = await verifyWorldIdProof(req.body, wallet);
+  const { nullifierHash, verificationLevel } = config.WORLD_ID_DEV_BYPASS
+    ? { nullifierHash: devBypassNullifier(wallet), verificationLevel: 'dev_bypass' }
+    : await verifyWorldIdProof(req.body, wallet);
 
   const nullRef = col.nullifiers.doc(nullifierHash);
   const userRef = col.users.doc(wallet);
@@ -73,8 +76,13 @@ router.post('/verify', requireAuth, validate(verifyBody), async (req, res) => {
   await db.runTransaction(async (tx) => {
     const [nullSnap, userSnap] = await Promise.all([tx.get(nullRef), tx.get(userRef)]);
 
-    if (nullSnap.exists && nullSnap.data().address !== wallet) {
-      throw conflict('world_id_already_used', 'This World ID is already linked to another wallet');
+    // Addresses are compared case-insensitively. Only the person who just proved they ARE this human is told
+    // which wallet holds the link, so they can switch to it or ask for it to be released.
+    if (nullSnap.exists && String(nullSnap.data().address).toLowerCase() !== String(wallet).toLowerCase()) {
+      throw new HttpError(409, 'world_id_already_used', 'This World ID is already linked to another wallet', {
+        linkedWallet: nullSnap.data().address,
+        yourWallet: wallet,
+      });
     }
     const existing = userSnap.data()?.worldIdNullifier;
     if (existing && existing !== nullifierHash) {

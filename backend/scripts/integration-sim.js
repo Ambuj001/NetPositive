@@ -175,8 +175,8 @@ try {
     const q = r.body.request;
     requestId = q.id;
     assert.equal(q.status, 'pending_funding');
-    assert.equal(q.requester, alice.address.toLowerCase());
-    assert.equal(q.fulfiller, null);
+    assert.equal(q.crypto_spender, alice.address.toLowerCase());
+    assert.equal(q.crypto_buyer, null);
     assert.equal(q.brand, 'amazon');
     assert.equal(q.amountInr, 10000);
     assert.equal(q.amountUsdc, '111.11');
@@ -218,7 +218,7 @@ try {
     assert.ok(amz.body.requests.some((x) => x.id === requestId));
     assert.ok(!other.body.requests.some((x) => x.id === requestId));
     const mine = await api('GET', '/requests/mine', { token: ta });
-    assert.ok(mine.body.asRequester.some((x) => x.id === requestId));
+    assert.ok(mine.body.asCryptoSpender.some((x) => x.id === requestId));
   });
   await check('audit trail has created -> funded, both by the requester', async () => {
     const d = __dump();
@@ -375,7 +375,7 @@ try {
     const r = await api('POST', `/requests/${requestId}/accept`, { token: tb });
     assert.equal(r.status, 200, r.text);
     assert.equal(r.body.request.status, 'accepted');
-    assert.equal(r.body.request.fulfiller, bobId);
+    assert.equal(r.body.request.crypto_buyer, bobId);
     assert.ok(!(await api('GET', '/requests?brand=amazon')).body.requests.some((x) => x.id === requestId));
   });
   const SECRET_CODE = 'AMZN-SIM-' + crypto.randomBytes(4).toString('hex').toUpperCase();

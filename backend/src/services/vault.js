@@ -49,13 +49,17 @@ export async function getKey(address) {
   return serialize({ address: address.toLowerCase(), publicKey: k.publicKey, kid: k.kid, signature: k.signature });
 }
 
+// Documents written since the rename use crypto_spender / crypto_buyer; older ones still have requester / fulfiller.
+const spenderOf = (d) => d.crypto_spender || d.requester;
+const buyerOf = (d) => ('crypto_buyer' in d ? d.crypto_buyer || null : d.fulfiller || null);
+
 /** Called before a sealed code is stored: it must be well-formed and sealed to the requester (and the admin key, if configured). */
 export async function assertSealedAcceptable(requestId, sealed) {
   if (config.VOUCHER_MODE === 'legacy') throw badRequest('sealed_not_enabled', 'Sealed vouchers are not enabled');
   try { V.validateEnvelope(sealed); } catch (e) { throw badRequest('bad_envelope', e.message); }
   const reqSnap = await col.requests.doc(requestId).get();
   if (!reqSnap.exists) throw notFound('Request not found');
-  const userSnap = await col.users.doc(reqSnap.data().requester).get();
+  const userSnap = await col.users.doc(spenderOf(reqSnap.data())).get();
   const key = userSnap.data()?.vaultKey;
   if (!key) throw conflict('requester_vault_key_missing', 'The requester has not set up a voucher vault, so the code cannot be sealed to them');
   const kids = sealed.recipients.map((r) => r.kid);
@@ -66,16 +70,22 @@ export async function assertSealedAcceptable(requestId, sealed) {
 
 /** All the caller's received vouchers (as requester): sealed envelopes plus their own opaque state. */
 export async function listVault(address) {
-  const snap = await col.requests.where('requester', '==', address).orderBy('createdAt', 'desc').limit(100).get();
+  const [next, previous] = await Promise.all([
+    col.requests.where('crypto_spender', '==', address).orderBy('createdAt', 'desc').limit(100).get(),
+    col.requests.where('requester', '==', address).orderBy('createdAt', 'desc').limit(100).get(),
+  ]);
+  const byId = new Map();
+  for (const doc of [...previous.docs, ...next.docs]) byId.set(doc.id, doc);
+  const docs = [...byId.values()].sort((a, b) => (b.data().createdAt?.toMillis?.() ?? 0) - (a.data().createdAt?.toMillis?.() ?? 0));
   const items = [];
-  for (const d of snap.docs) {
+  for (const d of docs) {
     const r = d.data();
     if (!HAS_VOUCHER.has(r.status)) continue;
     const [v, s] = await Promise.all([voucherRef(d.id).get(), col.users.doc(address).collection('vaultState').doc(d.id).get()]);
     if (!v.exists) continue;
     const vd = v.data();
     items.push(serialize({
-      requestId: d.id, brand: r.brand, amountInr: r.amountInr, status: r.status, requester: r.requester, fulfiller: r.fulfiller,
+      requestId: d.id, brand: r.brand, amountInr: r.amountInr, status: r.status, requester: spenderOf(r), fulfiller: buyerOf(r), // names kept: the sealed-box AAD is built from these two addresses
       codeSubmittedAt: r.codeSubmittedAt ?? null,
       sealed: vd.sealed ?? null,
       legacy: vd.sealed ? undefined : true, // plaintext-era voucher: fetch it with GET /requests/:id/voucher
@@ -89,7 +99,7 @@ export async function putState(address, requestId, blob) {
   try { V.validateStateBlob(blob); } catch (e) { throw badRequest('bad_state_blob', e.message); }
   const reqSnap = await col.requests.doc(requestId).get();
   if (!reqSnap.exists) throw notFound('Request not found');
-  if (reqSnap.data().requester !== address) throw forbidden('not_requester', 'Only the requester has a vault entry for this request');
+  if (spenderOf(reqSnap.data()) !== address) throw forbidden('not_requester', 'Only the requester has a vault entry for this request');
   if (!HAS_VOUCHER.has(reqSnap.data().status)) throw conflict('no_voucher_yet', 'No voucher has been submitted for this request');
   await col.users.doc(address).collection('vaultState').doc(requestId).set({ blob, updatedAt: FieldValue.serverTimestamp() });
   return { ok: true };

@@ -2,17 +2,16 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, CreditCard, ShoppingBag, Sparkles, Wallet } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import Assistant from "../components/Assistant";
 import { Aurora, BrandMark, Button, cx } from "../components/ui";
 import { STATUS, isFinal } from "../lib/api";
-import { userIdFor } from "../lib/chatbot";
 import { brand } from "../lib/data";
+import { SpendChat } from "./Spend";
 import { inr } from "../lib/engine";
 import { useOrderBook } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 
 export default function Home() {
-  const { address, fullAddress, openWallet, myOrders } = useApp();
+  const { address, openWallet, myOrders } = useApp();
   const { orders } = useOrderBook();
   const [chatOpen, setChatOpen] = useState(false);
   const [session, setSession] = useState(0);
@@ -77,7 +76,7 @@ export default function Home() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               >
-                <Assistant mode="spend" userId={userIdFor(fullAddress)} onRestart={() => setSession((s) => s + 1)} onClose={() => setChatOpen(false)} />
+                <SpendChat book={orders} onRestart={() => setSession((s) => s + 1)} onClose={() => setChatOpen(false)} />
               </motion.div>
             )}
           </AnimatePresence>

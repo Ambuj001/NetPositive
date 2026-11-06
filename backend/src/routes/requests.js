@@ -26,7 +26,7 @@ router.get('/', validate(listSchema, 'query'), async (req, res) => {
   res.json({ requests: await svc.listOpen(req.validQuery) });
 });
 
-/** GET /requests/mine → requests where I'm requester or fulfiller */
+/** GET /requests/mine → requests where I'm the crypto spender or crypto buyer */
 router.get('/mine', requireAuth, async (req, res) => {
   res.json(await svc.listMine(req.user.address));
 });
@@ -58,13 +58,30 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   res.json({ request: await svc.cancelRequest(req.params.id, req.user.address) });
 });
 
-/** GET /requests/:id/voucher → decrypted code + pin (requester only, after submission) */
+/** GET /requests/:id/voucher → decrypted code + pin (crypto spender only, after submission) */
 router.get('/:id/voucher', requireAuth, async (req, res) => {
   const isAdmin = config.ADMIN_ADDRESSES.includes(req.user.address);
   res.json({ voucher: await svc.getVoucher(req.params.id, req.user.address, { isAdmin }) });
 });
 
-/** POST /requests/:id/confirm → code works; release USDC to fulfiller */
+/**
+ * GET /requests/:id/ready-permit → the EIP-712 "Ready" typed data for the spender's wallet to sign (gasless).
+ * POST /requests/:id/ready { validUntil, signature } → verified and stored on the request. Spender only, while a buyer has accepted.
+ */
+router.get('/:id/ready-permit', requireAuth, async (req, res) => {
+  res.json(await svc.prepareReady(req.params.id, req.user.address));
+});
+
+router.post(
+  '/:id/ready',
+  requireAuth,
+  validate(z.object({ validUntil: z.number().int().positive(), signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/, 'A 65-byte hex signature') }).strict()),
+  async (req, res) => {
+    res.json({ request: await svc.readyRequest(req.params.id, req.user.address, req.body) });
+  },
+);
+
+/** POST /requests/:id/confirm → code works; release USDC to the crypto buyer */
 router.post('/:id/confirm', requireAuth, async (req, res) => {
   res.json({ request: await svc.confirmRequest(req.params.id, req.user.address) });
 });

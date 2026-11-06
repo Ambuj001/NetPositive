@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, brandIdFromApi, type ApiRequest } from "./api";
 import type { Order } from "./data";
+import { FEE_RATE, round2 } from "./engine";
 import { shortAddr } from "./wallet";
 import { useApp } from "./store";
 
@@ -15,12 +16,23 @@ export function toOrder(r: ApiRequest): Order {
     brandId: brandIdFromApi(r.brand),
     amount: r.amountInr,
     rate: usdc ? Math.round((r.amountInr / usdc) * 100) / 100 : 0,
-    seller: shortAddr(r.requester),
+    seller: shortAddr(r.crypto_spender),
     sellerTrades: 0,
     city: "",
     postedMin: Math.max(0, Math.round((Date.now() - created) / 60000)),
     expiresMin: 30,
   };
+}
+
+/** Ledger taken from the stored request, not the demo ₹90 example. `amountUsdc` is the locked amount. */
+export function ledgerFromRequest(r: ApiRequest) {
+  const sellerLocks = Number(r.amountUsdc) || 0;
+  const buyerReceives = round2(sellerLocks / (1 + FEE_RATE));
+  const fee = round2(Math.max(0, sellerLocks - buyerReceives));
+  const reserveShare = round2(fee / 2);
+  const platformShare = round2(fee - reserveShare);
+  const rate = buyerReceives ? Math.round((r.amountInr / buyerReceives) * 100) / 100 : 0;
+  return { buyerReceives, fee, sellerLocks, reserveShare, platformShare, sellerEffective: rate, rate };
 }
 
 /** Open requests from the backend (`GET /requests`), falling back to demo orders when it's offline. */

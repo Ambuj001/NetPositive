@@ -16,7 +16,7 @@ const ENC_KEY = crypto.randomBytes(32).toString('hex');
 const adminKeys = V.deriveVaultKeys('0x' + crypto.randomBytes(65).toString('hex'));
 Object.assign(process.env, {
   NODE_ENV: 'development', JWT_SECRET: crypto.randomBytes(48).toString('hex'), VOUCHER_ENC_KEY: ENC_KEY,
-  FIREBASE_PROJECT_ID: 'demo-netpositive', WORLD_ID_APP_ID: 'app_staging_test', WORLD_ID_RP_ID: 'rp_test', WORLD_ID_SIGNING_KEY: 'ab'.repeat(32), WORLD_ID_ENV: 'staging', WORLD_ID_MOCK: 'true', ESCROW_MODE: 'mock',
+  FIREBASE_PROJECT_ID: 'demo-netpositive', WORLD_ID_APP_ID: 'app_staging_test', WORLD_ID_ACTION: 'netpositive-account', WORLD_ID_RP_ID: 'rp_test', WORLD_ID_SIGNING_KEY: 'ab'.repeat(32), WORLD_ID_ENV: 'staging', WORLD_ID_MOCK: 'true', ESCROW_MODE: 'mock',
   SWEEP_INTERVAL_SECONDS: '0', CORS_ORIGINS: 'http://localhost:3000', VOUCHER_MODE: MODE, ADMIN_VAULT_PUBLIC_KEY: adminKeys.publicKeyHex,
 });
 const { createApp } = await import('../src/app.js');

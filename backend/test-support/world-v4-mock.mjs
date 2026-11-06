@@ -5,6 +5,7 @@ import { hashSignal } from '@worldcoin/idkit-core/hashing';
 /** Env vars a test process must set before importing the backend so World ID mock mode works. */
 export const WORLD_ID_TEST_ENV = {
   WORLD_ID_APP_ID: 'app_staging_test',
+  WORLD_ID_ACTION: 'netpositive-account', // pinned so a developer's local .env cannot change what the tests expect
   WORLD_ID_RP_ID: 'rp_test',
   WORLD_ID_SIGNING_KEY: 'ab'.repeat(32),
   WORLD_ID_ENV: 'staging',

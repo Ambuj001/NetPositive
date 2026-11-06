@@ -275,7 +275,7 @@ try {
   console.log('\n== 5. Saad takes the job; Shivam signs "Ready" for Saad ==');
   await check('Saad accepts the request', async () => {
     const r = await api('POST', `/requests/${requestId}/accept`, { token: tA });
-    assert.equal(r.status, 200, r.text); assert.equal(r.body.request.fulfiller, saad.address.toLowerCase());
+    assert.equal(r.status, 200, r.text); assert.equal(r.body.request.crypto_buyer, saad.address.toLowerCase());
   });
   let readySig, validUntil;
   await chainCheck('Shivam signs the gasless Ready permit (EIP-712, Arc chain id, bound to Saad and this escrow)', async () => {
@@ -393,7 +393,7 @@ try {
   });
   await check('list endpoints work against this database (needs the composite indexes on a real Firestore)', async () => {
     const mine = await api('GET', '/requests/mine', { token: tS });
-    assert.equal(mine.status, 200, mine.text); assert.ok(mine.body.asRequester.length >= 2);
+    assert.equal(mine.status, 200, mine.text); assert.ok(mine.body.asCryptoSpender.length >= 2);
     assert.equal((await api('GET', '/requests?brand=amazon')).status, 200);
     assert.equal((await api('GET', '/vault', { token: tS })).status, 200);
   });

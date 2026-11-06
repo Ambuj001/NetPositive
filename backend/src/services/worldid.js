@@ -1,3 +1,4 @@
+import { keccak256, toBytes } from 'viem';
 import { hashSignal } from '@worldcoin/idkit-core/hashing';
 import { signRequest } from '@worldcoin/idkit-core/signing';
 import { config } from '../config.js';
@@ -38,6 +39,12 @@ export function signWorldIdRequest() {
     action: config.WORLD_ID_ACTION,
   };
 }
+
+/**
+ * DEV BYPASS ONLY. A stable fake "person" for a wallet, so each test wallet registers as its own human and the
+ * one-wallet-per-human rule still holds. It is a hash of the wallet, never a real World ID.
+ */
+export const devBypassNullifier = (wallet) => keccak256(toBytes(`netpositive-dev-bypass:${String(wallet).toLowerCase()}`));
 
 /** Store hex nullifiers lowercase and decimal nullifiers without leading zeros. */
 export function canonicalNullifier(value) {

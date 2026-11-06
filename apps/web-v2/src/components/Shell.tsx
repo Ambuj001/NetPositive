@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, ChevronRight, Copy, FingerprintPattern, LoaderCircle, Menu, ShieldCheck, Wallet, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../lib/store";
-import { usdt } from "../lib/engine";
+import { readSession } from "../lib/session";
+import { formatChainBalance } from "../lib/wallet";
 import { WorldIdNotice, useWorldId } from "../lib/world";
 import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
@@ -25,6 +26,7 @@ export function Shell() {
     <div className="relative min-h-dvh overflow-x-clip">
       <div className="noise" />
       <Nav />
+      <HomeGate />
       {!walletOpen && <WorldIdNotice className="fixed bottom-5 left-5 z-[60] w-[min(360px,calc(100vw-40px))] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)]" />}
       <main>
         <Outlet />
@@ -37,7 +39,7 @@ export function Shell() {
 }
 
 function Nav() {
-  const { address, balance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
+  const { address, walletBalance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -96,7 +98,7 @@ function Nav() {
               <WalletLogo id={walletId} icon={walletIcon} name={walletName || "W"} className="size-7" />
               <span className="hidden text-left leading-tight sm:block">
                 <span className="block font-mono text-[11px] text-mute">{address}</span>
-                <span className="tabular block text-[12.5px] font-medium">{usdt(balance)} USDC</span>
+                <span className="tabular block text-[12.5px] font-medium">{walletBalance ? formatChainBalance(walletBalance) : "—"}</span>
               </span>
               {humanVerified && <ShieldCheck className="size-4 text-mint" aria-label="Verified human" />}
             </button>
@@ -175,21 +177,63 @@ function Footer() {
   );
 }
 
+/** Leave the landing page only once this browser has both a wallet and World ID. */
+function HomeGate() {
+  const { address, humanVerified, closeWallet } = useApp();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    const ready = Boolean(address && humanVerified);
+    const becameReady = ready && !readyRef.current;
+    readyRef.current = ready;
+    if (becameReady && pathname === "/") {
+      closeWallet();
+      navigate("/home");
+    }
+  }, [address, humanVerified, pathname, closeWallet, navigate]);
+
+  return null;
+}
+
+function waitForAddress(read: () => string) {
+  const current = read();
+  if (current) return Promise.resolve(current);
+  return new Promise<string>((resolve) => {
+    const started = performance.now();
+    const tick = () => {
+      const value = read();
+      if (value) resolve(value);
+      else if (performance.now() - started > 4000) resolve("");
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
 function WalletModal() {
   const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast } =
     useApp();
   const { verifyHuman, phase } = useWorldId();
   const [copied, setCopied] = useState(false);
-  const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  const addressRef = useRef(fullAddress);
+  addressRef.current = fullAddress;
 
   const doConnect = async (w: (typeof choices)[number]) => {
     const ok = await connect(w);
-    if (ok) {
-      toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
+    if (!ok) return;
+    toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
+    if (pathname !== "/") {
       closeWallet();
-      if (pathname === "/") navigate("/home");
+      return;
     }
+    // Landing stays put until World ID is bound to this wallet too.
+    const addr = await waitForAddress(() => addressRef.current);
+    if (!addr || readSession(addr)?.verified) return;
+    await verifyHuman();
   };
 
   return (

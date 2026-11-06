@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { parseUnits, getAddress } from 'viem';
 import { config } from '../config.js';
 import { db, col, FieldValue, Timestamp, serialize } from './firestore.js';
-import { S, assertStatus, transition, settle, getRequest, bumpReputation } from './requests.js';
+import { S, assertStatus, transition, settle, getRequest, bumpReputation, spenderOf, buyerOf } from './requests.js';
 import { bondIdFor, verifyDepositById, readStatusById, releaseById, refundById } from './escrow.js';
 import { HttpError, notFound, forbidden, conflict, badRequest } from '../lib/errors.js';
 
@@ -46,7 +46,7 @@ const IMAGE_TYPES = {
 };
 
 function assertParty(data, actor) {
-  if (actor !== data.requester && actor !== data.fulfiller) throw forbidden('not_party', 'Only a party to the trade can do this');
+  if (actor !== spenderOf(data) && actor !== buyerOf(data)) throw forbidden('not_party', 'Only a party to the trade can do this');
 }
 
 /** Firestore Timestamp (inside a transaction) or ISO string (from getRequest) -> epoch ms. */
@@ -55,12 +55,12 @@ const ms = (v) => (v?.toMillis ? v.toMillis() : Date.parse(v));
 function assertCanDispute(data, actor) {
   assertStatus(data, S.CODE_SUBMITTED);
   assertParty(data, actor);
-  if (actor === data.requester && ms(data.reviewDeadline) < Date.now()) {
+  if (actor === spenderOf(data) && ms(data.reviewDeadline) < Date.now()) {
     throw conflict('review_window_expired', 'Review window has expired; funds are being auto-released');
   }
 }
 
-const otherParty = (data, actor) => (actor === data.requester ? data.fulfiller : data.requester);
+const otherParty = (data, actor) => (actor === spenderOf(data) ? buyerOf(data) : spenderOf(data));
 
 // ---------- Step 1: the stake ----------
 
@@ -116,7 +116,7 @@ export async function openDispute(id, actor, { category, reason, bondTxHash }) {
       dispute: { by: actor, category, reason, openedAt: Timestamp.now(), bond, response: null },
     };
   });
-  await Promise.all([bumpReputation(updated.requester, 'disputes'), bumpReputation(updated.fulfiller, 'disputes')]);
+  await Promise.all([bumpReputation(spenderOf(updated), 'disputes'), bumpReputation(buyerOf(updated), 'disputes')]);
   return updated;
 }
 
@@ -158,7 +158,7 @@ export async function addEvidence(id, actor, { mime, bytes, note }) {
 }
 
 function assertCanView(data, viewer, isAdmin) {
-  if (!isAdmin && viewer !== data.requester && viewer !== data.fulfiller) throw forbidden('not_party', 'Only the two parties and admins can see dispute evidence');
+  if (!isAdmin && viewer !== spenderOf(data) && viewer !== buyerOf(data)) throw forbidden('not_party', 'Only the two parties and admins can see dispute evidence');
 }
 
 export async function listEvidence(id, viewer, { isAdmin = false } = {}) {
@@ -192,7 +192,7 @@ export async function resolveDispute(id, admin, { verdict, note }) {
   const resolved = await transition(id, admin, 'dispute_resolved', (data) => {
     assertStatus(data, S.DISPUTED);
     const disputer = data.dispute?.by ?? data.disputedBy;
-    const mainOutcome = (verdict === 'disputer_right') === (disputer === data.requester) ? 'refund' : 'release';
+    const mainOutcome = (verdict === 'disputer_right') === (disputer === spenderOf(data)) ? 'refund' : 'release';
     if (data.resolution) {
       if (data.resolution.verdict !== verdict) throw conflict('already_resolved', `This dispute was already decided as "${data.resolution.verdict}"`);
       return {};

@@ -1,12 +1,13 @@
 import { motion } from "motion/react";
 import { ArrowRight, ArrowUpRight, Check, Clock, LoaderCircle, PenLine, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Aurora, BrandMark, Button, cx } from "../components/ui";
 import { api, brandIdFromApi, isFinal, STATUS, STEPS, stepIndex, type ApiRequest, type ReqStatus } from "../lib/api";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
+import TrackDetail from "./TrackDetail";
 
 /** One row on the tracker, from the backend (Firestore `requests/{id}`) or this session. */
 type Row = {
@@ -39,10 +40,18 @@ const fromApi = (r: ApiRequest, role: Row["role"]): Row => ({
 
 type Tab = "requester" | "fulfiller";
 
+/** `/track` lists your orders. `/track?id=<order id>` opens one order in detail, from your side of it. */
 export default function Track() {
+  const [params] = useSearchParams();
+  const id = params.get("id");
+  if (id !== null) return <TrackDetail key={id} id={id.trim()} />;
+  return <TrackList />;
+}
+
+function TrackList() {
   const { token, signIn, signingIn, myOrders, address } = useApp();
   const [tab, setTab] = useState<Tab>("requester");
-  const [live, setLive] = useState<{ asRequester: ApiRequest[]; asFulfiller: ApiRequest[] } | null>(null);
+  const [live, setLive] = useState<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] } | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "offline" | "error">("idle");
   const [err, setErr] = useState("");
 
@@ -68,7 +77,7 @@ export default function Track() {
   }, [load, token]);
 
   const rows: Row[] = useMemo(() => {
-    if (live) return tab === "requester" ? live.asRequester.map((r) => fromApi(r, "requester")) : live.asFulfiller.map((r) => fromApi(r, "fulfiller"));
+    if (live) return tab === "requester" ? live.asCryptoSpender.map((r) => fromApi(r, "requester")) : live.asCryptoBuyer.map((r) => fromApi(r, "fulfiller"));
     return myOrders
       .filter((o) => o.role === tab)
       .map((o) => ({
@@ -87,8 +96,8 @@ export default function Track() {
   }, [live, myOrders, tab]);
 
   const counts = {
-    requester: live ? live.asRequester.length : myOrders.filter((o) => o.role === "requester").length,
-    fulfiller: live ? live.asFulfiller.length : myOrders.filter((o) => o.role === "fulfiller").length,
+    requester: live ? live.asCryptoSpender.length : myOrders.filter((o) => o.role === "requester").length,
+    fulfiller: live ? live.asCryptoBuyer.length : myOrders.filter((o) => o.role === "fulfiller").length,
   };
   const active = rows.filter((r) => !isFinal(r.status)).length;
 
@@ -222,6 +231,11 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
             <a href={`https://testnet.arcscan.app/tx/${r.tx}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-mono text-[11px] text-dim hover:text-fg">
               {r.tx.slice(0, 8)}… <ArrowUpRight className="size-3" />
             </a>
+          )}
+          {r.live && (
+            <Link to={`/track?id=${encodeURIComponent(r.id)}`} className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.05] px-3 text-[12px] ring-1 ring-white/10 hover:bg-white/10">
+              Details <ArrowRight className="size-3" />
+            </Link>
           )}
           {canCancel && (
             <button
