@@ -16,7 +16,7 @@ class ServerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         engine.STATE_FILE = Path(tempfile.mkdtemp()) / "pf.json"
-        cls.srv = server.make_server("127.0.0.1", 0)
+        cls.srv = server.make_server("127.0.0.1", 0, insecure_dev=True)  # engine behaviour tests; auth is covered by test_auth.py
         cls.base = f"http://127.0.0.1:{cls.srv.server_address[1]}"
         threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
 
