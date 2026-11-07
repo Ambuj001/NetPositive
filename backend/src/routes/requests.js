@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { BRANDS, config } from '../config.js';
-import { requireAuth, requireHuman, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requireHuman } from '../middleware/auth.js';
 import { validate, txHash } from '../middleware/validate.js';
 import * as svc from '../services/requests.js';
 
@@ -26,7 +26,7 @@ router.get('/', validate(listSchema, 'query'), async (req, res) => {
   res.json({ requests: await svc.listOpen(req.validQuery) });
 });
 
-/** GET /requests/mine → requests where I'm requester or fulfiller */
+/** GET /requests/mine → requests where I'm the crypto spender or crypto buyer */
 router.get('/mine', requireAuth, async (req, res) => {
   res.json(await svc.listMine(req.user.address));
 });
@@ -58,13 +58,30 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   res.json({ request: await svc.cancelRequest(req.params.id, req.user.address) });
 });
 
-/** GET /requests/:id/voucher → decrypted code + pin (requester only, after submission) */
+/** GET /requests/:id/voucher → decrypted code + pin (crypto spender only, after submission) */
 router.get('/:id/voucher', requireAuth, async (req, res) => {
   const isAdmin = config.ADMIN_ADDRESSES.includes(req.user.address);
   res.json({ voucher: await svc.getVoucher(req.params.id, req.user.address, { isAdmin }) });
 });
 
-/** POST /requests/:id/confirm → code works; release USDC to fulfiller */
+/**
+ * GET /requests/:id/ready-permit → the EIP-712 "Ready" typed data for the spender's wallet to sign (gasless).
+ * POST /requests/:id/ready { validUntil, signature } → verified and stored on the request. Spender only, while a buyer has accepted.
+ */
+router.get('/:id/ready-permit', requireAuth, async (req, res) => {
+  res.json(await svc.prepareReady(req.params.id, req.user.address));
+});
+
+router.post(
+  '/:id/ready',
+  requireAuth,
+  validate(z.object({ validUntil: z.number().int().positive(), signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/, 'A 65-byte hex signature') }).strict()),
+  async (req, res) => {
+    res.json({ request: await svc.readyRequest(req.params.id, req.user.address, req.body) });
+  },
+);
+
+/** POST /requests/:id/confirm → code works; release USDC to the crypto buyer */
 router.post('/:id/confirm', requireAuth, async (req, res) => {
   res.json({ request: await svc.confirmRequest(req.params.id, req.user.address) });
 });
@@ -76,35 +93,24 @@ router.post('/:id/accept', requireAuth, requireHuman, async (req, res) => {
   res.json({ request: await svc.acceptRequest(req.params.id, req.user.address) });
 });
 
-/** POST /requests/:id/submit-code { code, pin? } → stored encrypted; review window starts */
+/**
+ * POST /requests/:id/submit-code  { code, pin? }  (legacy plaintext)  OR  { sealed }  (envelope from vault-sdk, sealed in the
+ * fulfiller's browser to the requester's vault key: the server never sees the code). Allowed forms depend on VOUCHER_MODE.
+ * Review window starts.
+ */
 router.post(
   '/:id/submit-code',
   requireAuth,
   requireHuman,
-  validate(z.object({ code: z.string().trim().min(4).max(128), pin: z.string().trim().max(32).optional() })),
+  validate(z.union([
+    z.object({ code: z.string().trim().min(4).max(128), pin: z.string().trim().max(32).optional() }).strict(),
+    z.object({ sealed: z.any() }).strict(),
+  ])),
   async (req, res) => {
     res.json({ request: await svc.submitCode(req.params.id, req.user.address, req.body) });
   },
 );
 
-// ---------- Either party ----------
-
-/** POST /requests/:id/dispute { reason } */
-router.post('/:id/dispute', requireAuth, validate(z.object({ reason: z.string().trim().min(5).max(1000) })), async (req, res) => {
-  res.json({ request: await svc.disputeRequest(req.params.id, req.user.address, req.body.reason) });
-});
-
-// ---------- Admin ----------
-
-/** POST /requests/:id/resolve { outcome: "release" | "refund", note? } */
-router.post(
-  '/:id/resolve',
-  requireAuth,
-  requireAdmin,
-  validate(z.object({ outcome: z.enum(['release', 'refund']), note: z.string().max(1000).optional() })),
-  async (req, res) => {
-    res.json({ request: await svc.resolveDispute(req.params.id, req.user.address, req.body.outcome, req.body.note) });
-  },
-);
+// Disputes, evidence and admin resolution: see routes/disputes.js
 
 export default router;

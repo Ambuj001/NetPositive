@@ -1,21 +1,26 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Check, ChevronRight, Copy, FingerprintPattern, LoaderCircle, Menu, ShieldCheck, Wallet, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "../lib/store";
-import { usdt } from "../lib/engine";
+import { readSession } from "../lib/session";
+import { formatChainBalance } from "../lib/wallet";
+import { WorldIdNotice, useWorldId } from "../lib/world";
+import { CardsPrompt } from "./CardsPrompt";
 import { Button, Logo, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
-const LINKS = [
+const APP_LINKS = [
+  { to: "/trade", label: "Trade" },
   { to: "/market", label: "Market" },
-  { to: "/sell", label: "Pay with crypto" },
   { to: "/cards", label: "My cards" },
-  { to: "/trade/VR-24817", label: "Live trade" },
+  { to: "/track", label: "Track" },
+  { to: "/dispute", label: "Dispute" },
 ];
 
 export function Shell() {
   const { pathname } = useLocation();
+  const { walletOpen } = useApp();
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [pathname]);
@@ -23,21 +28,25 @@ export function Shell() {
     <div className="relative min-h-dvh overflow-x-clip">
       <div className="noise" />
       <Nav />
+      <HomeGate />
+      {!walletOpen && <WorldIdNotice className="fixed bottom-5 left-5 z-[60] w-[min(360px,calc(100vw-40px))] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)]" />}
       <main>
-        <Outlet />
+        <Gate />
       </main>
       <Footer />
       <WalletModal />
+      <CardsPrompt />
       <Toaster />
     </div>
   );
 }
 
 function Nav() {
-  const { address, balance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
+  const { address, walletBalance, humanVerified, openWallet, walletIcon, walletId, walletName } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const links = address ? APP_LINKS : [];
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -61,7 +70,7 @@ function Nav() {
       >
         <Logo />
         <div className="hidden items-center gap-1 md:flex">
-          {LINKS.map((l) => (
+          {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
@@ -92,7 +101,7 @@ function Nav() {
               <WalletLogo id={walletId} icon={walletIcon} name={walletName || "W"} className="size-7" />
               <span className="hidden text-left leading-tight sm:block">
                 <span className="block font-mono text-[11px] text-mute">{address}</span>
-                <span className="tabular block text-[12.5px] font-medium">{usdt(balance)} USDT</span>
+                <span className="tabular block text-[12.5px] font-medium">{walletBalance ? formatChainBalance(walletBalance) : "—"}</span>
               </span>
               {humanVerified && <ShieldCheck className="size-4 text-mint" aria-label="Verified human" />}
             </button>
@@ -101,7 +110,7 @@ function Nav() {
               Connect
             </Button>
           )}
-          <button className="grid size-9 place-items-center rounded-full text-mute md:hidden" onClick={() => setOpen((o) => !o)} aria-label="Menu">
+          <button className={cx("grid size-9 place-items-center rounded-full text-mute md:hidden", !links.length && "hidden")} onClick={() => setOpen((o) => !o)} aria-label="Menu">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
@@ -114,7 +123,7 @@ function Nav() {
             exit={{ opacity: 0, y: -10 }}
             className="glass absolute inset-x-4 top-20 rounded-3xl p-2 md:hidden"
           >
-            {LINKS.map((l) => (
+            {links.map((l) => (
               <NavLink key={l.to} to={l.to} className="flex items-center justify-between rounded-2xl px-4 py-3.5 text-[15px] hover:bg-white/5">
                 {l.label}
                 <ChevronRight className="size-4 text-dim" />
@@ -126,6 +135,41 @@ function Nav() {
     </header>
   );
 }
+
+const REPO = "https://github.com/Ambuj001/NetPositive";
+const REPO_FILE = `${REPO}/blob/integration-e2e`;
+const REPO_DIR = `${REPO}/tree/integration-e2e`;
+
+type FooterLink = { label: string; to: string } | { label: string; href: string };
+const FOOTER_COLUMNS: { h: string; l: FooterLink[] }[] = [
+  {
+    h: "Product",
+    l: [
+      { label: "Market", to: "/market" },
+      { label: "Pay with crypto", to: "/trade" },
+      { label: "Extension", href: `${REPO_FILE}/docs/product/README.md` },
+      { label: "My cards", to: "/cards" },
+    ],
+  },
+  {
+    h: "Trust",
+    l: [
+      { label: "Escrow contract", href: `${REPO_FILE}/contracts/src/VoucherEscrow.sol` },
+      { label: "World ID", href: "https://world.org/world-id" },
+      { label: "Verification layer", href: `${REPO_FILE}/docs/vault.md` },
+      { label: "Dispute reserve", to: "/dispute" },
+    ],
+  },
+  {
+    h: "Build",
+    l: [
+      { label: "Docs", href: `${REPO_DIR}/docs` },
+      { label: "Contracts", href: `${REPO_DIR}/contracts` },
+      { label: "GitHub", href: REPO },
+      { label: "Brand kit", href: `${REPO_DIR}/docs/product` },
+    ],
+  },
+];
 
 function Footer() {
   return (
@@ -141,17 +185,21 @@ function Footer() {
             <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-[11px] ring-1 ring-white/10">ETHGlobal Mumbai · 2026</span>
           </div>
         </div>
-        {[
-          { h: "Product", l: ["Market", "Pay with crypto", "Extension", "My cards"] },
-          { h: "Trust", l: ["Escrow contract", "World ID", "Verification layer", "Dispute reserve"] },
-          { h: "Build", l: ["Docs", "Contracts", "GitHub", "Brand kit"] },
-        ].map((c) => (
+        {FOOTER_COLUMNS.map((c) => (
           <div key={c.h}>
             <div className="label mb-4">{c.h}</div>
             <ul className="space-y-2.5 text-[13.5px] text-mute">
               {c.l.map((x) => (
-                <li key={x} className="cursor-default transition hover:text-fg">
-                  {x}
+                <li key={x.label}>
+                  {"to" in x ? (
+                    <Link to={x.to} className="transition hover:text-fg">
+                      {x.label}
+                    </Link>
+                  ) : (
+                    <a href={x.href} target="_blank" rel="noopener noreferrer" className="transition hover:text-fg">
+                      {x.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -159,7 +207,6 @@ function Footer() {
         ))}
       </div>
       <div className="mx-auto flex max-w-6xl flex-col justify-between gap-2 border-t border-line px-6 py-6 text-[12px] text-dim md:flex-row">
-        <span>Hackathon prototype. Contracts unaudited. Demo data shown.</span>
         <span className="font-mono">escrow · world id · signed voucher checks</span>
       </div>
       <div aria-hidden className="pointer-events-none select-none overflow-hidden">
@@ -171,23 +218,90 @@ function Footer() {
   );
 }
 
+/**
+ * Nothing but the landing page shows until this browser has both a wallet and World ID.
+ * Anyone who opens another address (or presses a button that goes there) is sent to the landing page and asked to connect first;
+ * once they have, they land where they were headed.
+ */
+function Gate() {
+  const { address, humanVerified } = useApp();
+  const { pathname, search } = useLocation();
+  const ready = Boolean(address && humanVerified);
+  const wasReady = useRef(false);
+  if (ready) wasReady.current = true;
+  if (ready || pathname === "/") return <Outlet />;
+  // A wallet that was just disconnected goes home quietly. Anyone else is asked to connect, then sent on.
+  return <Navigate to="/" replace state={wasReady.current ? null : { from: pathname + search }} />;
+}
+
+/** Leave the landing page once this browser has both a wallet and World ID, and ask to connect when someone was sent here. */
+function HomeGate() {
+  const { address, humanVerified, closeWallet, openWallet } = useApp();
+  const navigate = useNavigate();
+  const { pathname, state } = useLocation();
+  const readyRef = useRef(false);
+  const askedRef = useRef(false);
+  const from = typeof (state as { from?: unknown } | null)?.from === "string" ? (state as { from: string }).from : "";
+
+  useEffect(() => {
+    const ready = Boolean(address && humanVerified);
+    const becameReady = ready && !readyRef.current;
+    readyRef.current = ready;
+    if (becameReady && pathname === "/") {
+      closeWallet();
+      navigate(from || "/trade", { replace: true });
+    } else if (!ready && pathname === "/" && from && !askedRef.current) {
+      askedRef.current = true;
+      openWallet();
+    }
+  }, [address, humanVerified, pathname, from, closeWallet, openWallet, navigate]);
+
+  return null;
+}
+
+function waitForAddress(read: () => string) {
+  const current = read();
+  if (current) return Promise.resolve(current);
+  return new Promise<string>((resolve) => {
+    const started = performance.now();
+    const tick = () => {
+      const value = read();
+      if (value) resolve(value);
+      else if (performance.now() - started > 4000) resolve("");
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
 function WalletModal() {
-  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, verifyHuman, toast } =
-    useApp();
-  const [busy, setBusy] = useState<string | null>(null);
+  const app = useApp();
+  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast } = app;
+  const appRef = useRef(app);
+  appRef.current = app;
+  const { verifyHuman, phase } = useWorldId();
   const [copied, setCopied] = useState(false);
+  const { pathname } = useLocation();
+
+  const addressRef = useRef(fullAddress);
+  addressRef.current = fullAddress;
 
   const doConnect = async (w: (typeof choices)[number]) => {
     const ok = await connect(w);
-    if (ok) toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
-  };
-  const doVerify = () => {
-    setBusy("world");
-    setTimeout(() => {
-      verifyHuman();
-      setBusy(null);
-      toast({ title: "Verified human", body: "World ID proof accepted. One person, one account.", tone: "iris" });
-    }, 1800);
+    if (!ok) return;
+    toast({ title: "Wallet connected", body: `${w.name} approved this site`, tone: "mint" });
+    if (pathname !== "/") {
+      closeWallet();
+      // They connected on purpose, so sign in too (one free signature). That is what loads their account: saved cards, orders.
+      // World ID is still asked for only when something needs it.
+      const here = await waitForAddress(() => addressRef.current);
+      if (here && !readSession(here)) await appRef.current.signIn();
+      return;
+    }
+    // Landing stays put until World ID is bound to this wallet too.
+    const addr = await waitForAddress(() => addressRef.current);
+    if (!addr || readSession(addr)?.verified) return;
+    await verifyHuman();
   };
 
   return (
@@ -323,20 +437,20 @@ function WalletModal() {
                         <div className="text-[14.5px] font-medium">{humanVerified ? "Verified human" : "Prove you're human"}</div>
                         <div className="mt-0.5 text-[12.5px] leading-relaxed text-mute">
                           {humanVerified
-                            ? "World ID nullifier bound to this account. Banned accounts can't come back."
-                            : "World ID, once. Every trader is one real person, so scammers can't make a new account."}
+                            ? "Proof of Human is bound to this wallet. A banned person can't come back with a new account."
+                            : "Proof of Human, once, bound to this wallet. You can cancel and keep browsing. Posting and accepting stay locked until it succeeds."}
                         </div>
                       </div>
                     </div>
                     {!humanVerified && (
                       <button
-                        onClick={doVerify}
-                        disabled={!!busy}
-                        className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-[14px] font-medium text-ink transition hover:bg-white/90"
+                        onClick={() => void verifyHuman()}
+                        disabled={phase !== "idle"}
+                        className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-[14px] font-medium text-ink transition hover:bg-white/90 disabled:opacity-60"
                       >
-                        {busy === "world" ? (
+                        {phase !== "idle" ? (
                           <>
-                            <LoaderCircle className="size-4 animate-spin" /> Waiting for World App…
+                            <LoaderCircle className="size-4 animate-spin" /> {phase === "world" ? "Waiting for World App…" : "Starting World ID…"}
                           </>
                         ) : (
                           <>
@@ -348,6 +462,7 @@ function WalletModal() {
                         )}
                       </button>
                     )}
+                    <WorldIdNotice className="mt-3" />
                   </div>
 
                   <button onClick={disconnect} className="w-full rounded-full py-2.5 text-[13px] text-mute transition hover:bg-white/5 hover:text-rose">

@@ -1,201 +1,313 @@
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Lock, Plus, Smartphone, X } from "lucide-react";
-import { useState } from "react";
-import { Aurora, Button, Card, Pill, Tilt, cx } from "../components/ui";
-import { CARDS, inr, routesFor, type Card as CardT } from "../lib/engine";
+import { ArrowUpRight, Check, CreditCard, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { CardPicker } from "../components/CardPicker";
+import { Aurora, Button, cx } from "../components/ui";
+import { inr, routesFor, type Card } from "../lib/engine";
 import { useApp } from "../lib/store";
 
-const CATALOG = [
-  { issuer: "HDFC", name: "Diners Club Black", gradient: "from-[#101114] via-[#23252c] to-[#050607]" },
-  { issuer: "ICICI", name: "Emeralde Private", gradient: "from-[#06291f] via-[#0d4a37] to-[#03140f]" },
-  { issuer: "Amex", name: "Platinum Travel", gradient: "from-[#8c8f96] via-[#c3c6cc] to-[#55585e]" },
-  { issuer: "Axis", name: "Atlas", gradient: "from-[#2b1240] via-[#4a2270] to-[#14081f]" },
+/** Dark card faces, cycled for saved cards (matches the example card colours). */
+const FACES = [
+  "linear-gradient(130deg,#0f3a2c 0%,#1d6048 55%,#0b241c 100%)",
+  "linear-gradient(130deg,#3a1424 0%,#6b2b45 55%,#220c16 100%)",
+  "linear-gradient(130deg,#10263f 0%,#2a5577 55%,#0a1828 100%)",
+  "linear-gradient(130deg,#2a1a40 0%,#4c3175 55%,#170e24 100%)",
 ];
 
-export default function Cards() {
-  const { toast } = useApp();
-  const [cards, setCards] = useState<CardT[]>(CARDS);
-  const [sel, setSel] = useState(CARDS[0].id);
-  const [adding, setAdding] = useState(false);
-  const card = cards.find((c) => c.id === sel) ?? cards[0];
-  const best = routesFor(10000, [card])[0];
-  const capPct = card.bonusCap ? ((card.bonusCap - card.bonusUsed) / card.bonusCap) * 100 : 0;
+const BLANK = { issuer: "", name: "", points: "1", unit: "100", cash: "1", travel: "1" };
 
-  const add = (c: (typeof CATALOG)[number]) => {
-    const n: CardT = {
-      id: c.name.toLowerCase().replace(/\s/g, "-"),
-      issuer: c.issuer,
-      name: c.name,
-      last: "",
-      gradient: c.gradient,
-      pointsPer: 4,
-      spendUnit: 150,
-      travelValue: 1,
-      statementValue: 0.3,
-      bonusCap: 2000,
-      bonusUsed: 0,
-      channels: [{ id: "portal", name: `${c.issuer} portal 3X`, multiplier: 3, denomination: 5000, note: "Bank rewards portal" }],
-    };
-    setCards((all) => (all.some((x) => x.id === n.id) ? all : [...all, n]));
-    setSel(n.id);
+export default function Cards() {
+  const { cards, setCards, toast, fullAddress, token, signIn, signingIn } = useApp();
+  const [selected, setSelected] = useState(cards[0]?.id ?? "");
+  const [value, setValue] = useState<"cash" | "travel">("cash");
+  // /cards?add=1 (from the "add your cards" pop-up) opens the add dialog straight away.
+  const [params, setParams] = useSearchParams();
+  const [adding, setAdding] = useState(params.get("add") === "1");
+  useEffect(() => {
+    if (params.get("add") === "1") {
+      setAdding(true);
+      setParams({}, { replace: true });
+    }
+  }, [params, setParams]);
+  const card = cards.find((c) => c.id === selected) ?? cards[0];
+  const routes = card ? routesFor(10000, [card]).sort((a, b) => (value === "cash" ? b.statementInr - a.statementInr : b.travelInr - a.travelInr)) : [];
+
+  const add = (c: Card) => {
+    setCards(cards.some((x) => x.id === c.id) ? cards : [...cards, c]);
+    setSelected(c.id);
     setAdding(false);
-    toast({ title: `${c.name} saved on this device`, body: "Issuer and variant only. No card number.", tone: "amber" });
+    toast({ title: `${c.issuer} ${c.name} saved`, body: "Issuer, variant and reward rates only. No card number.", tone: "amber" });
+  };
+  const addMany = (list: Card[]) => {
+    const fresh = list.filter((c) => !cards.some((x) => x.id === c.id));
+    if (!fresh.length) return;
+    setCards([...cards, ...fresh]);
+    setSelected(fresh[0].id);
+    setAdding(false);
+    toast({ title: `${fresh.length} card${fresh.length > 1 ? "s" : ""} saved`, body: "Saved to your account. Issuer, variant and reward rates only. No card number.", tone: "amber" });
+  };
+  const remove = () => {
+    if (!card) return;
+    const next = cards.filter((c) => c.id !== card.id);
+    setCards(next);
+    setSelected(next[0]?.id ?? "");
+    toast({ title: "Card removed" });
   };
 
   return (
-    <div className="relative pt-32">
-      <Aurora className="h-[50vh] opacity-50" />
+    <div className="relative pt-32 pb-14">
+      <Aurora className="h-[45vh] opacity-40" />
       <div className="relative mx-auto max-w-6xl px-6">
-        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <Pill tone="amber">Card portfolio</Pill>
-            <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Your cards, ranked for every order</h1>
-            <p className="mt-3 max-w-xl text-[15.5px] text-mute">Stored only in this browser. We keep the issuer, variant and caps you've used. Never a card number, never a CVV.</p>
+            <div className="label">Your portfolio</div>
+            <h1 className="text-gradient mt-3 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Make every card count.</h1>
           </div>
-          <div className="flex items-center gap-2 rounded-2xl bg-white/[0.03] px-4 py-3 text-[12.5px] text-mute ring-1 ring-white/[0.07]">
-            <Smartphone className="size-4 text-amber" /> Local storage · encrypted
-            <Lock className="size-3.5 text-dim" />
-          </div>
-        </div>
+          <Button variant="amber" onClick={() => setAdding(true)} icon={<Plus className="size-4" />}>
+            Add card
+          </Button>
+        </motion.div>
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-[1.1fr_1fr]">
-          <div>
-            <div className="relative grid place-items-center py-6">
-              <div className="absolute inset-10 rounded-full bg-amber/10 blur-[80px]" />
-              <AnimatePresence mode="wait">
-                <motion.div key={card.id} initial={{ opacity: 0, rotateY: -30, y: 20 }} animate={{ opacity: 1, rotateY: 0, y: 0 }} exit={{ opacity: 0, rotateY: 30 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="w-full max-w-[440px]">
-                  <Tilt max={12}>
-                    <BigCard c={card} />
-                  </Tilt>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-            <div className="mt-6 flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-              {cards.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSel(c.id)}
-                  className={cx("relative aspect-[1.586] w-36 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br p-3 text-left ring-1 transition", c.gradient, sel === c.id ? "ring-amber/70" : "opacity-60 ring-white/10 hover:opacity-100")}
-                >
-                  <div className="font-mono text-[9px] uppercase tracking-widest text-white/50">{c.issuer}</div>
-                  <div className="absolute bottom-3 left-3 text-[12px] font-medium">{c.name}</div>
-                </button>
-              ))}
-              <button onClick={() => setAdding(true)} className="grid aspect-[1.586] w-36 shrink-0 place-items-center rounded-xl border border-dashed border-white/15 text-mute transition hover:border-amber/50 hover:text-amber">
-                <span className="flex items-center gap-1.5 text-[12.5px]">
-                  <Plus className="size-4" /> Add card
-                </span>
-              </button>
-            </div>
+        {fullAddress && !token && (
+          <div className="mt-8 flex flex-col gap-3 rounded-2xl bg-amber/[0.07] p-4 ring-1 ring-amber/30 sm:flex-row sm:items-center">
+            <p className="flex-1 text-[13.5px] leading-relaxed text-fg/85">You're connected but not signed in. Sign in (one free signature) to load the cards saved on your account and to save new ones. Until then you see example cards.</p>
+            <Button variant="amber" size="sm" onClick={() => void signIn()} disabled={signingIn}>
+              {signingIn ? "Check your wallet…" : "Sign in"}
+            </Button>
           </div>
+        )}
 
-          <div className="space-y-4">
-            <Card glow="rgba(245,181,68,0.1)" className="p-6">
-              <div className="label">Earn rate</div>
-              <div className="mt-2 font-display text-3xl font-semibold tracking-tight">
-                {card.pointsPer} pts <span className="text-lg text-mute">per {inr(card.spendUnit)}</span>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06]">
-                <div className="bg-ink-2 p-4">
-                  <div className="label">Travel value</div>
-                  <div className="mt-1 text-[17px] font-semibold">₹{card.travelValue.toFixed(2)}/pt</div>
+        <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+          {/* card stack */}
+          <section className="hairline rounded-[26px] bg-ink-2/70 p-6 backdrop-blur-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[16px] font-semibold">My cards</h2>
+              <span className="text-[12px] text-dim">{cards.length} saved</span>
+            </div>
+            <div className="mt-5 space-y-4">
+              {cards.map((c, i) => {
+                const on = c.id === card?.id;
+                return (
+                  <motion.button
+                    key={c.id}
+                    onClick={() => setSelected(c.id)}
+                    aria-pressed={on}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.25 }}
+                    className={cx(
+                      "relative mx-auto block aspect-[1.75] w-full max-w-[420px] overflow-hidden rounded-[20px] p-6 text-left shadow-[0_30px_70px_-30px_rgba(0,0,0,0.9)] ring-1 transition",
+                      on ? "ring-2 ring-mint/70 ring-offset-4 ring-offset-ink-2" : "ring-white/10 opacity-80 hover:opacity-100",
+                    )}
+                    style={{ background: FACES[i % FACES.length] }}
+                  >
+                    <span className="absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(255,255,255,0.09)_45%,transparent_60%)]" />
+                    <CreditCard className="absolute top-6 right-6 size-6 text-white/45" />
+                    <span className="absolute bottom-6 left-6">
+                      <span className="block font-mono text-[11px] tracking-[0.25em] text-white/55 uppercase">{c.issuer}</span>
+                      <span className="mt-1.5 block font-display text-[26px] font-semibold tracking-tight text-white">{c.name}</span>
+                      <span className="mt-1 block text-[11.5px] text-white/45">{c.last || "Reward profile"}</span>
+                    </span>
+                    {on && <Check className="absolute right-6 bottom-6 size-5 text-mint" />}
+                  </motion.button>
+                );
+              })}
+              {!cards.length && (
+                <div className="grid place-items-center rounded-2xl border border-dashed border-white/15 py-14 text-center">
+                  <CreditCard className="size-6 text-dim" />
+                  <div className="mt-3 text-[15px] font-medium">Your portfolio starts here.</div>
+                  <Button className="mt-4" size="sm" variant="outline" onClick={() => setAdding(true)} icon={<Plus className="size-3.5" />}>
+                    Add your first card
+                  </Button>
                 </div>
-                <div className="bg-ink-2 p-4">
-                  <div className="label">Statement</div>
-                  <div className="mt-1 text-[17px] font-semibold">₹{card.statementValue.toFixed(2)}/pt</div>
-                </div>
-              </div>
-            </Card>
-            {card.bonusCap > 0 && (
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <span className="label">Bonus cap this month</span>
-                  <span className="text-[13px] tabular">
-                    {(card.bonusCap - card.bonusUsed).toLocaleString("en-IN")} / {card.bonusCap.toLocaleString("en-IN")} left
-                  </span>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
-                  <motion.div key={card.id} className="h-full rounded-full bg-gradient-to-r from-amber to-[#ffd78a]" initial={{ width: 0 }} animate={{ width: `${capPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} />
-                </div>
-                <p className="mt-3 text-[12px] text-dim">Updated locally after each purchase. Resets on the 1st.</p>
-              </Card>
-            )}
-            <Card className="p-6">
-              <div className="label mb-3">Channels</div>
-              <div className="space-y-2">
-                {card.channels.map((ch) => (
-                  <div key={ch.id} className="flex items-center justify-between rounded-xl bg-white/[0.02] px-4 py-3 ring-1 ring-white/[0.06]">
-                    <div>
-                      <div className="text-[14px] font-medium">{ch.name}</div>
-                      <div className="text-[12px] text-dim">{ch.note}</div>
-                    </div>
-                    <span className="font-mono text-[12px] text-amber">{ch.multiplier}X</span>
+              )}
+            </div>
+          </section>
+
+          {/* details */}
+          <AnimatePresence mode="wait">
+            {card && (
+              <motion.div key={card.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="space-y-5">
+                <section className="hairline rounded-[26px] bg-ink-2/70 p-6 backdrop-blur-xl">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-[16px] font-semibold">
+                      {card.issuer} {card.name}
+                    </h2>
+                    <button onClick={remove} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-white/10 transition hover:text-rose hover:ring-rose/40" aria-label={`Remove ${card.issuer} ${card.name}`}>
+                      <Trash2 className="size-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 flex items-center justify-between rounded-xl bg-amber/[0.06] px-4 py-3 text-[13px] ring-1 ring-amber/25">
-                <span className="text-mute">On a ₹10,000 voucher</span>
-                <span className="font-semibold text-amber">
-                  {best.pctTravel.toFixed(1)}% via {best.channel.name}
-                </span>
-              </div>
-            </Card>
-          </div>
+                  <div className="mt-7 flex items-baseline gap-3">
+                    <span className="font-display text-[52px] leading-none font-semibold tracking-tight tabular">{card.pointsPer}</span>
+                    <span className="text-[13px] text-mute">points per {inr(card.spendUnit)}</span>
+                  </div>
+                  <div className="mt-6 grid grid-cols-2 border-t border-white/[0.07] pt-5">
+                    <div>
+                      <div className="text-[12px] text-dim">Cash value</div>
+                      <div className="mt-1 text-[16px] font-medium tabular">{inr(card.statementValue, 2)} / point</div>
+                    </div>
+                    <div>
+                      <div className="text-[12px] text-dim">Travel value</div>
+                      <div className="mt-1 text-[16px] font-medium tabular">{inr(card.travelValue, 2)} / point</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="hairline rounded-[26px] bg-ink-2/70 p-6 backdrop-blur-xl">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-[16px] font-semibold">On a ₹10,000 voucher</h2>
+                    <div className="flex rounded-xl bg-white/[0.03] p-1 ring-1 ring-white/[0.07]" aria-label="Reward value">
+                      {(["cash", "travel"] as const).map((v) => (
+                        <button key={v} onClick={() => setValue(v)} aria-pressed={value === v} className={cx("h-7 rounded-lg px-3 text-[12px] capitalize transition", value === v ? "bg-white/[0.08] text-fg" : "text-mute hover:text-fg")}>
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 divide-y divide-white/[0.06] border-t border-white/[0.06]">
+                    {routes.map((r) => (
+                      <div key={r.channel.id} className="flex items-center justify-between py-3.5">
+                        <div>
+                          <div className="text-[14px] font-medium">{r.channel.name}</div>
+                          <div className="text-[11.5px] text-dim">
+                            {r.points.toLocaleString("en-IN")} pts{r.discountInr ? ` + ${inr(r.discountInr)} off` : ""} · {r.txns} purchase{r.txns > 1 ? "s" : ""}
+                          </div>
+                        </div>
+                        <span className="font-medium text-mint tabular">{(value === "cash" ? r.pctStatement : r.pctTravel).toFixed(2)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Link to="/trade" className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-mint hover:underline">
+                    Compare in Trade <ArrowUpRight className="size-3.5" />
+                  </Link>
+                </section>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      <AnimatePresence>
-        {adding && (
-          <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAdding(false)}>
-            <motion.div role="dialog" aria-modal aria-label="Add card" onClick={(e) => e.stopPropagation()} initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="hairline w-full max-w-[440px] rounded-[28px] bg-ink-2 p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-xl font-semibold">Add a card</h3>
-                <button onClick={() => setAdding(false)} className="grid size-8 place-items-center rounded-full text-mute hover:bg-white/5" aria-label="Close">
-                  <X className="size-4" />
-                </button>
-              </div>
-              <p className="mt-1 text-[13px] text-mute">Pick issuer and variant. That's all we need.</p>
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                {CATALOG.map((c) => (
-                  <button key={c.name} onClick={() => add(c)} className={cx("group relative aspect-[1.586] overflow-hidden rounded-xl bg-gradient-to-br p-3 text-left ring-1 ring-white/10 transition hover:ring-amber/60", c.gradient)}>
-                    <div className="font-mono text-[9px] uppercase tracking-widest text-white/60">{c.issuer}</div>
-                    <div className="absolute bottom-3 left-3 text-[12.5px] font-medium">{c.name}</div>
-                    <span className="absolute top-2.5 right-2.5 grid size-5 place-items-center rounded-full bg-white/10 opacity-0 transition group-hover:opacity-100">
-                      <Check className="size-3" />
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <Button variant="outline" className="mt-5 w-full" onClick={() => setAdding(false)}>
-                Cancel
-              </Button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AddCard open={adding} onClose={() => setAdding(false)} saved={cards} onAdd={add} onAddMany={addMany} />
     </div>
   );
 }
 
-function BigCard({ c }: { c: CardT }) {
+function AddCard({ open, onClose, saved, onAdd, onAddMany }: { open: boolean; onClose: () => void; saved: Card[]; onAdd: (c: Card) => void; onAddMany: (c: Card[]) => void }) {
+  const [form, setForm] = useState(BLANK);
+  const [error, setError] = useState("");
+
+  const submit = () => {
+    const p = Number(form.points);
+    const u = Number(form.unit);
+    const cash = Number(form.cash);
+    const travel = Number(form.travel);
+    const ok =
+      form.issuer.trim() &&
+      form.name.trim() &&
+      [p, u, cash, travel].every(Number.isFinite) &&
+      p >= 0 &&
+      p <= 100 &&
+      u > 0 &&
+      u <= 100000 &&
+      cash >= 0 &&
+      cash <= 100 &&
+      travel >= 0 &&
+      travel <= 100 &&
+      // Reward can't be worth more than what was spent.
+      p * Math.max(cash, travel) <= u;
+    if (!ok) return setError("Check the values. Points × value per point can't be more than the spend.");
+    setError("");
+    setForm(BLANK);
+    onAdd({
+      id: `custom-${crypto.randomUUID()}`,
+      issuer: form.issuer.trim().slice(0, 30),
+      name: form.name.trim().slice(0, 40),
+      last: "Custom",
+      gradient: "",
+      pointsPer: p,
+      spendUnit: u,
+      travelValue: travel,
+      statementValue: cash,
+      bonusCap: 0,
+      bonusUsed: 0,
+      channels: [{ id: "direct", name: "Direct", multiplier: 1, denomination: 10000, note: "Your reward assumptions" }],
+    });
+  };
+
   return (
-    <div className={cx("relative aspect-[1.586] overflow-hidden rounded-[22px] bg-gradient-to-br p-6 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.9)] ring-1 ring-white/15", c.gradient)}>
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(255,255,255,0.12)_45%,transparent_60%)]" />
-      <div className="absolute -top-20 -right-16 size-64 rounded-full bg-white/[0.06] blur-2xl" />
-      <div className="relative flex justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-[0.25em] text-white/60">{c.issuer}</span>
-        <span className="font-display text-sm font-semibold italic text-white/70">VISA</span>
-      </div>
-      <div className="relative mt-8 h-9 w-12 rounded-md bg-gradient-to-br from-[#e8d18a] via-[#b89646] to-[#806426] ring-1 ring-black/20">
-        <div className="absolute inset-1.5 rounded-sm border border-black/20" />
-      </div>
-      <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
-        <div>
-          <div className="font-display text-2xl font-semibold tracking-tight">{c.name}</div>
-          <div className="mt-1 font-mono text-[11px] tracking-[0.2em] text-white/40">•••• •••• •••• ····</div>
-        </div>
-        <span className="rounded-full bg-black/30 px-2.5 py-1 font-mono text-[10px] text-white/60 backdrop-blur">no number stored</span>
-      </div>
-    </div>
+    <AnimatePresence>
+      {open && (
+        <motion.div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-black/60 p-4 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+          <motion.div
+            role="dialog"
+            aria-modal
+            aria-label="Add a card"
+            onClick={(e) => e.stopPropagation()}
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 16, opacity: 0 }}
+            className="hairline my-auto w-full max-w-[520px] rounded-[26px] bg-ink-2 p-6"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-xl font-semibold tracking-tight">Add a card</h3>
+              <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-mute hover:bg-white/5" aria-label="Close">
+                <X className="size-4" />
+              </button>
+            </div>
+            <p className="mt-1 text-[13px] text-mute">Search the list and tick your cards, or enter your own below. Issuer, variant and reward rates only. Never a card number or CVV.</p>
+
+            <div className="mt-5">
+              <CardPicker saved={saved} onAdd={onAddMany} listHeight="max-h-[260px]" />
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+              className="mt-6 border-t border-white/[0.07] pt-5"
+            >
+              <div className="text-[14px] font-medium">Or enter your own</div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["issuer", "Issuer", "text"],
+                    ["name", "Card name", "text"],
+                    ["points", "Base points", "number"],
+                    ["unit", "Per spend (₹)", "number"],
+                    ["cash", "Cash value / point (₹)", "number"],
+                    ["travel", "Travel value / point (₹)", "number"],
+                  ] as const
+                ).map(([key, label, type]) => (
+                  <label key={key} className="block">
+                    <span className="mb-1 block text-[11.5px] text-mute">{label}</span>
+                    <input
+                      required
+                      type={type}
+                      step="any"
+                      min={type === "number" ? 0 : undefined}
+                      maxLength={40}
+                      value={form[key]}
+                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                      className="h-10 w-full rounded-xl bg-white/[0.04] px-3 text-[13.5px] ring-1 ring-white/10 outline-none focus:ring-amber/45"
+                    />
+                  </label>
+                ))}
+              </div>
+              {error && (
+                <p role="alert" className="mt-3 text-[12px] text-rose">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" variant="amber" className="mt-5 w-full">
+                Save card
+              </Button>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
