@@ -2,7 +2,7 @@ import { animate, motion, useInView, useMotionValue, useSpring, useTransform } f
 import { clsx } from "clsx";
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
-import { brand as getBrand } from "../lib/data";
+import { findBrand, brand as getBrand } from "../lib/data";
 
 export const cx = clsx;
 
@@ -147,7 +147,7 @@ export function Pill({
 /* ------------------------------------------------------- Persona chip */
 export function Persona({ who }: { who: "seller" | "buyer" | "verifier" }) {
   const m = {
-    seller: { label: "Seller", cls: "text-mint ring-mint/40" },
+    seller: { label: "Spender", cls: "text-mint ring-mint/40" },
     buyer: { label: "Buyer", cls: "text-amber ring-amber/40" },
     verifier: { label: "Verification layer", cls: "text-iris ring-iris/40" },
   }[who];
@@ -155,8 +155,35 @@ export function Persona({ who }: { who: "seller" | "buyer" | "verifier" }) {
 }
 
 /* -------------------------------------------------------- Brand mark */
-export function BrandMark({ id, size = 40, className }: { id: string; size?: number; className?: string }) {
-  const b = getBrand(id);
+export function BrandMark({ id, size = 40, className, name }: { id: string; size?: number; className?: string; name?: string }) {
+  const known = findBrand(id);
+  const b = known ?? { ...getBrand(id), color: "#5a6170", glyph: (name ?? id).slice(0, 1).toUpperCase() };
+  // Only brands we know get a logo; unknown ids would otherwise inherit the fallback brand's.
+  const logo = known?.logo;
+  const [broken, setBroken] = useState<string | null>(null);
+
+  if (logo && broken !== logo) {
+    return (
+      <span
+        className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-white/10", className)}
+        style={{ width: size, height: size, padding: known.logoPad ? Math.round(size * 0.14) : 0 }}
+        aria-hidden
+      >
+        <img
+          src={logo}
+          alt=""
+          width={size}
+          height={size}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setBroken(logo)}
+          className="size-full object-contain"
+        />
+      </span>
+    );
+  }
+
   return (
     <span
       className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-xl font-display font-bold text-white ring-1 ring-white/10", className)}

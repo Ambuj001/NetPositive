@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "what": "Brands the escrow backend accepts in POST /requests (backend/src/config.js BRANDS). The chatbot only offers merchants in this list, so a seller can never pick something the backend will reject.",
+    "keep_in_sync": "Kept as a copy (not a shared import) so backend/ can be deployed on its own. backend/scripts/integration-sim.js fails if this list and the backend's BRANDS differ."
+  },
+  "brands": ["amazon", "flipkart", "swiggy", "zomato", "myntra", "bigbasket", "makemytrip", "blinkit"]
+}

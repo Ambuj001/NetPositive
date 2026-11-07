@@ -56,7 +56,7 @@ export function ScreenDetect() {
           <span>NetPositive voucher</span>
           <span className="font-semibold">1% fee</span>
         </div>
-        <div className="mt-1 text-[12px] text-mute">₹10,000 Lifestyle voucher for {usdt(Q.sellerLocks)} USDT</div>
+        <div className="mt-1 text-[12px] text-mute">₹10,000 Lifestyle voucher for {usdt(Q.sellerLocks)} USDC</div>
       </motion.div>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -89,10 +89,10 @@ export function ScreenRequest() {
       <div className="mt-2 divide-y divide-white/[0.05] text-[13px]">
         {[
           ["Voucher", "Lifestyle · ₹10,000"],
-          ["Rate", "₹90 / USDT"],
-          ["Buyer receives", `${usdt(Q.buyerReceives)} USDT`],
-          ["Fee (1%)", `${usdt(Q.fee)} USDT`],
-          ["You lock", `${usdt(Q.sellerLocks)} USDT`],
+          ["Rate", "₹90 / USDC"],
+          ["Buyer receives", `${usdt(Q.buyerReceives)} USDC`],
+          ["Fee (1%)", `${usdt(Q.fee)} USDC`],
+          ["You lock", `${usdt(Q.sellerLocks)} USDC`],
         ].map(([k, v], i) => (
           <div key={k} className="flex justify-between py-2">
             <span className="text-mute">{k}</span>
@@ -116,8 +116,8 @@ export function ScreenRequest() {
 export function ScreenRoutes() {
   const routes = routesFor(10000).filter((r) => r.cardId === "infinia");
   return (
-    <ExtFrame tab="Buy USDT">
-      <div className="text-[14px] font-semibold">Lifestyle ₹10,000 → {usdt(Q.buyerReceives)} USDT</div>
+    <ExtFrame tab="Buy USDC">
+      <div className="text-[14px] font-semibold">Lifestyle ₹10,000 → {usdt(Q.buyerReceives)} USDC</div>
       <div className="mt-3 space-y-2">
         {routes.map((r, i) => (
           <motion.div
@@ -246,7 +246,7 @@ export function ScreenReveal() {
         <span className="font-semibold text-mint">₹10,000 live</span>
       </div>
       <div className="mt-3 grid h-10 place-items-center rounded-full bg-mint text-[13px] font-medium text-ink">I&apos;ve received them</div>
-      <div className="mt-2.5 text-[11px] leading-relaxed text-dim">USDT goes to the buyer the moment you confirm, or automatically 30 min after the re-check passes.</div>
+      <div className="mt-2.5 text-[11px] leading-relaxed text-dim">USDC goes to the buyer the moment you confirm, or automatically 30 min after the re-check passes.</div>
     </ExtFrame>
   );
 }

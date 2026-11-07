@@ -39,6 +39,80 @@ export const chainName = (id: string) => (id ? CHAINS[id.toLowerCase()] ?? `Chai
 export const shortAddr = (a: string) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
 const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[a-fA-F0-9]{40}$/.test(v);
 
+/** Balance shown on the connected-wallet chip. */
+export type ChainBalance = { amount: number; symbol: string };
+
+const ARC_CHAIN_ID = 5042002;
+
+/** ERC-20 USDC. Arc's gas token is native USDC, so it is read with eth_getBalance instead. */
+const USDC_BY_CHAIN: Record<number, { address: string; decimals: number }> = {
+  1: { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", decimals: 6 },
+  11155111: { address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", decimals: 6 },
+  8453: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 },
+  84532: { address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", decimals: 6 },
+  10: { address: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", decimals: 6 },
+  42161: { address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", decimals: 6 },
+  137: { address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", decimals: 6 },
+};
+
+const NATIVE_BY_CHAIN: Record<number, { symbol: string; decimals: number }> = {
+  1: { symbol: "ETH", decimals: 18 },
+  11155111: { symbol: "ETH", decimals: 18 },
+  8453: { symbol: "ETH", decimals: 18 },
+  84532: { symbol: "ETH", decimals: 18 },
+  10: { symbol: "ETH", decimals: 18 },
+  42161: { symbol: "ETH", decimals: 18 },
+  137: { symbol: "POL", decimals: 18 },
+  56: { symbol: "BNB", decimals: 18 },
+  [ARC_CHAIN_ID]: { symbol: "USDC", decimals: 18 },
+};
+
+function chainIdNumber(id: string) {
+  if (!id) return 0;
+  const n = id.startsWith("0x") || id.startsWith("0X") ? Number.parseInt(id, 16) : Number(id);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseHex(raw: unknown) {
+  if (typeof raw !== "string" || !/^0x[0-9a-fA-F]+$/.test(raw)) return 0n;
+  return BigInt(raw);
+}
+
+function fromUnits(raw: bigint, decimals: number) {
+  const base = 10n ** BigInt(decimals);
+  const whole = raw / base;
+  const frac = (raw % base).toString().padStart(decimals, "0").slice(0, 8);
+  return Number(`${whole}.${frac}`);
+}
+
+/** USDC in the connected wallet, or the chain's native coin when this network has no USDC contract. */
+export async function readWalletBalance(provider: Provider, holder: string, chainId: string): Promise<ChainBalance> {
+  const id = chainIdNumber(chainId);
+  if (id === ARC_CHAIN_ID) {
+    const raw = parseHex(await provider.request({ method: "eth_getBalance", params: [holder, "latest"] }));
+    return { amount: fromUnits(raw, 18), symbol: "USDC" };
+  }
+  const token = USDC_BY_CHAIN[id];
+  if (token) {
+    try {
+      const data = "0x70a08231" + holder.slice(2).toLowerCase().padStart(64, "0");
+      const raw = parseHex(await provider.request({ method: "eth_call", params: [{ to: token.address, data }, "latest"] }));
+      return { amount: fromUnits(raw, token.decimals), symbol: "USDC" };
+    } catch {
+      /* Contract call failed on this network. Show the native balance instead of a made-up number. */
+    }
+  }
+  const native = NATIVE_BY_CHAIN[id] ?? { symbol: "ETH", decimals: 18 };
+  const raw = parseHex(await provider.request({ method: "eth_getBalance", params: [holder, "latest"] }));
+  return { amount: fromUnits(raw, native.decimals), symbol: native.symbol };
+}
+
+export function formatChainBalance(balance: ChainBalance) {
+  const digits = balance.symbol === "USDC" ? 2 : balance.amount > 0 && balance.amount < 1 ? 4 : 2;
+  const text = balance.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: digits });
+  return `${text} ${balance.symbol}`;
+}
+
 /* ----------------------------------------------------------------- catalog */
 
 const APP = {
@@ -161,6 +235,7 @@ export function useWallet() {
   const [chainId, setChainId] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [walletBalance, setWalletBalance] = useState<ChainBalance | null>(null);
   const attemptRef = useRef(0);
 
   // Discover installed extensions (EIP-6963), with a legacy window.ethereum fallback.
@@ -211,6 +286,34 @@ export function useWallet() {
     // Installed first, keep catalog order otherwise.
     return [...rows.filter((r) => r.status === "installed"), ...others, ...rows.filter((r) => r.status !== "installed")];
   }, [announced]);
+
+  // Live balance for the navbar. The 120 figure elsewhere is only the simulated escrow.
+  useEffect(() => {
+    const provider = session?.provider;
+    if (!provider || !address) {
+      setWalletBalance(null);
+      return;
+    }
+    let cancel = false;
+    const load = async () => {
+      try {
+        const next = await readWalletBalance(provider, address, chainId);
+        if (!cancel) setWalletBalance(next);
+      } catch {
+        if (!cancel) setWalletBalance(null);
+      }
+    };
+    setWalletBalance(null);
+    void load();
+    const timer = window.setInterval(() => void load(), 15000);
+    const onFocus = () => void load();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancel = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [session, address, chainId]);
 
   // Follow account / network changes made inside the wallet.
   useEffect(() => {
@@ -312,13 +415,39 @@ export function useWallet() {
     }
   }, [session]);
 
+  /** Raw wallet RPC. Used to switch to Arc and send the USDC approve + escrow deposit. */
+  const request = useCallback(
+    async (args: { method: string; params?: unknown[] | object }) => {
+      const p = session?.provider;
+      if (!p || !address) throw new Error("Connect a wallet first");
+      return p.request(args);
+    },
+    [session, address],
+  );
+
+  /** personal_sign with the connected wallet (used for backend sign-in). */
+  const signMessage = useCallback(
+    async (message: string) => {
+      const p = session?.provider;
+      if (!p || !address) throw new Error("Connect a wallet first");
+      const hexMsg = "0x" + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, "0")).join("");
+      const sig = await p.request({ method: "personal_sign", params: [hexMsg, address] });
+      if (typeof sig !== "string" || !/^0x[0-9a-fA-F]+$/.test(sig)) throw new Error("Wallet returned no signature");
+      return sig;
+    },
+    [session, address],
+  );
+
   return {
+    request,
+    signMessage,
     choices,
     address,
     chainId,
     walletId: session?.id ?? "",
     walletName: session?.name ?? "",
     walletIcon: session?.icon ?? "",
+    walletBalance,
     pending,
     error,
     clearError: () => setError(""),

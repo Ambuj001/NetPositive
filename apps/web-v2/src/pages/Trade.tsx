@@ -23,21 +23,26 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Aurora, BrandMark, Button, Card, Pill, Row, cx } from "../components/ui";
+import { ApiError, api, brandIdFromApi, type ApiRequest } from "../lib/api";
+import { sealVoucher } from "../lib/vault";
 import { brand } from "../lib/data";
 import { effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
+import { ledgerFromRequest, toOrder } from "../lib/orderbook";
 import { useApp } from "../lib/store";
+import { shortAddr } from "../lib/wallet";
+import { useWorldId } from "../lib/world";
 
 type Role = "seller" | "buyer";
 
 const STAGES = [
-  { k: "Locked in escrow", who: "Seller", icon: Lock },
+  { k: "Locked in escrow", who: "Spender", icon: Lock },
   { k: "Accepted by a verified human", who: "Buyer", icon: FingerprintPattern },
   { k: "Vouchers bought on best route", who: "Buyer", icon: CreditCard },
   { k: "Codes verified live", who: "Verifier", icon: ScanLine },
-  { k: "Delivered to seller", who: "Seller", icon: KeyRound },
-  { k: "USDT released", who: "Contract", icon: Unlock },
+  { k: "Delivered to spender", who: "Spender", icon: KeyRound },
+  { k: "USDC released", who: "Contract", icon: Unlock },
 ];
 
 const ACTOR: Record<number, Role | "verifier" | null> = { 0: "buyer", 1: "buyer", 2: "buyer", 3: "verifier", 4: "seller", 5: null };
@@ -46,10 +51,21 @@ const DEMO_CODES = ["LFS-7Q2K-91XA-3M8D", "LFS-4HWE-22PL-0Z6R", "LFS-9TBC-55MN-1
 
 export default function Trade() {
   const { id = "VR-24817" } = useParams();
-  const { orders, humanVerified, verifyHuman, toast } = useApp();
-  const order = orders.find((o) => o.id === id) ?? orders[0];
+  const nav = useNavigate();
+  const { orders, address, fullAddress, humanVerified, openWallet, toast, token, signIn } = useApp();
+  const { verifyHuman, phase } = useWorldId();
+  const [request, setRequest] = useState<ApiRequest | null>(null);
+  useEffect(() => {
+    let stop = false;
+    api.get(id).then(({ request: next }) => { if (!stop) setRequest(next); }).catch(() => { if (!stop) setRequest(null); });
+    return () => { stop = true };
+  }, [id]);
+  const local = orders.find((o) => o.id === id);
+  const order = request
+    ? { ...toOrder(request), rate: ledgerFromRequest(request).rate }
+    : local ?? (id.startsWith("VR-") ? orders[0] : { id, brandId: brandIdFromApi("amazon"), amount: 0, rate: 0, seller: "", sellerTrades: 0, city: "", postedMin: 0, expiresMin: 30 });
   const b = brand(order.brandId);
-  const q = quote(order.amount, order.rate);
+  const q = request ? ledgerFromRequest(request) : quote(order.amount || 0, order.rate || 1);
   const routes = useMemo(() => routesFor(order.amount), [order.amount]);
   const nCodes = Math.max(1, Math.ceil(order.amount / 5000));
   const denom = Math.round(order.amount / nCodes);
@@ -58,7 +74,6 @@ export default function Trade() {
   const [role, setRole] = useState<Role>("buyer");
   const [auto, setAuto] = useState(false);
   const [route, setRoute] = useState(0);
-  const [verifying, setVerifying] = useState(false);
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
   const [codes, setCodes] = useState<string[]>(Array(nCodes).fill(""));
   const [encrypting, setEncrypting] = useState(false);
@@ -66,10 +81,15 @@ export default function Trade() {
   const [revealed, setRevealed] = useState(false);
   const [recheck, setRecheck] = useState<"idle" | "busy" | "ok">("idle");
   const [dispute, setDispute] = useState(false);
-  const [log, setLog] = useState<{ t: string; e: string; tone: string }[]>([
-    { t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDT)`, tone: "mint" },
-  ]);
+  const [log, setLog] = useState<{ t: string; e: string; tone: string }[]>([]);
   const [clock, setClock] = useState(30 * 60);
+
+  useEffect(() => {
+    if (!request && !local && !id.startsWith("VR-")) return;
+    const when = request?.fundedAt || request?.createdAt;
+    const t = when ? new Date(when).toTimeString().slice(0, 8) : "14:00:02";
+    setLog([{ t, e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" }]);
+  }, [request, local, id, order.id, q.sellerLocks]);
 
   const push = (e: string, tone = "mint") => {
     const d = new Date();
@@ -84,25 +104,38 @@ export default function Trade() {
   }, [stage]);
 
   /* ---------- actions ---------- */
-  const accept = () => {
+  const accept = async () => {
     const go = () => {
       setStage(1);
-      push(`Accepted(${order.id}, buyer, nullifier 0x2d…be)`, "fg");
+      push(`Accepted(${order.id}, buyer, nullifier bound)`, "fg");
       toast({ title: "Order accepted", body: `Buy via ${routes[route].cardLabel} · ${routes[route].channel.name}`, tone: "amber" });
     };
-    if (humanVerified) return go();
-    setVerifying(true);
-    setTimeout(() => {
-      verifyHuman();
-      setVerifying(false);
-      go();
-    }, 1400);
+    if (!address) {
+      openWallet();
+      return;
+    }
+    if (!humanVerified) {
+      const ok = await verifyHuman();
+      if (!ok) return;
+    }
+    go();
   };
   const bought = () => {
     setStage(2);
     push(`VoucherPurchased(${order.id}, ${nCodes} × ${inr(denom)})`, "amber");
   };
+  const iAmBuyer = !!request && !!fullAddress && request.crypto_buyer?.toLowerCase() === fullAddress.toLowerCase();
+
+  // A live order the buyer already accepted: skip the walkthrough and open the seal step.
+  useEffect(() => {
+    if (request?.status === "accepted" && iAmBuyer) setStage(2);
+  }, [request, iAmBuyer]);
+
   const submitCodes = () => {
+    if (request) {
+      void submitLive();
+      return;
+    }
     setEncrypting(true);
     setTimeout(() => {
       setEncrypting(false);
@@ -110,11 +143,56 @@ export default function Trade() {
       push("CodesSubmitted(enc → verifier key)", "iris");
     }, 1500);
   };
+
+  const submitLive = async () => {
+    if (!request) return;
+    if (request.status !== "accepted" || !iAmBuyer || !request.crypto_buyer) {
+      toast({
+        title: "This order isn't ready for a code",
+        body: request.status !== "accepted" ? `The order is ${request.status.replaceAll("_", " ")}.` : "Connect the wallet that accepted this order.",
+        tone: "amber",
+      });
+      return;
+    }
+    setEncrypting(true);
+    try {
+      let t = token;
+      if (!t) t = await signIn();
+      if (!t) return;
+      if (!humanVerified) {
+        const ok = await verifyHuman();
+        if (!ok) return;
+      }
+      const code = codes.map((c) => c.trim()).filter(Boolean).join("\n");
+      const sealed = await sealVoucher({
+        requestId: request.id,
+        spender: request.crypto_spender,
+        buyer: request.crypto_buyer,
+        code,
+        pin: null,
+        token: t,
+      });
+      const { request: next } = await api.submitCode(request.id, sealed.legacy ? { code } : { sealed: sealed.sealed }, t);
+      setRequest(next);
+      setCodes(Array(nCodes).fill(""));
+      toast({
+        title: "Code sealed and sent",
+        body: sealed.legacy ? "The server stored it encrypted with its own key." : "Only the spender's vault key can open it.",
+        tone: "mint",
+      });
+      nav(`/track?id=${encodeURIComponent(request.id)}`);
+    } catch (e) {
+      const body = e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Couldn't send the code";
+      toast({ title: "Couldn't send the code", body, tone: "rose" });
+    } finally {
+      setEncrypting(false);
+    }
+  };
   const confirm = () => {
     setStage(5);
     push(`Released(${usdt(q.buyerReceives)} → buyer)`, "mint");
     push(`FeeSplit(reserve ${usdt(q.reserveShare)}, platform ${usdt(q.platformShare)})`, "fg");
-    toast({ title: `${usdt(q.buyerReceives)} USDT sent to buyer`, body: "Trade settled on-chain", tone: "mint" });
+    toast({ title: `${usdt(q.buyerReceives)} USDC sent to buyer`, body: "Trade settled on-chain", tone: "mint" });
   };
   const reset = () => {
     setStage(0);
@@ -126,7 +204,8 @@ export default function Trade() {
     setRevealed(false);
     setRecheck("idle");
     setClock(30 * 60);
-    setLog([{ t: "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDT)`, tone: "mint" }]);
+    const when = request?.fundedAt || request?.createdAt;
+    setLog([{ t: when ? new Date(when).toTimeString().slice(0, 8) : "14:00:02", e: `OrderLocked(${order.id}, ${usdt(q.sellerLocks)} USDC)`, tone: "mint" }]);
   };
 
   // Verifier runs by itself
@@ -174,6 +253,7 @@ export default function Trade() {
       [0, 1, 2, 3].forEach((i) => at(600 + i * 550, () => setChecks((c) => c.map((v, j) => (j === i ? true : v)))));
       at(3200, bought);
     } else if (stage === 2) {
+      if (request) return;
       at(700, () => setCodes(DEMO_CODES.slice(0, nCodes)));
       at(1700, submitCodes);
     } else if (stage === 4) {
@@ -205,7 +285,7 @@ export default function Trade() {
                 / {order.id}
               </div>
               <h1 className="mt-1 font-display text-3xl font-semibold tracking-[-0.03em] md:text-4xl">
-                {b.name} {inr(order.amount)} <span className="text-mute">→</span> {usdt(q.buyerReceives)} USDT
+                {b.name} {inr(order.amount)} <span className="text-mute">→</span> {usdt(q.buyerReceives)} USDC
               </h1>
             </div>
           </div>
@@ -307,7 +387,7 @@ export default function Trade() {
                           </div>
                           <div className="text-right">
                             <div className="text-[16px] font-semibold tabular">{r.pctTravel.toFixed(1)}%</div>
-                            <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(order.amount, r.travelInr, q.buyerReceives).toFixed(2)}/USDT</div>
+                            <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(order.amount, r.travelInr, q.buyerReceives).toFixed(2)}/USDC</div>
                           </div>
                         </button>
                       ))}
@@ -315,13 +395,19 @@ export default function Trade() {
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
                       <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint" : "text-mute")}>
                         {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
-                        {humanVerified ? "Verified human via World ID" : "World ID check runs once on accept"}
+                        {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
                       </div>
-                      <Button variant="amber" size="lg" onClick={accept} disabled={verifying}>
-                        {verifying ? (
+                      <Button variant="amber" size="lg" onClick={() => void accept()} disabled={phase !== "idle"}>
+                        {phase === "world" ? (
                           <>
-                            <LoaderCircle className="size-4 animate-spin" /> Verifying in World App…
+                            <LoaderCircle className="size-4 animate-spin" /> Waiting for World App…
                           </>
+                        ) : phase === "signing" ? (
+                          <>
+                            <LoaderCircle className="size-4 animate-spin" /> Starting World ID…
+                          </>
+                        ) : !address ? (
+                          "Connect wallet"
                         ) : (
                           "Accept order"
                         )}
@@ -366,7 +452,7 @@ export default function Trade() {
                     </div>
                   </Panel>
                 ) : stage === 2 ? (
-                  <Panel tone="amber" title="Paste your voucher codes" sub="They're encrypted on this device to the verifier's key. The seller only sees them after they pass.">
+                  <Panel tone="amber" title="Paste your voucher codes" sub={request ? "Encrypted on this device to the spender's vault key. The server only stores the locked box." : "They're encrypted on this device to the verifier's key. The spender only sees them after they pass."}>
                     <div className="space-y-2.5">
                       {codes.map((c, i) => (
                         <div key={i} className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-2 pl-4 ring-1 ring-white/[0.08] focus-within:ring-amber/40">
@@ -384,11 +470,13 @@ export default function Trade() {
                       ))}
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <button onClick={() => setCodes(DEMO_CODES.slice(0, nCodes))} className="text-left text-[12.5px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
-                        Fill demo codes
-                      </button>
+                      {!request && (
+                        <button onClick={() => setCodes(DEMO_CODES.slice(0, nCodes))} className="text-left text-[12.5px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
+                          Fill demo codes
+                        </button>
+                      )}
                       <Button variant="amber" disabled={codes.some((c) => c.length < 6) || encrypting} onClick={submitCodes} icon={encrypting ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-4" />}>
-                        {encrypting ? "Encrypting…" : "Encrypt & send to verifier"}
+                        {encrypting ? "Sealing…" : request ? "Seal and send to the spender" : "Encrypt & send to verifier"}
                       </Button>
                     </div>
                   </Panel>
@@ -464,15 +552,17 @@ export default function Trade() {
                 <motion.span key={stage === 5 ? "z" : "l"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="font-display text-3xl font-semibold tracking-tight tabular">
                   {stage === 5 ? "0.00" : usdt(q.sellerLocks)}
                 </motion.span>
-                <span className="text-[13px] text-mute">USDT held</span>
+                <span className="text-[13px] text-mute">USDC held</span>
               </div>
               <div className="mt-3 divide-y divide-white/[0.06]">
                 <Row k="Buyer gets" v={usdt(q.buyerReceives)} />
                 <Row k="Dispute reserve" v={usdt(q.reserveShare)} />
                 <Row k="Platform" v={usdt(q.platformShare)} />
-                <Row k="Rate" v={`₹${order.rate}`} />
+                <Row k="Rate" v={`₹${order.rate.toFixed(2)}`} />
               </div>
-              <div className="mt-3 truncate font-mono text-[10.5px] text-dim">contract 0xE5c7…41aB · Base Sepolia</div>
+              <div className="mt-3 truncate font-mono text-[10.5px] text-dim">
+                {request ? `escrow ${shortAddr(request.escrowId)} · Arc${request.escrowTxHash ? ` · ${shortAddr(request.escrowTxHash)}` : ""}` : "contract 0xE5c7…41aB · Base Sepolia"}
+              </div>
             </Card>
             <Card className="p-5">
               <div className="label mb-3">Contract events</div>
@@ -509,7 +599,7 @@ function RoleSwitch({ role, setRole }: { role: Role; setRole: (r: Role) => void 
       {(["seller", "buyer"] as Role[]).map((r) => (
         <button key={r} onClick={() => setRole(r)} className={cx("relative h-8 rounded-full px-4 text-[12.5px] font-medium transition", role === r ? "text-ink" : "text-mute hover:text-fg")}>
           {role === r && <motion.span layoutId="role" className={cx("absolute inset-0 rounded-full", r === "seller" ? "bg-mint" : "bg-amber")} transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
-          <span className="relative">View as {r === "seller" ? "Seller" : "Buyer"}</span>
+          <span className="relative">View as {r === "seller" ? "Spender" : "Buyer"}</span>
         </button>
       ))}
     </div>
@@ -534,10 +624,10 @@ function Panel({ title, sub, children, tone, right }: { title: string; sub?: str
 
 function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number; onSwitch: () => void; clock: number }) {
   const msg: Record<number, [string, string]> = {
-    0: ["Waiting for a buyer", "Your USDT is locked in escrow and visible to verified buyers. If nobody fills it in 30 minutes, it comes back to you automatically."],
-    1: ["The buyer is buying your vouchers", "They're checking out on SmartBuy with their own card. Your USDT stays locked the whole time."],
+    0: ["Waiting for a buyer", "Your USDC is locked in escrow and visible to verified buyers. If nobody fills it in 30 minutes, it comes back to you automatically."],
+    1: ["The buyer is buying your vouchers", "They're checking out on SmartBuy with their own card. Your USDC stays locked the whole time."],
     2: ["The buyer is submitting codes", "Codes go encrypted to the verifier first. You'll see them only after they pass."],
-    4: ["The seller is checking the codes", `USDT is released when they confirm, or automatically in ${fmt(clock)}.`],
+    4: ["The spender is checking the codes", `USDC is released when they confirm, or automatically in ${fmt(clock)}.`],
   };
   const [t, s] = msg[stage] ?? ["Waiting", ""];
   const tone = actor === "buyer" ? "amber" : "mint";
@@ -554,7 +644,7 @@ function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number
       <h2 className="mt-6 font-display text-2xl font-semibold tracking-tight">{t}</h2>
       <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-mute">{s}</p>
       <button onClick={onSwitch} className="mt-6 text-[13px] text-mute underline decoration-white/20 underline-offset-4 hover:text-fg">
-        Switch to {actor === "buyer" ? "buyer" : "seller"} view
+        Switch to {actor === "buyer" ? "buyer" : "spender"} view
       </button>
     </Card>
   );
@@ -624,7 +714,7 @@ function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<ty
       <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 14 }} className="relative mx-auto grid size-20 place-items-center rounded-full bg-mint text-ink shadow-[0_0_60px_-5px_rgba(61,220,151,0.8)]">
         <Check className="size-9" strokeWidth={2.5} />
       </motion.div>
-      <h2 className="relative mt-6 font-display text-3xl font-semibold tracking-tight">{role === "buyer" ? `${usdt(q.buyerReceives)} USDT is yours` : `Enjoy ${brandName} on Saturday`}</h2>
+      <h2 className="relative mt-6 font-display text-3xl font-semibold tracking-tight">{role === "buyer" ? `${usdt(q.buyerReceives)} USDC is yours` : `Enjoy ${brandName} on Saturday`}</h2>
       <p className="relative mx-auto mt-2 max-w-md text-[14px] text-mute">
         {role === "buyer" ? "Plus 1,650 reward points from HDFC, posting within 90 working days." : "Codes are live and yours. The escrow paid the buyer and split the 1% fee."}
       </p>
@@ -640,7 +730,7 @@ function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<ty
               <span className="flex items-center gap-2 text-mute">
                 <span className={cx("size-2 rounded-full", b.c)} /> {b.k}
               </span>
-              <span className="tabular">{usdt(b.v)} USDT</span>
+              <span className="tabular">{usdt(b.v)} USDC</span>
             </div>
           ))}
         </div>
@@ -754,7 +844,7 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-mint/[0.07] p-4 ring-1 ring-mint/30">
                   <div className="text-[14px] font-medium">Code 2 was redeemed 3 min before your first use</div>
                   <div className="mt-1 text-[12.5px] text-mute">
-                    {usdt(q.sellerLocks / 2)} USDT refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.
+                    {usdt(q.sellerLocks / 2)} USDC refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.
                   </div>
                 </motion.div>
               )}

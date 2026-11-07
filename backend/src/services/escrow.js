@@ -59,6 +59,8 @@ const walletClient = operator
   : null;
 
 const isMock = config.ESCROW_MODE === 'mock';
+/** Mock mode only: names of operations that should fail ('release', 'refund', 'verifyDeposit'), to test failure paths. */
+export const mockFaults = new Set();
 if (isMock) console.warn('[escrow] ESCROW_MODE=mock: on-chain checks and payouts are SIMULATED.');
 
 /** Deterministic on-chain id for a Firestore request id. The frontend must use the same. */
@@ -69,7 +71,15 @@ export const escrowIdFor = (requestId) => keccak256(stringToHex(requestId));
  * We check contract state (not just the tx receipt) so a spoofed or unrelated tx can't pass.
  */
 export async function verifyDeposit({ requestId, depositor, amountBaseUnits, txHash }) {
-  if (isMock) return { ok: true };
+  return verifyDepositById({ id: escrowIdFor(requestId), depositor, amountBaseUnits, txHash });
+}
+
+/** Same check for any escrow id (used for the dispute bond, which lives in the same contract under its own id). */
+export async function verifyDepositById({ id, depositor, amountBaseUnits, txHash }) {
+  if (isMock) {
+    if (mockFaults.has('verifyDeposit')) throw new HttpError(400, 'escrow_not_funded', 'Escrow is not in Funded state');
+    return { ok: true };
+  }
 
   const receipt = await publicClient.getTransactionReceipt({ hash: txHash }).catch(() => null);
   if (!receipt || receipt.status !== 'success') {
@@ -83,7 +93,7 @@ export async function verifyDeposit({ requestId, depositor, amountBaseUnits, txH
     address: config.ESCROW_CONTRACT_ADDRESS,
     abi: ESCROW_ABI,
     functionName: 'escrows',
-    args: [escrowIdFor(requestId)],
+    args: [id],
   });
 
   if (status !== STATUS.Funded) throw new HttpError(400, 'escrow_not_funded', 'Escrow is not in Funded state');
@@ -98,18 +108,29 @@ export async function verifyDeposit({ requestId, depositor, amountBaseUnits, txH
 
 /** On-chain status for reconciliation: 'none' | 'funded' | 'released' | 'refunded' | 'unknown' (mock). */
 export async function readEscrowStatus(requestId) {
+  return readStatusById(escrowIdFor(requestId));
+}
+
+export async function readStatusById(id) {
   if (isMock) return 'unknown';
   const [, , status] = await publicClient.readContract({
     address: config.ESCROW_CONTRACT_ADDRESS,
     abi: ESCROW_ABI,
     functionName: 'escrows',
-    args: [escrowIdFor(requestId)],
+    args: [id],
   });
   return ['none', 'funded', 'released', 'refunded'][status] ?? 'unknown';
 }
 
+/** Mock mode only: every payout that would have gone on-chain, so tests can assert who was paid. */
+export const mockCalls = [];
+
 async function send(functionName, args) {
-  if (isMock) return `0xmock${Date.now().toString(16)}`;
+  if (isMock) {
+    if (mockFaults.has(functionName)) throw new Error(`mock ${functionName} failure`);
+    mockCalls.push({ functionName, args });
+    return `0xmock${Date.now().toString(16)}${mockCalls.length}`;
+  }
   const hash = await walletClient.writeContract({
     address: config.ESCROW_CONTRACT_ADDRESS,
     abi: ESCROW_ABI,
@@ -123,3 +144,13 @@ async function send(functionName, args) {
 
 export const releaseEscrow = (requestId, to) => send('release', [escrowIdFor(requestId), getAddress(to)]);
 export const refundEscrow = (requestId) => send('refund', [escrowIdFor(requestId)]);
+
+// ---------- Dispute bond (same contract, its own escrow id) ----------
+
+/**
+ * The bond id contains a secret nonce the server gives only to the person who will stake, so nobody can
+ * front-run (deposit into) another person's bond id and block their dispute.
+ */
+export const bondIdFor = (requestId, actor, nonce) => keccak256(stringToHex(`dispute-bond:${requestId}:${actor}:${nonce}`));
+export const releaseById = (id, to) => send('release', [id, getAddress(to)]);
+export const refundById = (id) => send('refund', [id]);

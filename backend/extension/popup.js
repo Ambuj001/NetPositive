@@ -34,7 +34,10 @@ function render(data) {
 
 $('f').addEventListener('submit', async (e) => {
   e.preventDefault();
-  await chrome.runtime.sendMessage({ type: 'np:start', code: $('code').value.trim(), pin: $('pin').value.trim() });
+  const amtText = $('amt').value.trim().replace(/[,₹\s]/g, '');
+  const expectedPaise = amtText ? NP.toPaise(amtText) : null;
+  if (amtText && expectedPaise === null) { alert('Enter the amount as a plain number, e.g. 5000'); return; }
+  await chrome.runtime.sendMessage({ type: 'np:start', code: $('code').value.trim(), pin: $('pin').value.trim(), expectedPaise });
   $('code').value = ''; $('pin').value = ''; // don't keep the secret in the popup
   render(null);
   showStatus({ state: 'checking' });

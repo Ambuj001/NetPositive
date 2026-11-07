@@ -17,22 +17,22 @@ const NODES = {
 };
 
 const EDGES: Record<string, Edge> = {
-  lock: { id: "lock", d: "M150 128 L360 128", color: "#3ddc97", label: "lock 112.22 USDT", lx: 255, ly: 112 },
+  lock: { id: "lock", d: "M150 128 L360 128", color: "#3ddc97", label: "lock 112.22 USDC", lx: 255, ly: 112 },
   accept: { id: "accept", d: "M650 128 L440 128", color: "#eef1f5", label: "World ID · accept", lx: 545, ly: 112 },
   pay: { id: "pay", d: "M690 182 L690 300", color: "#f5b544", label: "₹10,000 on card", lx: 742, ly: 245, dashed: true },
   codes: { id: "codes", d: "M650 340 L440 340", color: "#8b7bff", label: "encrypted codes", lx: 545, ly: 326 },
   pass: { id: "pass", d: "M400 300 L400 182", color: "#8b7bff", label: "signed pass", lx: 350, ly: 245 },
-  reveal: { id: "reveal", d: "M360 154 L150 154", color: "#8b7bff", label: "codes → seller", lx: 255, ly: 176 },
-  release: { id: "release", d: "M440 154 L650 154", color: "#3ddc97", label: "111.11 USDT → buyer", lx: 545, ly: 176 },
+  reveal: { id: "reveal", d: "M360 154 L150 154", color: "#8b7bff", label: "codes → spender", lx: 255, ly: 176 },
+  release: { id: "release", d: "M440 154 L650 154", color: "#3ddc97", label: "111.11 USDC → buyer", lx: 545, ly: 176 },
 };
 
 const STEPS: { title: string; edges: string[]; active: (keyof typeof NODES)[] }[] = [
-  { title: "Seller locks 112.22 USDT in escrow", edges: ["lock"], active: ["seller", "escrow"] },
+  { title: "Spender locks 112.22 USDC in escrow", edges: ["lock"], active: ["seller", "escrow"] },
   { title: "Buyer proves they're human and accepts", edges: ["accept"], active: ["buyer", "escrow"] },
   { title: "Buyer buys the voucher on SmartBuy 5X", edges: ["pay"], active: ["buyer", "portal"] },
   { title: "Codes go encrypted to the verifier", edges: ["codes"], active: ["portal", "verifier"] },
   { title: "Live balance check → signed pass", edges: ["pass"], active: ["verifier", "escrow"] },
-  { title: "Seller gets codes · Buyer gets USDT", edges: ["reveal", "release"], active: ["seller", "escrow", "buyer"] },
+  { title: "Spender gets codes · Buyer gets USDC", edges: ["reveal", "release"], active: ["seller", "escrow", "buyer"] },
 ];
 
 export function FlowDiagram({ className }: { className?: string }) {
@@ -96,8 +96,8 @@ export function FlowDiagram({ className }: { className?: string }) {
           })}
         </svg>
 
-        <Node at={NODES.seller} on={cur.active.includes("seller")} tone="mint" icon={<User className="size-5" />} title="Seller" sub="has USDT" />
-        <Node at={NODES.escrow} on={cur.active.includes("escrow")} tone="mint" icon={<Lock className="size-5" />} title="Escrow" sub="holds the USDT" big />
+        <Node at={NODES.seller} on={cur.active.includes("seller")} tone="mint" icon={<User className="size-5" />} title="Spender" sub="has USDC" />
+        <Node at={NODES.escrow} on={cur.active.includes("escrow")} tone="mint" icon={<Lock className="size-5" />} title="Escrow" sub="holds the USDC" big />
         <Node at={NODES.buyer} on={cur.active.includes("buyer")} tone="amber" icon={<FingerprintPattern className="size-5" />} title="Buyer" sub="has a card" />
         <Node at={NODES.verifier} on={cur.active.includes("verifier")} tone="iris" icon={<ScanLine className="size-5" />} title="Verifier" sub="checks balance" />
         <Node at={NODES.portal} on={cur.active.includes("portal")} tone="amber" icon={<CreditCard className="size-5" />} title="SmartBuy" sub="5X rewards" />
