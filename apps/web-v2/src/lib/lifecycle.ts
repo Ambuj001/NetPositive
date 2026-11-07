@@ -319,9 +319,14 @@ export function nextStep(r: ApiRequest, role: Role, brandName: string = r.brand,
           ? { tone: "amber", title: "You're ready. Waiting for the buyer's code", body: "The buyer can hand the voucher over now. If they miss the deadline, the order reopens and your USDC stays locked for the next buyer.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" }
           : { tone: "amber", title: r.ready ? "Sign Ready again" : "Tell the buyer you're ready", body: "A buyer accepted your order. Press Ready in the lifecycle below: a free signature (no gas) that lets them hand over the voucher code.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "ready" };
       }
-      return role === "buyer"
-        ? { tone: "amber", title: "Buy the voucher and submit its code", body: `${readyLive ? "The spender is ready. " : "The spender hasn't said they're ready yet, but you can still submit. "}Pay for the voucher on your best card route, then submit the code. If the deadline passes, the order reopens and you get a strike.`, deadline: r.fulfilDeadline ? { label: "Submit the code by", at: r.fulfilDeadline } : null, cta: "trade" }
-        : { tone: "amber", title: "A buyer is purchasing the voucher", body: "Nothing for you to do yet. If they miss the deadline, the order reopens.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" };
+      if (role === "buyer") {
+        const by = r.fulfilDeadline ? { label: "Submit the code by", at: r.fulfilDeadline } : null;
+        // The bank link only appears once the spender has said they're ready.
+        return readyLive
+          ? { tone: "amber", title: "The spender is ready. Buy the voucher", body: "Pay on your card, then seal the code below.", deadline: by, cta: "trade" }
+          : { tone: "amber", title: "Waiting for the spender to be ready", body: "The link appears here once they press Ready.", deadline: by, cta: "none" };
+      }
+      return { tone: "amber", title: "A buyer is purchasing the voucher", body: "Nothing for you to do yet. If they miss the deadline, the order reopens.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" };
     }
     case "code_submitted":
       return role === "spender"

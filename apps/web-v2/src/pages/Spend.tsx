@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Bot, Check, LoaderCircle, Lock, RotateCcw, SendHorizontal, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BuyerList } from "../components/BuyRequest";
 import { BrandMark, Button, cx } from "../components/ui";
 import { api, type BuyIntent } from "../lib/api";
@@ -53,6 +54,7 @@ const greeting = () => [bot(say("Where do you want to spend crypto today?"))];
 
 export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onRestart: () => void; onClose: () => void }) {
   const { toast } = useApp();
+  const nav = useNavigate();
   const lock = useLockOrder();
   const [msgs, setMsgs] = useState<Msg[]>(greeting);
   const [step, setStep] = useState<Step>("place");
@@ -137,6 +139,8 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
     setStep("posted");
     push(bot(say(`Done. ${usdt(qt.sellerLocks)} USDC is locked and order ${id} is live. A gift-card buyer can buy the ${place?.label ?? "store"} voucher and send you the code. After you redeem it, the USDC releases to them.`), { kind: "posted", orderId: id }));
     toast({ title: "Order is live", body: `${usdt(qt.sellerLocks)} USDC locked · ${id}`, tone: "mint" });
+    // Straight to this order's tracking page.
+    nav(`/track?id=${encodeURIComponent(id)}`);
   };
 
   const submit = () => {
@@ -343,8 +347,8 @@ function Posted({ orderId }: { orderId: string }) {
         <div className="text-[14px] font-medium">Request {orderId} is live</div>
         <div className="text-[12px] text-mute">A gift-card buyer can fill it. Your USDC stays locked until you redeem their voucher.</div>
       </div>
-      <Button size="sm" to={`/trade/${orderId}`} icon={<ArrowRight className="size-3.5" />}>
-        Open order
+      <Button size="sm" to={`/track?id=${encodeURIComponent(orderId)}`} icon={<ArrowRight className="size-3.5" />}>
+        Track order
       </Button>
     </div>
   );

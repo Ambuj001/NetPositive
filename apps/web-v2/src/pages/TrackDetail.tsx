@@ -230,7 +230,7 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
         </div>
       </div>
 
-      <RoleBanner role={role} viewer={viewer} req={req} openWallet={openWallet} />
+      {role === "observer" && <RoleBanner role={role} viewer={viewer} req={req} openWallet={openWallet} />}
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-5">
@@ -330,20 +330,12 @@ function NextCard({ req, next, id, role, status, token, signIn, signingIn, onCha
       <div className="label">{role === "observer" ? "Where it stands" : "What happens next for you"}</div>
       <div className={cx("mt-2 text-[17px] font-semibold tracking-tight", TONE_TEXT[next.tone])}>{next.title}</div>
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-fg/80">{next.body}</p>
-      {next.deadline && (
-        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber/[0.08] px-3 py-1.5 text-[12.5px] text-amber ring-1 ring-amber/25">
-          <Clock className="size-3.5" /> {next.deadline.label} {when(next.deadline.at)} · <Countdown to={next.deadline.at} />
-        </div>
-      )}
       {(next.cta === "ready" || next.cta === "settle") && <p className="mt-3 text-[12.5px] text-mute">The {next.cta === "ready" ? "Ready" : "Settle and Dispute"} button{next.cta === "ready" ? "" : "s are"} in the lifecycle below.</p>}
       {next.cta !== "none" && next.cta !== "ready" && next.cta !== "settle" && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {next.cta === "trade" && status === "accepted" && role === "buyer" ? (
-            <>
-              {/* The buyer's next move: buy the voucher on their bank's page, then seal the code below. */}
-              <BuyOnPortal req={req} />
-              <p className="basis-full text-[12.5px] text-mute">Then seal the code in the lifecycle below. It is encrypted on this device to the spender's vault key before it is sent.</p>
-            </>
+            // Shown only once the spender is ready: buy the voucher on the bank's page.
+            <BuyOnPortal req={req} />
           ) : next.cta === "trade" ? (
             <Button size="sm" to={`/trade/${id}`} icon={<ArrowUpRight className="size-3.5" />}>
               Open trade room
