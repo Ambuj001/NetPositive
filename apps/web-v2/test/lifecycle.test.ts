@@ -154,7 +154,12 @@ test("next step is written from the viewer's side, with the right action", () =>
   assert.match(by.title, /Waiting for the spender/);
   assert.equal(by.cta, "none");
   // ...but must act while accepted
-  assert.match(nextStep(base(accepted), "buyer").title, /Buy the voucher/);
+  // The bank link (cta "trade") only appears once the spender is ready.
+  assert.match(nextStep(base(accepted), "buyer").title, /Waiting for the spender to be ready/);
+  assert.equal(nextStep(base(accepted), "buyer").cta, "none");
+  const readyNow = { ...accepted, ready: { validUntil: Math.floor(Date.now() / 1000) + 600 } };
+  assert.match(nextStep(base(readyNow), "buyer").title, /Buy the voucher/);
+  assert.equal(nextStep(base(readyNow), "buyer").cta, "trade");
   assert.match(nextStep(base(accepted), "spender").title, /Tell the buyer you're ready/);
   // Only the spender can cancel, and only before a buyer accepts
   assert.equal(nextStep(base(funded), "spender").cta, "cancel");
@@ -218,7 +223,8 @@ test("Ready: once signed it is done, shows its validity, and moves on to waiting
   assert.equal(nextStep(r, "spender", "Amazon Pay", NOW).cta, "none");
   assert.match(nextStep(r, "spender", "Amazon Pay", NOW).title, /You're ready/);
   assert.match(buildStages(r, "buyer", "Amazon Pay", NOW).find((x) => x.key === "ready")!.detail, /The spender is ready/);
-  assert.match(nextStep(r, "buyer", "Amazon Pay", NOW).body, /^The spender is ready\./);
+  assert.match(nextStep(r, "buyer", "Amazon Pay", NOW).title, /^The spender is ready/);
+  assert.equal(nextStep(r, "buyer", "Amazon Pay", NOW).cta, "trade");
 });
 
 test("Ready: an expired permit asks the spender to sign again", () => {

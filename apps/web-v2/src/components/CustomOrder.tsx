@@ -53,7 +53,7 @@ export function CustomOrder() {
     setReview(false);
     if (res.kind === "live") {
       toast({ title: "Order is live", body: `${usdt(q.sellerLocks)} USDC locked · ${res.id}`, tone: "mint" });
-      nav(`/trade/${res.id}`);
+      nav(`/track?id=${encodeURIComponent(res.id)}`);
     } else {
       setSavedLocally(res.order.id);
     }
