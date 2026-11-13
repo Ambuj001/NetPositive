@@ -99,7 +99,7 @@ export default function Cards() {
                     transition={{ duration: 0.25 }}
                     className={cx(
                       "relative mx-auto block aspect-[1.75] w-full max-w-[420px] overflow-hidden rounded-[20px] p-6 text-left shadow-[0_30px_70px_-30px_rgba(12,13,15,0.14)] ring-1 transition",
-                      on ? "ring-2 ring-mint/70 ring-offset-4 ring-offset-ink-2" : "ring-fg/10 opacity-80 hover:opacity-100",
+                      on ? "ring-2 ring-brand/70 ring-offset-4 ring-offset-ink-2" : "ring-fg/10 opacity-80 hover:opacity-100",
                     )}
                     style={{ background: FACES[i % FACES.length] }}
                   >
@@ -110,7 +110,7 @@ export default function Cards() {
                       <span className="mt-1.5 block font-display text-[26px] font-semibold tracking-tight text-white">{c.name}</span>
                       <span className="mt-1 block text-[11.5px] text-fg/45">{c.last || "Reward profile"}</span>
                     </span>
-                    {on && <Check className="absolute right-6 bottom-6 size-5 text-mint-ink" />}
+                    {on && <Check className="absolute right-6 bottom-6 size-5 text-brand-ink" />}
                   </motion.button>
                 );
               })}
@@ -175,11 +175,11 @@ export default function Cards() {
                             {r.points.toLocaleString("en-IN")} pts{r.discountInr ? ` + ${inr(r.discountInr)} off` : ""} · {r.txns} purchase{r.txns > 1 ? "s" : ""}
                           </div>
                         </div>
-                        <span className="font-medium text-mint-ink tabular">{(value === "cash" ? r.pctStatement : r.pctTravel).toFixed(2)}%</span>
+                        <span className="font-medium text-brand-ink tabular">{(value === "cash" ? r.pctStatement : r.pctTravel).toFixed(2)}%</span>
                       </div>
                     ))}
                   </div>
-                  <Link to="/trade" className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-mint-ink hover:underline">
+                  <Link to="/trade" className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-brand-ink hover:underline">
                     Compare in Trade <ArrowUpRight className="size-3.5" />
                   </Link>
                 </section>

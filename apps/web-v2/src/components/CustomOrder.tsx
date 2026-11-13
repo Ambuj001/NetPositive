@@ -77,7 +77,7 @@ export function CustomOrder() {
 
       <div className="text-[12.5px] text-mute">You get a voucher worth</div>
       <div className="mt-2 flex items-baseline gap-2">
-        <motion.span key={amount} initial={{ opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="font-display text-[42px] leading-none font-semibold tracking-tight text-mint-ink tabular">
+        <motion.span key={amount} initial={{ opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="font-display text-[42px] leading-none font-semibold tracking-tight text-brand-ink tabular">
           {inr(validAmount ? amount : 0)}
         </motion.span>
         <span className="text-[12px] text-dim">{place.label}</span>
@@ -144,7 +144,7 @@ export function CustomOrder() {
 function Ticket({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="hairline relative overflow-hidden rounded-[26px] bg-surface/85 p-6 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(61,220,151,0.12), transparent)" }} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(0,0,255,0.12), transparent)" }} />
       <div className="relative flex items-center justify-between">
         <h2 className="font-display text-[22px] font-semibold tracking-tight">{title}</h2>
         <span className="grid size-8 place-items-center rounded-full bg-[#2775ca] font-display text-[13px] font-bold text-white" aria-hidden>
@@ -199,7 +199,7 @@ function VoucherPicker({ value, onChange }: { value: string; onChange: (id: stri
                     onChange(p.id);
                     setOpen(false);
                   }}
-                  className={cx("flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-[13.5px] transition hover:bg-fg/[0.05]", p.id === value && "bg-mint/[0.08]")}
+                  className={cx("flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-[13.5px] transition hover:bg-fg/[0.05]", p.id === value && "bg-brand/[0.08]")}
                 >
                   <BrandMark id={p.id} size={24} />
                   <span className="flex-1">{p.label}</span>
@@ -217,7 +217,7 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
   return (
     <div className="mt-5">
       <div className="mb-2 text-[12.5px] text-mute">{label}</div>
-      <label className="flex items-baseline gap-2 rounded-2xl bg-fg/[0.03] px-4 py-3 ring-1 ring-fg/10 transition focus-within:ring-mint/45">
+      <label className="flex items-baseline gap-2 rounded-2xl bg-fg/[0.03] px-4 py-3 ring-1 ring-fg/10 transition focus-within:ring-brand/45">
         <span className="font-display text-3xl text-mute">₹</span>
         <input
           type="number"
@@ -237,7 +237,7 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
             key={a.label}
             type="button"
             onClick={() => onChange(a.inr)}
-            className={cx("h-9 rounded-xl text-[12px] ring-1 transition tabular", value === a.inr ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
+            className={cx("h-9 rounded-xl text-[12px] ring-1 transition tabular", value === a.inr ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
           >
             {a.label}
           </button>
@@ -291,7 +291,7 @@ function Calc({ open, setOpen, children }: { open: boolean; setOpen: (o: boolean
 function Rate({ value }: { value: number | null }) {
   return (
     <div className="mt-3 flex items-baseline gap-1.5">
-      <span className="font-display text-[30px] font-semibold tracking-tight text-mint-ink tabular">{value === null ? "—" : `₹${value.toFixed(2)}`}</span>
+      <span className="font-display text-[30px] font-semibold tracking-tight text-brand-ink tabular">{value === null ? "—" : `₹${value.toFixed(2)}`}</span>
       <span className="text-[11px] text-dim">/ USDC</span>
     </div>
   );

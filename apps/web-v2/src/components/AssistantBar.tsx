@@ -71,7 +71,7 @@ export function AssistantBar({
             </button>
             <div className="pr-8 text-[12px] text-dim">{reply.q}</div>
             <div className="mt-1.5 flex gap-2.5 text-[14px] leading-relaxed whitespace-pre-wrap text-fg/90">
-              <Sparkles className={cx("mt-1 size-3.5 shrink-0", tone === "mint" ? "text-mint-ink" : "text-amber-ink")} />
+              <Sparkles className={cx("mt-1 size-3.5 shrink-0", tone === "mint" ? "text-brand-ink" : "text-amber-ink")} />
               <div className="min-w-0">{reply.a}</div>
             </div>
           </motion.div>
@@ -83,9 +83,9 @@ export function AssistantBar({
           e.preventDefault();
           send(text);
         }}
-        className="hairline flex items-center gap-3 rounded-2xl bg-surface/80 p-2 pl-4 backdrop-blur-xl transition focus-within:shadow-[0_0_0_1px_rgba(61,220,151,0.35)]"
+        className="hairline flex items-center gap-3 rounded-2xl bg-surface/80 p-2 pl-4 backdrop-blur-xl transition focus-within:shadow-[0_0_0_1px_rgba(0,0,255,0.35)]"
       >
-        <MessageCircle className={cx("size-4 shrink-0", tone === "mint" ? "text-mint-ink" : "text-amber-ink")} />
+        <MessageCircle className={cx("size-4 shrink-0", tone === "mint" ? "text-brand-ink" : "text-amber-ink")} />
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}

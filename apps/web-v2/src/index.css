@@ -5,7 +5,7 @@
 
 /*
  * NetPositive "Ledger" design system.
- * Paper-white surfaces, near-black type, one electric green that means "money moved in your favour".
+ * White surfaces, near-black type and one electric blue. Green is reserved for "positive": gains and live signals.
  * Display moments use a dot-matrix face (Doto), like a trading-floor ticker board.
  */
 @theme {
@@ -17,13 +17,13 @@
   /* Surfaces */
   --color-canvas: #ffffff;
   --color-surface: #ffffff;
-  --color-sunken: #f5f5f2;
-  --color-sunken-2: #ededea;
+  --color-sunken: #f7f7f8;
+  --color-sunken-2: #ededf0;
 
   /* Type */
-  --color-fg: #0c0d0f;
-  --color-mute: #5f636b;
-  --color-dim: #9a9da4;
+  --color-fg: #0a0b0d;
+  --color-mute: #6a6c73;
+  --color-dim: #a0a2a8;
   /* Text that sits on a bright fill */
   --color-ink: #0c0d0f;
 
@@ -31,18 +31,21 @@
   --color-line: rgb(12 13 15 / 0.09);
   --color-line-2: rgb(12 13 15 / 0.16);
 
-  /* Volt green: fills, rings, LEDs. mint-ink is the same hue dark enough for text on white. */
-  --color-mint: #00c866;
-  --color-mint-2: #00b25a;
-  --color-mint-ink: #04773d;
-  --color-mint-soft: #e3f9ec;
+  /* Brand blue: fills, rings, links, LEDs. */
+  --color-brand: #0000ff;
+  --color-brand-2: #0000d6;
+  /* "Positive" green: only for gains, live dots and the cursor trail on LED boards. */
+  --color-pos: #00c26e;
+  --color-pos-ink: #067a45;
+  --color-brand-ink: #0000ff;
+  --color-brand-soft: #eef0ff;
 
   /* Rupee side */
   --color-amber: #ffb224;
   --color-amber-ink: #935700;
 
   /* Verification layer */
-  --color-iris: #5746f0;
+  --color-iris: #0000ff;
   --color-rose: #e5484d;
   --color-rose-ink: #c22b31;
 
@@ -90,8 +93,8 @@
     letter-spacing: -0.006em;
   }
   ::selection {
-    background: var(--color-mint);
-    color: var(--color-ink);
+    background: var(--color-brand);
+    color: #fff;
   }
   :focus-visible {
     outline: 2px solid var(--color-fg);
@@ -131,8 +134,8 @@
   .text-gradient {
     color: var(--color-fg);
   }
-  .text-mint-gradient {
-    color: var(--color-mint-ink);
+  .text-brand-gradient {
+    color: var(--color-brand-ink);
   }
   .grid-bg {
     background-image:
@@ -174,11 +177,19 @@
     color: var(--color-mute);
   }
   .eyebrow {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
-    color: var(--color-mint-ink);
+    color: var(--color-brand);
     letter-spacing: 0;
   }
+  /* Logo: pixels pop in one by one; on hover the green pixel hops. */
+  .np-mark-in rect { animation: np-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; transform-box: fill-box; transform-origin: center; }
+  .np-mark-pos { transform-box: fill-box; transform-origin: center; }
+  .np-logo:hover .np-mark-pos { animation: np-hop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1); }
+  @keyframes np-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes np-hop { 0%, 100% { transform: translate(0, 0); } 40% { transform: translate(18%, -22%) rotate(12deg); } }
+  /* Pixel icons light up dot by dot. */
+  .np-px { animation: np-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both; transform-box: fill-box; transform-origin: center; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
   .scrollbar-none { scrollbar-width: none; }
 
@@ -197,22 +208,23 @@
     width: 100%;
     height: 4px;
     border-radius: 999px;
-    background: linear-gradient(to right, var(--color-fg) var(--p, 50%), rgb(12 13 15 / 0.1) var(--p, 50%));
+    background: linear-gradient(to right, var(--color-brand) var(--p, 50%), rgb(12 13 15 / 0.1) var(--p, 50%));
   }
   input[type="range"].range::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 20px;
     height: 20px;
     border-radius: 999px;
-    background: var(--color-mint);
-    border: 2px solid var(--color-fg);
+    background: #fff;
+    border: 2px solid var(--color-brand);
+    box-shadow: 0 1px 4px rgb(0 0 255 / 0.25);
     cursor: grab;
   }
   input[type="range"].range::-moz-range-thumb {
     width: 18px;
     height: 18px;
     border-radius: 999px;
-    background: var(--color-mint);
+    background: var(--color-brand);
     border: 2px solid var(--color-fg);
   }
 }

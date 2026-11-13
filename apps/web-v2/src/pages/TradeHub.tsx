@@ -53,9 +53,9 @@ export default function TradeHub() {
                 role="tab"
                 aria-selected={mode === m}
                 onClick={() => setMode(m)}
-                className={cx("relative flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition", mode === m ? "text-ink" : "text-mute hover:text-fg")}
+                className={cx("relative flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition", mode === m ? "text-white" : "text-mute hover:text-fg")}
               >
-                {mode === m && <motion.span layoutId="trade-mode" className={cx("absolute inset-0 rounded-full", m === "buy" ? "bg-amber" : "bg-mint")} transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+                {mode === m && <motion.span layoutId="trade-mode" className="absolute inset-0 rounded-full bg-fg" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
                 <span className="relative flex items-center gap-2">
                   {icon} {label}
                 </span>
@@ -89,7 +89,7 @@ function PayWithCrypto() {
           <SpendChat key={session} book={orders} onRestart={() => setSession((s) => s + 1)} onClose={() => setChatOpen(false)} />
         ) : (
           <button type="button" onClick={() => setChatOpen(true)} className="hairline flex w-full items-center gap-3 rounded-[24px] bg-surface/70 p-5 text-left backdrop-blur-xl transition hover:bg-surface">
-            <span className="grid size-10 place-items-center rounded-2xl bg-mint/10 text-mint-ink ring-1 ring-fg/10">
+            <span className="grid size-10 place-items-center rounded-2xl bg-brand/10 text-brand-ink ring-1 ring-fg/10">
               <Bot className="size-5" />
             </span>
             <span className="flex-1">

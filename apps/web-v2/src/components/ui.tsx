@@ -8,34 +8,35 @@ export const cx = clsx;
 
 /* ------------------------------------------------------------------ Logo */
 
-/** The mark: a black tile with a 5×5 LED grid; the lit cells draw the "+" of NetPositive. */
-export function Mark({ className, lit = "#00c866" }: { className?: string; lit?: string }) {
-  const on = new Set(["0-2", "1-2", "2-0", "2-1", "2-2", "2-3", "2-4", "3-2", "4-2"]);
+/**
+ * The mark: a 3×3 pixel grid. Five pixels draw the plus; the corner pixel is the "positive" one, in green.
+ * `tone="white"` is for blue or dark backgrounds.
+ */
+export function Mark({ className, tone = "blue", animate = false }: { className?: string; tone?: "blue" | "white" | "black"; animate?: boolean }) {
+  const fill = tone === "white" ? "#ffffff" : tone === "black" ? "#0a0b0d" : "#0000ff";
+  const cells: [number, number][] = [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]];
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="7" fill="#0c0d0f" />
-      {Array.from({ length: 25 }, (_, i) => {
-        const r = Math.floor(i / 5);
-        const c = i % 5;
-        const isOn = on.has(`${r}-${c}`);
-        return <circle key={i} cx={6.4 + c * 4.8} cy={6.4 + r * 4.8} r={isOn ? 1.85 : 1.1} fill={isOn ? lit : "#2c2e33"} />;
-      })}
+    <svg viewBox="0 0 32 32" className={cx("np-mark", animate && "np-mark-in", className)} aria-hidden>
+      {cells.map(([c, r], i) => (
+        <rect key={i} x={2 + c * 9.67} y={2 + r * 9.67} width={8.66} height={8.66} rx={1.4} fill={fill} style={{ animationDelay: `${i * 60}ms` }} />
+      ))}
+      <rect className="np-mark-pos" x={2 + 2 * 9.67} y={2} width={8.66} height={8.66} rx={1.4} fill="#00c26e" style={{ animationDelay: "360ms" }} />
     </svg>
   );
 }
 
-export function Logo({ className, compact }: { className?: string; compact?: boolean }) {
+export function Logo({ className, compact, tone = "blue" }: { className?: string; compact?: boolean; tone?: "blue" | "white" }) {
   return (
-    <Link to="/" className={cx("group flex items-center gap-2.5", className)} aria-label="NetPositive home">
-      <Mark className="size-8 transition-transform duration-500 group-hover:rotate-90" />
-      {!compact && <span className="text-[17px] font-semibold tracking-[-0.03em]">NetPositive</span>}
+    <Link to="/" className={cx("np-logo group flex items-center gap-2.5", className)} aria-label="NetPositive home">
+      <Mark className="size-7" tone={tone} />
+      {!compact && <span className={cx("text-[18px] font-semibold tracking-[-0.035em]", tone === "white" && "text-white")}>NetPositive</span>}
     </Link>
   );
 }
 
 /* ---------------------------------------------------------------- Button */
 type BtnProps = ComponentProps<"button"> & {
-  variant?: "primary" | "volt" | "ghost" | "outline" | "amber";
+  variant?: "primary" | "volt" | "dark" | "white" | "ghost" | "outline" | "amber";
   size?: "sm" | "md" | "lg";
   to?: string;
   href?: string;
@@ -48,9 +49,9 @@ export function Button({ variant = "primary", size = "md", className, children, 
     size === "sm" && "h-9 px-4 text-[13.5px]",
     size === "md" && "h-11 px-5 text-[14.5px]",
     size === "lg" && "h-13 px-7 text-[15.5px]",
-    variant === "primary" && "bg-fg text-white hover:bg-[#25272c]",
-    variant === "volt" && "bg-mint text-ink shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] hover:bg-mint-2",
-    variant === "amber" && "bg-amber text-ink shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)] hover:brightness-95",
+    (variant === "primary" || variant === "volt") && "bg-brand text-white hover:bg-brand-2",
+    (variant === "dark" || variant === "amber") && "bg-fg text-white hover:bg-[#25272c]",
+    variant === "white" && "bg-white text-brand hover:bg-white/90",
     variant === "outline" && "bg-surface text-fg ring-1 ring-line-2 hover:bg-sunken",
     variant === "ghost" && "text-mute hover:bg-sunken hover:text-fg",
     className,
@@ -104,7 +105,7 @@ export function Pill({
   dot?: boolean;
 }) {
   const t = {
-    mint: "text-mint-ink bg-mint-soft ring-mint/30",
+    mint: "text-brand-ink bg-brand-soft ring-brand/30",
     amber: "text-amber-ink bg-amber/12 ring-amber/35",
     iris: "text-iris bg-iris/8 ring-iris/25",
     rose: "text-rose-ink bg-rose/8 ring-rose/25",
@@ -126,7 +127,7 @@ export function Pill({
 /* ------------------------------------------------------- Persona chip */
 export function Persona({ who }: { who: "seller" | "buyer" | "verifier" }) {
   const m = {
-    seller: { label: "Spender", cls: "text-mint-ink bg-mint-soft ring-mint/40" },
+    seller: { label: "Spender", cls: "text-brand-ink bg-brand-soft ring-brand/40" },
     buyer: { label: "Buyer", cls: "text-amber-ink bg-amber/12 ring-amber/40" },
     verifier: { label: "Verification layer", cls: "text-iris bg-iris/8 ring-iris/30" },
   }[who];
@@ -231,7 +232,7 @@ export function SectionHead({
       className={cx("max-w-2xl", center && "mx-auto text-center", className)}
     >
       <div className={cx("eyebrow mb-3 flex items-center gap-2", center && "justify-center")}>
-        <span className="size-1.5 rounded-[2px] bg-mint" />
+        <span className="size-1.5 rounded-[2px] bg-brand" />
         {eyebrow}
       </div>
       <h2 className="text-[34px] font-semibold leading-[1.06] tracking-[-0.035em] md:text-[44px]">{title}</h2>
@@ -291,7 +292,7 @@ export function PageHead({ eyebrow, title, sub, right }: { eyebrow: string; titl
     <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
       <div className="max-w-2xl">
         <div className="eyebrow mb-2 flex items-center gap-2">
-          <span className="size-1.5 rounded-[2px] bg-mint" />
+          <span className="size-1.5 rounded-[2px] bg-brand" />
           {eyebrow}
         </div>
         <h1 className="text-[34px] font-semibold leading-[1.05] tracking-[-0.04em] md:text-[42px]">{title}</h1>
@@ -346,7 +347,7 @@ export function DotText({ text, className, scramble = true }: { text: string; cl
 export function Sticker({ children, className, tilt = -3 }: { children: ReactNode; className?: string; tilt?: number }) {
   return (
     <span
-      className={cx("inline-block bg-mint px-[0.28em] pb-[0.06em] font-semibold text-ink shadow-[0.06em_0.06em_0_#0c0d0f]", className)}
+      className={cx("inline-block bg-brand px-[0.3em] pb-[0.04em] font-bold text-white", className)}
       style={{ transform: `rotate(${tilt}deg)` }}
     >
       {children}

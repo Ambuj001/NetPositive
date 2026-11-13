@@ -70,7 +70,7 @@ export function CardPicker({
               <span className={cx("grid size-5 shrink-0 place-items-center rounded-md ring-1", on || already ? "bg-amber text-ink ring-amber" : "ring-fg/25")}>{(on || already) && <Check className="size-3.5" strokeWidth={3} />}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] font-medium">{c.title}</span>
-                <span className={cx("block truncate text-[11.5px]", c.verified ? "text-mint-ink" : "text-dim")}>{already ? "Already in My cards" : c.profile.last}</span>
+                <span className={cx("block truncate text-[11.5px]", c.verified ? "text-brand-ink" : "text-dim")}>{already ? "Already in My cards" : c.profile.last}</span>
               </span>
               <span className="shrink-0 rounded-full bg-fg/[0.06] px-2 py-0.5 font-mono text-[10px] tracking-wide text-mute">{c.issuer}</span>
             </button>

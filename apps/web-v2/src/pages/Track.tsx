@@ -142,7 +142,7 @@ function TrackList() {
           ).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={cx("relative pb-3 transition", tab === k ? "text-fg" : "text-mute hover:text-fg")}>
               {l} <span className="ml-1 font-mono text-[11px] text-dim">{counts[k]}</span>
-              {tab === k && <motion.span layoutId="tracktab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-mint" />}
+              {tab === k && <motion.span layoutId="tracktab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />}
             </button>
           ))}
         </div>
@@ -172,7 +172,7 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
   const idx = stepIndex(r.status);
   const off = r.status === "cancelled" || r.status === "refunded" || r.status === "refunding";
   const [busy, setBusy] = useState(false);
-  const tone = { mint: "text-mint-ink bg-mint/10 ring-mint/25", amber: "text-amber-ink bg-amber/10 ring-amber/25", iris: "text-iris bg-iris/10 ring-iris/25", rose: "text-rose-ink bg-rose/10 ring-rose/25", mute: "text-mute bg-fg/[0.04] ring-fg/10" }[s.tone];
+  const tone = { mint: "text-brand-ink bg-brand/10 ring-brand/25", amber: "text-amber-ink bg-amber/10 ring-amber/25", iris: "text-iris bg-iris/10 ring-iris/25", rose: "text-rose-ink bg-rose/10 ring-rose/25", mute: "text-mute bg-fg/[0.04] ring-fg/10" }[s.tone];
   const canCancel = r.live && r.role === "requester" && (r.status === "pending_funding" || r.status === "open") && token;
 
   return (
@@ -206,10 +206,10 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
           return (
             <div key={st.key}>
               <div className="h-1 overflow-hidden rounded-full bg-fg/[0.07]">
-                <div className={cx("h-full transition-all duration-700", done ? "w-full bg-mint" : now ? "w-1/2 bg-mint/70" : "w-0", r.status === "disputed" && now && "bg-rose")} />
+                <div className={cx("h-full transition-all duration-700", done ? "w-full bg-brand" : now ? "w-1/2 bg-brand/70" : "w-0", r.status === "disputed" && now && "bg-rose")} />
               </div>
               <div className={cx("mt-1.5 flex items-center gap-1 text-[11px]", done || now ? "text-fg/85" : "text-dim")}>
-                {done && <Check className="size-3 text-mint-ink" />}
+                {done && <Check className="size-3 text-brand-ink" />}
                 {st.label}
               </div>
             </div>

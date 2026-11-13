@@ -1,8 +1,18 @@
 # NetPositive web v2
 
-Light "Ledger" frontend for NetPositive: crypto holders pay for shops with gift vouchers, card holders fill those vouchers on their best reward route and get paid in USDC from escrow.
+Frontend for NetPositive: crypto holders pay for shops with gift vouchers, card holders fill those vouchers on their best reward route and get paid in USDC from escrow.
 
-**Design system.** Paper-white surfaces, near-black type and one volt green (`#00C866`) that means "money moved in your favour". Display moments use a dot-matrix face (Doto) like a trading-floor ticker board; body text is Geist, numbers and code are Geist Mono. Tokens live in `src/index.css`; primitives (`Button`, `Card`, `SectionHead`, `PageHead`, `DotText`, `Sticker`, `Marquee`, `Mark`) in `src/components/ui.tsx`; 7×7 LED icons in `src/components/PixelIcon.tsx`.
+**Brand.** White surfaces, near-black type and one electric blue (`#0000FF`). Green (`#00C26E`) is reserved for "positive": gains, live signals and the corner pixel of the logo. The kit is live at `/brand` and lives in the repo:
+
+| Asset | Where | What it does |
+| --- | --- | --- |
+| Logo | `Mark` / `Logo` in `src/components/ui.tsx`, SVGs in `public/brand` | 3×3 pixel grid: five pixels make the plus, the corner pixel is green. Pixels pop in; the green one hops on hover |
+| LED type | `src/brand/led.ts`, `src/brand/LedBoard.tsx` | Our own 5×7 dot alphabet on a canvas board. Dots fly in, a sweep crosses, they scatter from the pointer and turn green where touched, and regroup to morph between texts |
+| Plus field | `src/brand/PlusField.tsx` | Background grid of plus marks that turn and light up under the pointer, with a ripple |
+| Pixel icons | `src/components/PixelIcon.tsx` | 7×7 glyphs in a ticked frame that light up dot by dot |
+| Sticker | `Sticker` in `ui.tsx` | Tilted blue block under LED type, one per page |
+
+All motion respects `prefers-reduced-motion` and pauses off screen. Tokens are in `src/index.css`; body type is Geist, numbers and code Geist Mono.
 
 This is a standalone package. It is not part of the root npm workspace.
 

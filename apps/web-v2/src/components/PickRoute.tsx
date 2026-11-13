@@ -94,7 +94,7 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint-ink" : "text-mute")}>
+        <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-brand-ink" : "text-mute")}>
           {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
           {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
         </div>

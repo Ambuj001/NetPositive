@@ -104,7 +104,7 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
   return (
     <div className="mt-5 rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]" data-testid="buy-request">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-mint/10 text-mint-ink ring-1 ring-fg/10">
+        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-brand/10 text-brand-ink ring-1 ring-fg/10">
           <HandCoins className="size-4" />
         </span>
         <div className="min-w-0 flex-1 text-[12.5px] leading-relaxed">
@@ -170,9 +170,9 @@ export function BuyerList({
   const isMe = (i: BuyIntent) => sameAddr(i.crypto_buyer, fullAddress);
   const others = intents.filter((i) => !isMe(i)).length;
   return (
-    <div className={cx("rounded-2xl bg-mint/[0.05] p-3.5 ring-1 ring-mint/25", className)} data-testid="buyer-recommendations">
+    <div className={cx("rounded-2xl bg-brand/[0.05] p-3.5 ring-1 ring-brand/25", className)} data-testid="buyer-recommendations">
       <div className="flex items-center gap-2 text-[12.5px] font-medium">
-        <HandCoins className="size-4 text-mint-ink" />
+        <HandCoins className="size-4 text-brand-ink" />
         Recommended · {intents.length === 1 ? "a buyer wants" : `${intents.length} buyers want`} {inr(amount)}
         {place ? ` ${place}` : ""}
       </div>
@@ -193,7 +193,7 @@ export function BuyerList({
               </span>
               <span className="text-[12.5px] tabular">{inr(i.amountInr)}</span>
               {onPick && (
-                <span className="flex items-center gap-1 rounded-full bg-mint/10 px-2.5 py-1 text-[11.5px] font-medium text-mint-ink ring-1 ring-mint/30">
+                <span className="flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-1 text-[11.5px] font-medium text-brand-ink ring-1 ring-brand/30">
                   Create order <ArrowRight className="size-3" />
                 </span>
               )}
@@ -206,7 +206,7 @@ export function BuyerList({
                   type="button"
                   disabled={pickDisabled}
                   onClick={() => onPick(i)}
-                  className="flex w-full items-center gap-3 rounded-xl bg-surface/70 px-3 py-2 text-left ring-1 ring-fg/[0.06] transition hover:bg-surface hover:ring-mint/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center gap-3 rounded-xl bg-surface/70 px-3 py-2 text-left ring-1 ring-fg/[0.06] transition hover:bg-surface hover:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {row}
                 </button>

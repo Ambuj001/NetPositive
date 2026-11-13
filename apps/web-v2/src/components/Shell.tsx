@@ -8,7 +8,7 @@ import { formatChainBalance } from "../lib/wallet";
 import { useRates, inr } from "../lib/rates";
 import { WorldIdNotice, useWorldId } from "../lib/world";
 import { CardsPrompt } from "./CardsPrompt";
-import { Button, DotText, Logo, Mark, cx } from "./ui";
+import { Button, Logo, Mark, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
 const APP_LINKS = [
@@ -72,14 +72,14 @@ function Announcement() {
   const usdt = data?.assets?.USDT?.p2p?.buy?.price;
   return (
     <div className="relative z-[51] flex h-9 items-center justify-center gap-3 bg-sunken px-10 text-[13px] text-mute">
-      <span className="hidden size-1.5 rounded-full bg-mint sm:inline-block" />
+      <span className="hidden size-1.5 rounded-full bg-pos sm:inline-block" />
       <span className="truncate">
         {usdt ? (
           <>
             USDT on P2P right now <span className="tabular font-medium text-fg">{inr(usdt)}</span>. Get more for your USDC with a voucher trade.
           </>
         ) : (
-          <>Spend USDC at 18 Indian stores. Card holders get paid in USDC.</>
+          <>Spend USDC at Amazon, Flipkart, Myntra, Swiggy and more.</>
         )}
       </span>
       <a href="/#how" className="hidden shrink-0 items-center gap-1 font-medium text-fg hover:underline sm:inline-flex">
@@ -110,7 +110,7 @@ function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
-  const inApp = pathname !== "/";
+  const inApp = pathname !== "/" && pathname !== "/brand";
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
@@ -136,7 +136,7 @@ function Nav() {
                   {({ isActive }) => (
                     <>
                       {l.label}
-                      {isActive && <motion.span layoutId="nav-underline" className="absolute inset-x-3 -bottom-[13px] h-[2px] rounded-full bg-fg" />}
+                      {isActive && <motion.span layoutId="nav-underline" className="absolute inset-x-3 -bottom-[13px] h-[2px] rounded-full bg-brand" />}
                     </>
                   )}
                 </NavLink>
@@ -166,7 +166,7 @@ function Nav() {
                   <span className="tabular block text-[12.5px] font-medium">{walletBalance ? formatChainBalance(walletBalance) : onArc ? "Arc" : "Connected"}</span>
                 </span>
                 {humanVerified ? (
-                  <ShieldCheck className="size-4 text-mint-ink" aria-label="Verified human" />
+                  <ShieldCheck className="size-4 text-brand-ink" aria-label="Verified human" />
                 ) : (
                   <span className="size-2 rounded-full bg-amber" aria-label="World ID not verified" title="Not verified with World ID yet" />
                 )}
@@ -251,13 +251,14 @@ const FOOTER_COLUMNS: { h: string; l: FooterLink[] }[] = [
 
 function Footer() {
   return (
-    <footer className="relative mt-28">
+    <footer className={cx("relative", useLocation().pathname === "/" ? "" : "mt-24 border-t border-line")}>
       <div className="mx-auto grid max-w-[1200px] grid-cols-3 gap-x-6 gap-y-10 px-5 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-8">
         <div className="col-span-3 md:col-span-1">
-          <div className="flex items-center gap-2 text-[13px] font-medium text-mint-ink">
+          <Logo />
+          <div className="mt-5 flex items-center gap-2 text-[13px] font-medium text-fg">
             <span className="relative flex size-2">
-              <span className="absolute inset-0 animate-ping rounded-full bg-mint opacity-60" />
-              <span className="relative size-2 rounded-full bg-mint" />
+              <span className="absolute inset-0 animate-ping rounded-full bg-pos opacity-60" />
+              <span className="relative size-2 rounded-full bg-pos" />
             </span>
             Escrow live on Arc Testnet
           </div>
@@ -286,21 +287,11 @@ function Footer() {
           </div>
         ))}
       </div>
-      {/* The board: a black LED panel with the wordmark lit in green. */}
-      <div className="mx-auto max-w-[1200px] px-5 md:px-8">
-        <div className="led-bg relative overflow-hidden rounded-[22px] bg-fg px-6 py-10 md:px-10 md:py-14">
-          <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
-            <DotText text="NET+POSITIVE" className="text-[10.5vw] leading-[0.85] text-mint md:text-[112px]" />
-            <div className="flex items-center gap-3 text-[13px] text-white/60">
-              <Mark className="size-7" />
-              <span>© 2026 NetPositive</span>
-            </div>
-          </div>
-        </div>
-      </div>
       <div className="mx-auto flex max-w-[1200px] flex-col justify-between gap-2 px-5 py-6 text-[12.5px] text-dim md:flex-row md:px-8">
-        <span>Testnet software. No real money moves on Arc Testnet. Not financial advice.</span>
-        <span className="font-mono">escrow · world id · sealed voucher codes</span>
+        <span>© 2026 NetPositive. Testnet software: no real money moves on Arc Testnet. Not financial advice.</span>
+        <Link to="/brand" className="hover:text-fg">
+          Brand kit
+        </Link>
       </div>
     </footer>
   );
@@ -313,7 +304,8 @@ function FloatingCta() {
   const { address, openWallet, walletOpen } = useApp();
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const on = () => setShow(window.scrollY > 520);
+    // Shown mid-page only: the blue band at the bottom has its own button.
+    const on = () => setShow(window.scrollY > 520 && window.scrollY < document.documentElement.scrollHeight - window.innerHeight - 900);
     on();
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
@@ -355,7 +347,7 @@ function Gate() {
   const { pathname, search } = useLocation();
   const wasConnected = useRef(false);
   if (address) wasConnected.current = true;
-  if (address || pathname === "/") return <Outlet />;
+  if (address || pathname === "/" || pathname === "/brand") return <Outlet />;
   if (restoring)
     return (
       <div className="grid min-h-[60vh] place-items-center text-[14px] text-mute">
@@ -488,7 +480,7 @@ function WalletModal() {
                           : null;
                     const tag =
                       w.status === "installed"
-                        ? { t: "Ready", c: "text-mint-ink bg-mint-soft" }
+                        ? { t: "Ready", c: "text-brand-ink bg-brand-soft" }
                         : w.status === "popup"
                           ? { t: "Popup", c: "text-iris bg-iris/8" }
                           : w.status === "qr"
@@ -505,19 +497,19 @@ function WalletModal() {
                           data-testid={`wallet-${w.id}`}
                           className={cx(
                             "flex w-full items-center gap-3 rounded-2xl p-2.5 pr-3 text-left transition hover:bg-sunken disabled:cursor-wait",
-                            waiting && "bg-sunken ring-1 ring-mint",
+                            waiting && "bg-sunken ring-1 ring-brand",
                             pending && !waiting && "opacity-40",
                           )}
                         >
                           <WalletLogo id={w.id} name={w.name} icon={w.icon} />
                           <span className="min-w-0 flex-1">
                             <span className="block text-[15px] font-medium">{w.name}</span>
-                            <span className={cx("block truncate text-[12.5px]", waiting ? "text-mint-ink" : "text-dim")}>
+                            <span className={cx("block truncate text-[12.5px]", waiting ? "text-brand-ink" : "text-dim")}>
                               {waiting ? (w.status === "qr" ? "Scan the QR code with your phone…" : `Approve in ${w.name}…`) : w.hint}
                             </span>
                           </span>
                           {waiting ? (
-                            <LoaderCircle className="size-4 animate-spin text-mint-ink" />
+                            <LoaderCircle className="size-4 animate-spin text-brand-ink" />
                           ) : (
                             <span className={cx("flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium", tag.c)}>
                               {tag.t}
@@ -566,12 +558,12 @@ function WalletModal() {
                       className="grid size-8 place-items-center rounded-full bg-surface text-mute ring-1 ring-line transition hover:text-fg"
                       aria-label="Copy address"
                     >
-                      {copied ? <Check className="size-3.5 text-mint-ink" /> : <Copy className="size-3.5" />}
+                      {copied ? <Check className="size-3.5 text-brand-ink" /> : <Copy className="size-3.5" />}
                     </button>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3 text-[13px]">
                     <span className="flex items-center gap-2 text-mute">
-                      <span className={cx("size-2 rounded-full", onArc ? "bg-mint" : "bg-amber")} />
+                      <span className={cx("size-2 rounded-full", onArc ? "bg-pos" : "bg-amber")} />
                       {chain || "Unknown network"}
                     </span>
                     {!onArc ? (
@@ -602,9 +594,9 @@ function WalletModal() {
                   </div>
                 </div>
 
-                <div className={cx("rounded-2xl p-4 ring-1", humanVerified ? "bg-mint-soft ring-mint/30" : "bg-surface ring-line")}>
+                <div className={cx("rounded-2xl p-4 ring-1", humanVerified ? "bg-brand-soft ring-brand/30" : "bg-surface ring-line")}>
                   <div className="flex items-start gap-3">
-                    <div className={cx("grid size-10 shrink-0 place-items-center rounded-full", humanVerified ? "bg-mint text-ink" : "bg-fg text-white")}>
+                    <div className={cx("grid size-10 shrink-0 place-items-center rounded-full", humanVerified ? "bg-brand text-white" : "bg-fg text-white")}>
                       {humanVerified ? <Check className="size-5" /> : <FingerprintPattern className="size-5" />}
                     </div>
                     <div className="flex-1">
@@ -675,7 +667,7 @@ function WalletModal() {
 
 function Toaster() {
   const { toasts, dismiss } = useApp();
-  const dot = { mint: "bg-mint", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose" };
+  const dot = { mint: "bg-brand", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose" };
   return (
     <div className="pointer-events-none fixed top-20 right-5 z-[80] flex w-[340px] max-w-[calc(100vw-40px)] flex-col gap-2">
       <AnimatePresence>

@@ -28,7 +28,7 @@ import { inr } from "../lib/engine";
 import { useApp } from "../lib/store";
 
 const SHOT_WARNING = "Screenshots can show the voucher code. Only the two of you and the team can see them, but crop anything you don't need.";
-const field = "w-full rounded-2xl bg-fg/[0.03] px-3.5 text-[14px] text-fg ring-1 ring-fg/10 outline-none transition placeholder:text-dim focus:ring-mint/40";
+const field = "w-full rounded-2xl bg-fg/[0.03] px-3.5 text-[14px] text-fg ring-1 ring-fg/10 outline-none transition placeholder:text-dim focus:ring-brand/40";
 
 /** /dispute lists your orders that can be disputed or are disputed. /dispute/:id is one order. */
 export default function DisputePage() {
@@ -65,7 +65,7 @@ function SignedIn({ children }: { children: (token: string) => ReactNode }) {
 
 function Notice({ children, tone = "rose" }: { children: ReactNode; tone?: "rose" | "mint" }) {
   return (
-    <div role="alert" className={cx("flex items-start gap-2 rounded-2xl px-3.5 py-3 text-[13px] ring-1", tone === "rose" ? "bg-rose/[0.07] text-rose-ink ring-rose/25" : "bg-mint/[0.07] text-mint-ink ring-mint/25")}>
+    <div role="alert" className={cx("flex items-start gap-2 rounded-2xl px-3.5 py-3 text-[13px] ring-1", tone === "rose" ? "bg-rose/[0.07] text-rose-ink ring-rose/25" : "bg-brand/[0.07] text-brand-ink ring-brand/25")}>
       <CircleAlert className="mt-0.5 size-4 shrink-0" /> <span className="min-w-0 break-words">{children}</span>
     </div>
   );
@@ -112,7 +112,7 @@ function Orders({ token }: { token: string }) {
   if (!rows.length)
     return (
       <div className="hairline rounded-[22px] bg-surface/70 p-6 text-[14px] text-mute backdrop-blur-xl">
-        Nothing to dispute right now. An order shows up here once its voucher code has been submitted. <Link to="/track" className="text-mint-ink hover:underline">See your orders</Link>
+        Nothing to dispute right now. An order shows up here once its voucher code has been submitted. <Link to="/track" className="text-brand-ink hover:underline">See your orders</Link>
       </div>
     );
   return (
@@ -320,7 +320,7 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
       </div>
 
       <label className="flex items-start gap-2.5 text-[12.5px] leading-relaxed text-mute">
-        <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} disabled={busy} className="mt-0.5 size-4 accent-[#3ddc97]" />
+        <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} disabled={busy} className="mt-0.5 size-4 accent-[#0000ff]" />
         <span>I understand I lose my stake and my account is banned if the team finds my dispute false.</span>
       </label>
 
@@ -385,7 +385,7 @@ function DisputeView({ req, token, onChanged }: { req: DisputeRequest; token: st
           <span className="text-[12.5px] text-mute">Screenshots</span>
           {open && mine < MAX_SHOTS && (
             <>
-              <button type="button" onClick={() => input.current?.click()} disabled={busy} className="flex items-center gap-1.5 text-[12.5px] text-mint-ink hover:underline disabled:opacity-40">
+              <button type="button" onClick={() => input.current?.click()} disabled={busy} className="flex items-center gap-1.5 text-[12.5px] text-brand-ink hover:underline disabled:opacity-40">
                 <ImagePlus className="size-3.5" /> Add screenshot
               </button>
               <input

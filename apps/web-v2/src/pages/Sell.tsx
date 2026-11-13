@@ -83,7 +83,7 @@ export default function Sell() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search hundreds of brands, or type any brand"
-                  className="h-12 w-full rounded-2xl bg-fg/[0.03] pr-4 pl-11 text-[14px] ring-1 ring-fg/[0.07] outline-none transition placeholder:text-dim focus:ring-mint/40"
+                  className="h-12 w-full rounded-2xl bg-fg/[0.03] pr-4 pl-11 text-[14px] ring-1 ring-fg/[0.07] outline-none transition placeholder:text-dim focus:ring-brand/40"
                 />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
@@ -95,7 +95,7 @@ export default function Sell() {
                       onClick={() => setBrandId(x.id)}
                       className={cx(
                         "relative flex flex-col items-start gap-3 rounded-2xl p-3 text-left ring-1 transition-all duration-300",
-                        on ? "bg-mint/[0.06] ring-mint/50" : "bg-fg/[0.02] ring-fg/[0.06] hover:bg-fg/[0.05] hover:ring-fg/15",
+                        on ? "bg-brand/[0.06] ring-brand/50" : "bg-fg/[0.02] ring-fg/[0.06] hover:bg-fg/[0.05] hover:ring-fg/15",
                       )}
                     >
                       <BrandMark id={x.id} size={32} />
@@ -104,7 +104,7 @@ export default function Sell() {
                         <div className="text-[11px] text-dim">{x.category}</div>
                       </div>
                       {on && (
-                        <motion.span layoutId="brand-check" className="absolute top-2.5 right-2.5 grid size-4 place-items-center rounded-full bg-mint text-ink">
+                        <motion.span layoutId="brand-check" className="absolute top-2.5 right-2.5 grid size-4 place-items-center rounded-full bg-brand text-white">
                           <Check className="size-2.5" />
                         </motion.span>
                       )}
@@ -127,7 +127,7 @@ export default function Sell() {
 
             <Card className="p-6 md:p-7">
               <StepTitle n={2} title="Amount" />
-              <div className="mt-5 flex items-center gap-3 rounded-2xl bg-fg/[0.03] p-2 pl-5 ring-1 ring-fg/[0.07] focus-within:ring-mint/40">
+              <div className="mt-5 flex items-center gap-3 rounded-2xl bg-fg/[0.03] p-2 pl-5 ring-1 ring-fg/[0.07] focus-within:ring-brand/40">
                 <span className="font-display text-3xl text-mute">₹</span>
                 <input
                   type="number"
@@ -167,7 +167,7 @@ export default function Sell() {
                   +
                 </button>
               </div>
-              <div className="relative mt-6 h-1.5 rounded-full bg-gradient-to-r from-rose/50 via-mint/60 to-amber/50">
+              <div className="relative mt-6 h-1.5 rounded-full bg-gradient-to-r from-rose/50 via-brand/60 to-amber/50">
                 <motion.span
                   className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_4px_rgba(12,13,15,0.15)]"
                   animate={{ left: `${Math.min(100, Math.max(0, ((rate - 87) / 6) * 100))}%` }}
@@ -176,7 +176,7 @@ export default function Sell() {
               </div>
               <div className="mt-3 flex justify-between font-mono text-[10.5px] text-dim">
                 <span>slow fill</span>
-                <span className={cx(Math.abs(rateDelta) < 0.6 ? "text-mint-ink" : rateDelta > 0 ? "text-amber-ink" : "text-rose-ink")}>
+                <span className={cx(Math.abs(rateDelta) < 0.6 ? "text-brand-ink" : rateDelta > 0 ? "text-amber-ink" : "text-rose-ink")}>
                   {Math.abs(rateDelta) < 0.6 ? "fills in ~4 min" : rateDelta > 0 ? "fills fast · costs you more" : "below market · may not fill"}
                 </span>
                 <span>instant</span>
@@ -187,7 +187,7 @@ export default function Sell() {
           {/* RIGHT: receipt */}
           <div className="lg:sticky lg:top-28 lg:self-start">
             <div className="hairline relative overflow-hidden rounded-[28px] bg-surface">
-              <div className="absolute inset-x-0 top-0 h-36 bg-[radial-gradient(70%_100%_at_50%_0%,rgba(61,220,151,0.2),transparent)]" />
+              <div className="absolute inset-x-0 top-0 h-36 bg-[radial-gradient(70%_100%_at_50%_0%,rgba(0,0,255,0.2),transparent)]" />
               <div className="relative p-6">
                 <div className="flex items-center justify-between">
                   <span className="label">Your request</span>
@@ -214,7 +214,7 @@ export default function Sell() {
                 <span className="absolute -top-3 -right-3 size-6 rounded-full bg-canvas" />
                 <div className="flex items-baseline justify-between">
                   <span className="text-[14px] text-mute">You lock</span>
-                  <span className="font-display text-3xl font-semibold tracking-tight text-mint-ink tabular">
+                  <span className="font-display text-3xl font-semibold tracking-tight text-brand-ink tabular">
                     {usdt(q.sellerLocks)} <span className="text-sm text-mute">USDC</span>
                   </span>
                 </div>
@@ -223,8 +223,8 @@ export default function Sell() {
                 <AnimatePresence mode="wait">
                   {phase === "done" && posted ? (
                     <motion.div key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-5 space-y-3">
-                      <div className="flex items-center gap-3 rounded-2xl bg-mint/[0.08] p-3.5 ring-1 ring-mint/30">
-                        <span className="grid size-9 place-items-center rounded-full bg-mint text-ink">
+                      <div className="flex items-center gap-3 rounded-2xl bg-brand/[0.08] p-3.5 ring-1 ring-brand/30">
+                        <span className="grid size-9 place-items-center rounded-full bg-brand text-white">
                           <Check className="size-4" />
                         </span>
                         <div>
@@ -247,8 +247,8 @@ export default function Sell() {
                             const doneStep = k === "approve" && phase === "lock";
                             const on = phase === k;
                             return (
-                              <div key={k} className={cx("flex items-center gap-3 rounded-xl p-3 ring-1 transition", on ? "ring-mint/40 bg-mint/[0.05]" : "ring-fg/[0.06]")}>
-                                <span className={cx("grid size-6 place-items-center rounded-full", doneStep ? "bg-mint text-ink" : on ? "text-mint-ink" : "text-dim")}>
+                              <div key={k} className={cx("flex items-center gap-3 rounded-xl p-3 ring-1 transition", on ? "ring-brand/40 bg-brand/[0.05]" : "ring-fg/[0.06]")}>
+                                <span className={cx("grid size-6 place-items-center rounded-full", doneStep ? "bg-brand text-white" : on ? "text-brand-ink" : "text-dim")}>
                                   {doneStep ? <Check className="size-3.5" /> : on ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-3.5" />}
                                 </span>
                                 <span className={cx("text-[13.5px]", on || doneStep ? "text-fg" : "text-dim")}>{label}</span>
@@ -262,7 +262,7 @@ export default function Sell() {
                         </Button>
                       )}
                       <div className="mt-4 flex items-start gap-2 text-[12px] leading-relaxed text-dim">
-                        <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint-ink" />
+                        <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-brand-ink" />
                         Released only after a signed voucher check. If nobody fills it in 30 min, the USDC returns to you automatically.
                       </div>
                     </motion.div>
@@ -280,7 +280,7 @@ export default function Sell() {
 function StepTitle({ n, title }: { n: number; title: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="grid size-6 place-items-center rounded-full bg-fg/[0.06] font-mono text-[11px] text-mint-ink ring-1 ring-fg/10">{n}</span>
+      <span className="grid size-6 place-items-center rounded-full bg-fg/[0.06] font-mono text-[11px] text-brand-ink ring-1 ring-fg/10">{n}</span>
       <h2 className="text-[16px] font-semibold tracking-tight">{title}</h2>
     </div>
   );
@@ -296,7 +296,7 @@ function DetectedSite({ brandId }: { brandId: string }) {
       <div className="min-w-0 flex-1">
         <div className="truncate font-mono text-[12px] text-fg/80">{b.domains[0]}</div>
         <div className="flex items-center gap-1.5 text-[11.5px] text-mute">
-          <Sparkles className="size-3 text-mint-ink" /> Extension: NetPositive voucher is best here
+          <Sparkles className="size-3 text-brand-ink" /> Extension: NetPositive voucher is best here
         </div>
       </div>
       <div className="hidden items-center gap-1 rounded-lg bg-fg/[0.03] px-2 py-1 text-[10.5px] text-dim ring-1 ring-fg/[0.06] sm:flex" title="Crypto.com Visa is not available in your region">

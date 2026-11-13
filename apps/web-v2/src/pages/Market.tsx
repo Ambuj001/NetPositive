@@ -68,11 +68,11 @@ export default function Market() {
 
         {/* search + sort */}
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-fg/[0.03] px-4 ring-1 ring-fg/10 transition focus-within:ring-mint/45">
+          <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-fg/[0.03] px-4 ring-1 ring-fg/10 transition focus-within:ring-brand/45">
             <Search className="size-4 text-dim" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or spenders" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or spenders" />
           </label>
-          <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-fg/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-fg/10 transition focus-within:ring-mint/45">
+          <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-fg/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-fg/10 transition focus-within:ring-brand/45">
             <SlidersHorizontal className="size-4 text-dim" />
             <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="appearance-none bg-transparent outline-none" aria-label="Sort orders">
               {SORTS.map((s) => (
@@ -92,7 +92,7 @@ export default function Market() {
               key={c}
               onClick={() => setCat(c)}
               aria-pressed={cat === c}
-              className={cx("h-9 shrink-0 rounded-full px-4 text-[12.5px] ring-1 transition", cat === c ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
+              className={cx("h-9 shrink-0 rounded-full px-4 text-[12.5px] ring-1 transition", cat === c ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
             >
               {c}
             </button>
@@ -141,11 +141,11 @@ export default function Market() {
                         {usdt(receive)} <span className="text-[10px] text-dim">USDC</span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="block font-medium text-mint-ink tabular">{net === null ? "—" : `₹${net.toFixed(2)}`}</span>
+                        <span className="block font-medium text-brand-ink tabular">{net === null ? "—" : `₹${net.toFixed(2)}`}</span>
                         <span className="block text-[11px] text-dim">{route ? `${route.cardLabel} · ${route.channel.name}` : "Add a card to rank"}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <ArrowUpRight className="ml-auto size-4 text-dim transition group-hover:text-mint-ink" />
+                        <ArrowUpRight className="ml-auto size-4 text-dim transition group-hover:text-brand-ink" />
                       </td>
                     </motion.tr>
                   ))}
@@ -163,8 +163,8 @@ export default function Market() {
 function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void }) {
   if (source === "live")
     return (
-      <span className="flex w-fit items-center gap-1.5 rounded-full bg-mint/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">
-        <span className="size-1.5 animate-pulse rounded-full bg-mint" /> Live order book
+      <span className="flex w-fit items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">
+        <span className="size-1.5 animate-pulse rounded-full bg-brand" /> Live order book
       </span>
     );
   if (source === "demo")

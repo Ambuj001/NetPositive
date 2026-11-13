@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, ArrowUpRight, ChevronRight, Minus, Plus } from "lucide-react";
+import { ArrowRight, ChevronRight, Minus, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { LedBoard } from "../brand/LedBoard";
+import { PlusField } from "../brand/PlusField";
 import { PixelIcon, type PixelName } from "../components/PixelIcon";
-import { BrandMark, Button, DotText, Marquee, SectionHead, Sticker, cx } from "../components/ui";
-import { BRANDS } from "../lib/data";
+import { BrandMark, Button, Marquee, SectionHead, Sticker, cx } from "../components/ui";
 import { CARDS, FEE_RATE, routesFor } from "../lib/engine";
 import { bps, inr, useRates, type RatesSummary } from "../lib/rates";
 import { useApp } from "../lib/store";
@@ -19,7 +20,7 @@ export default function Landing() {
       <Rates />
       <Trust />
       <Faq />
-      <FinalCta />
+      <Band />
     </>
   );
 }
@@ -31,41 +32,41 @@ const wrap = "mx-auto w-full max-w-[1200px] px-5 md:px-8";
 function Hero() {
   const { address, openWallet } = useApp();
   return (
-    <section className="relative overflow-hidden pt-20 pb-14 md:pt-28 md:pb-20">
-      <div aria-hidden className="dot-bg pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_60%_55%_at_50%_45%,#000_10%,transparent_75%)] opacity-70" />
+    <section className="relative overflow-hidden pt-20 pb-16 md:pt-32 md:pb-24">
+      <PlusField />
       <div className={cx(wrap, "relative flex flex-col items-center text-center")}>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-7 inline-flex items-center gap-2 rounded-full bg-surface py-1 pl-1 pr-3 text-[13px] text-mute ring-1 ring-line">
-          <span className="rounded-full bg-fg px-2 py-0.5 text-[11.5px] font-medium text-white">New</span>
-          Live P2P rates and USDC escrow on Arc
+        <h1 className="sr-only">Spend crypto. Keep rewards.</h1>
+        <LedBoard text="SPEND CRYPTO" maxCell={13} className="w-full max-w-[924px]" />
+        <motion.div
+          aria-hidden
+          initial={{ opacity: 0, scale: 1.25, rotate: 4 }}
+          animate={{ opacity: 1, scale: 1, rotate: -2.5 }}
+          transition={{ delay: 0.75, type: "spring", stiffness: 260, damping: 15 }}
+          className="mt-5 md:mt-7"
+        >
+          <Sticker tilt={0} className="text-[11.5vw] leading-[1.08] tracking-[-0.045em] sm:text-[64px] md:text-[80px]">
+            KEEP REWARDS
+          </Sticker>
         </motion.div>
 
-        <h1 className="flex flex-col items-center">
-          <DotText text="SPEND CRYPTO" className="text-[17vw] leading-[0.92] text-fg sm:text-[88px] md:text-[112px]" />
-          <motion.span initial={{ opacity: 0, rotate: 0, y: 16 }} animate={{ opacity: 1, rotate: -2.5, y: 0 }} transition={{ delay: 0.35, type: "spring", stiffness: 200, damping: 16 }} className="mt-2 sm:-mt-1 md:-mt-2">
-            <Sticker tilt={0} className="text-[11vw] leading-[1.02] tracking-[-0.04em] sm:text-[64px] md:text-[84px]">
-              KEEP REWARDS
-            </Sticker>
-          </motion.span>
-        </h1>
-
-        <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.6 }} className="mt-9 max-w-[620px] text-[17px] leading-relaxed text-mute md:text-[19px]">
-          Shop at Amazon, Myntra, Swiggy and 15 more stores with USDC. A card holder buys your voucher on their rewards card and is paid from escrow. Both of you come out ahead.
+        <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95, duration: 0.6 }} className="mt-10 max-w-[600px] text-[18px] leading-relaxed text-mute md:text-[20px]">
+          Shop at Amazon, Flipkart, Myntra and Swiggy with USDC. A card holder buys your voucher on their rewards card and is paid from escrow.
         </motion.p>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[15px] text-mute">
-          <span>USDC escrow</span>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.05 }} className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[16px] text-mute md:text-[18px]">
+          <span>USDC escrow on Arc</span>
           <Dot />
-          <span className="font-medium text-mint-ink">World ID humans only</span>
+          <span className="font-medium text-brand">World ID humans only</span>
           <Dot />
-          <span>30-minute safety hold</span>
+          <span>Sealed voucher codes</span>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.5 }} className="mt-9 flex flex-wrap items-center justify-center gap-3">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.15, duration: 0.5 }} className="mt-9 flex flex-wrap items-center justify-center gap-3">
           {address ? (
-            <Button size="lg" to="/trade" icon={<ArrowRight className="size-4" />}>
+            <Button size="lg" to="/trade">
               Open the app
             </Button>
           ) : (
-            <Button size="lg" onClick={openWallet} icon={<ArrowRight className="size-4" />} data-testid="hero-connect">
+            <Button size="lg" onClick={openWallet} data-testid="hero-connect">
               Connect wallet
             </Button>
           )}
@@ -82,15 +83,27 @@ const Dot = () => <span className="text-dim">•</span>;
 
 /* ---------------------------------------------------------------- stores */
 
+/** Stores the order book accepts today (backend BRANDS). */
+const STORES: [string, string][] = [
+  ["amazon", "Amazon"],
+  ["flipkart", "Flipkart"],
+  ["myntra", "Myntra"],
+  ["swiggy", "Swiggy"],
+  ["zomato", "Zomato"],
+  ["bigbasket", "BigBasket"],
+  ["mmt", "MakeMyTrip"],
+  ["blinkit", "Blinkit"],
+];
+
 function Stores() {
-  const list = BRANDS.filter((b) => b.logo);
   return (
-    <section aria-label="Stores" className="border-y border-line py-6">
-      <Marquee speed={55}>
-        {list.map((b) => (
-          <span key={b.id} className="mx-7 flex items-center gap-2.5 text-[17px] font-medium tracking-[-0.02em] text-fg/80">
-            <BrandMark id={b.id} size={26} className="!rounded-md grayscale-[35%]" />
-            {b.name}
+    <section aria-label="Stores" className="pb-4">
+      <div className="mb-5 text-center text-[13px] text-dim">Stores</div>
+      <Marquee speed={42}>
+        {STORES.map(([id, name]) => (
+          <span key={id} className="mx-8 flex items-center gap-3 text-[20px] font-medium tracking-[-0.02em] text-fg/75">
+            <BrandMark id={id} size={28} className="!rounded-md grayscale" />
+            {name}
           </span>
         ))}
       </Marquee>
@@ -101,11 +114,11 @@ function Stores() {
 /* ------------------------------------------------------------- lifecycle */
 
 const STEPS = [
-  { t: "Lock USDC", s: "Spender · Arc escrow" },
+  { t: "Lock USDC", s: "Spender, in escrow" },
   { t: "Accepted", s: "Verified card holder" },
   { t: "Voucher bought", s: "On their rewards card" },
   { t: "Code delivered", s: "Sealed end to end" },
-  { t: "Released", s: "After the safety hold" },
+  { t: "Released", s: "When you confirm" },
 ];
 
 function Lifecycle() {
@@ -118,19 +131,18 @@ function Lifecycle() {
   return (
     <section className={cx(wrap, "py-14 md:py-20")} aria-label="Order lifecycle">
       <div className="relative">
-        <div className="absolute top-[7px] right-[10%] left-[10%] h-[2px] bg-line" />
-        <motion.div className="absolute top-[7px] left-[10%] h-[2px] bg-fg" animate={{ width: `${pct * 0.8}%` }} transition={{ type: "spring", stiffness: 90, damping: 20 }} />
+        <div className="absolute top-[5px] right-[10%] left-[10%] h-[2px] bg-line" />
+        <motion.div className="absolute top-[5px] left-[10%] h-[2px] bg-brand" animate={{ width: `${pct * 0.8}%` }} transition={{ type: "spring", stiffness: 90, damping: 20 }} />
         <ol className="relative grid grid-cols-5">
           {STEPS.map((s, i) => {
-            const done = i <= at && at < STEPS.length + 1;
+            const done = i <= at;
             return (
               <li key={s.t} className="flex flex-col items-center text-center">
-                <span className={cx("relative grid size-4 place-items-center rounded-full border-2 transition-colors duration-300", done ? "border-fg bg-fg" : "border-line-2 bg-canvas")}>
-                  {i === at && <span className="absolute inset-[-5px] animate-ping rounded-full border-2 border-mint opacity-70" />}
-                  {done && <span className="size-1.5 rounded-full bg-mint" />}
+                <span className={cx("relative size-3 rounded-full border-2 transition-colors duration-300", done ? "border-brand bg-brand" : "border-line-2 bg-canvas")}>
+                  {i === at && <span className="absolute inset-[-6px] animate-ping rounded-full border-2 border-brand opacity-50" />}
                 </span>
-                <span className={cx("mt-4 text-[13px] font-medium tracking-[-0.01em] transition-colors sm:text-[16px]", done ? "text-fg" : "text-dim")}>{s.t}</span>
-                <span className="mt-0.5 hidden text-[13px] text-mute sm:block">{s.s}</span>
+                <span className={cx("mt-4 text-[13px] font-medium tracking-[-0.01em] transition-colors sm:text-[17px]", done ? "text-fg" : "text-dim")}>{s.t}</span>
+                <span className="mt-0.5 hidden text-[14px] text-mute sm:block">{s.s}</span>
               </li>
             );
           })}
@@ -146,7 +158,7 @@ function TwoSides() {
   return (
     <section className="bg-sunken py-20 md:py-28">
       <div className={wrap}>
-        <SectionHead eyebrow="Who it's for" title="One trade. Two people. Both ahead." sub="A crypto holder who wants to shop, and a card holder who wants USDC. NetPositive matches them and holds the money until the voucher is safe." />
+        <SectionHead eyebrow="Who it's for" title="One trade. Two people. Both ahead." sub="A crypto holder who wants to shop, and a card holder who wants USDC. NetPositive matches them and holds the money until the voucher is delivered." />
         <div className="mt-12 grid gap-4 md:grid-cols-2">
           <SideCard
             icon="wallet"
@@ -163,7 +175,7 @@ function TwoSides() {
             title="Hold a rewards card? Earn USDC."
             body="Fill an order by buying the voucher through your card's best reward route. Deliver the code, and the USDC is yours. Every point and cashback stays with you."
             facts={[
-              ["Typical reward", "3–16% of spend"],
+              ["Your rewards", "Stay on your card"],
               ["Paid in", "USDC on Arc"],
             ]}
             cta={{ label: "Fill orders", to: "/trade" }}
@@ -237,9 +249,9 @@ const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detai
   },
   {
     icon: "clock",
-    title: "Escrow releases after the safety hold",
-    line: "Confirm the voucher works, or let the hold run out. Then the card holder gets the USDC.",
-    tags: ["30-min hold", "Stake-backed disputes"],
+    title: "Confirm, and escrow pays out",
+    line: "Check the voucher works and settle. The escrow releases the USDC to the card holder.",
+    tags: ["Review window", "Stake-backed disputes"],
     detail: [
       "If something is wrong, raise a dispute with a small USDC stake and screenshots. The escrow freezes until it's decided.",
       "Whoever was right gets their stake back; the other side loses theirs and the account is banned.",
@@ -283,7 +295,7 @@ function HowItWorks() {
                     <ul className="space-y-2 px-5 pb-6 md:pl-[100px] md:pr-16">
                       {h.detail.map((d) => (
                         <li key={d} className="flex gap-3 text-[15px] leading-relaxed text-fg/80">
-                          <span className="mt-[9px] size-1.5 shrink-0 rounded-[2px] bg-mint" />
+                          <span className="mt-[9px] size-1.5 shrink-0 rounded-[2px] bg-brand" />
                           {d}
                         </li>
                       ))}
@@ -347,28 +359,13 @@ function Rates() {
       <div className={wrap}>
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <SectionHead eyebrow="Live rates" title="The market, priced for your trade size" sub="Median of foreign exchanges' P2P ads and Indian order books, with outliers dropped. This is the price a voucher trade has to beat." />
-          <div className={cx("flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] ring-1", m.live ? "bg-mint-soft text-mint-ink ring-mint/30" : "bg-surface text-mute ring-line")}>
-            <span className={cx("size-1.5 rounded-full", m.live ? "animate-pulse bg-mint" : "bg-dim")} />
+          <div className={cx("flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] ring-1", m.live ? "bg-surface text-fg ring-line" : "bg-surface text-mute ring-line")}>
+            <span className={cx("size-1.5 rounded-full", m.live ? "animate-pulse bg-pos" : "bg-dim")} />
             {m.loading ? "Connecting to the feed…" : m.live ? `Live · ${new Date(d!.observedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : `Snapshot · ${SNAPSHOT.at}`}
           </div>
         </div>
 
-        {/* LED board */}
-        <div className="led-bg mt-12 overflow-hidden rounded-2xl bg-fg py-5 text-white">
-          <Marquee speed={38}>
-            {rows
-              .filter((r) => typeof r.v === "number")
-              .map((r) => (
-                <span key={r.k} className="mx-8 flex items-baseline gap-3 whitespace-nowrap">
-                  <span className="font-mono text-[12px] tracking-[0.12em] text-white/50 uppercase">{r.k}</span>
-                  <LedNumber value={r.v as number} />
-                  {typeof r.prem === "number" && r.prem !== 0 && <span className={cx("font-mono text-[12px]", r.prem > 0 ? "text-amber" : "text-mint")}>{bps(r.prem)}</span>}
-                </span>
-              ))}
-          </Marquee>
-        </div>
-
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
+        <div className="mt-12 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
           <div className="self-start overflow-hidden rounded-2xl border border-line bg-surface">
             <div className="grid grid-cols-[1.6fr_1fr_0.8fr] gap-4 border-b border-line px-5 py-3 text-[11.5px] font-medium tracking-[0.08em] text-dim uppercase md:grid-cols-[1.6fr_1fr_0.8fr_1.4fr]">
               <span>Market</span>
@@ -392,18 +389,6 @@ function Rates() {
         </p>
       </div>
     </section>
-  );
-}
-
-/** Dot-matrix price with a real decimal point (the dot face's "." reads like a plus at this size). */
-function LedNumber({ value }: { value: number }) {
-  const [whole, frac] = value.toFixed(2).split(".");
-  return (
-    <span className="flex items-baseline text-mint">
-      <DotText text={whole} scramble={false} className="text-[34px] leading-none" />
-      <span className="mx-[3px] inline-block size-[5px] rounded-[1px] bg-mint" />
-      <DotText text={frac} scramble={false} className="text-[34px] leading-none" />
-    </span>
   );
 }
 
@@ -450,7 +435,7 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
           <div className="text-[12.5px] text-mute">Spender locks</div>
           <div className="tabular mt-1 text-[22px] font-semibold tracking-[-0.02em]">{lock.toFixed(2)}</div>
           <div className="text-[12.5px] text-mute">USDC incl. 1% fee</div>
-          <div className={cx("mt-3 text-[13px] font-medium", spenderVsP2P >= 0 ? "text-mint-ink" : "text-rose-ink")}>
+          <div className={cx("mt-3 text-[13px] font-medium", spenderVsP2P >= 0 ? "text-pos-ink" : "text-rose-ink")}>
             {spenderVsP2P >= 0 ? `${spenderVsP2P.toFixed(1)}% more ₹ per USDC` : `${(-spenderVsP2P).toFixed(1)}% fewer ₹ per USDC`} than selling on P2P
           </div>
         </div>
@@ -458,7 +443,7 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
           <div className="text-[12.5px] text-mute">Card holder pays</div>
           <div className="tabular mt-1 text-[22px] font-semibold tracking-[-0.02em]">₹{buyerEffective.toFixed(2)}</div>
           <div className="text-[12.5px] text-mute">per USDC after rewards</div>
-          <div className={cx("mt-3 text-[13px] font-medium", buyerVsP2P >= 0 ? "text-mint-ink" : "text-rose-ink")}>
+          <div className={cx("mt-3 text-[13px] font-medium", buyerVsP2P >= 0 ? "text-pos-ink" : "text-rose-ink")}>
             {buyerVsP2P >= 0 ? `${buyerVsP2P.toFixed(1)}% cheaper` : `${(-buyerVsP2P).toFixed(1)}% dearer`} than buying on P2P
           </div>
         </div>
@@ -471,12 +456,12 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
 /* ------------------------------------------------------------------ trust */
 
 const TRUST: { icon: PixelName; title: string; body: string; href?: string }[] = [
-  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in an audited-pattern escrow contract, released only by the order's rules.", href: "https://github.com/Ambuj001/NetPositive/blob/main/contracts/src/VoucherEscrow.sol" },
+  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the VoucherEscrow contract and move only by the order's rules.", href: "https://github.com/Ambuj001/NetPositive/blob/main/contracts/src/VoucherEscrow.sol" },
   { icon: "human", title: "World ID humans", body: "Proof of Human once per person. Bans stick, sybil farms don't work.", href: "https://world.org/world-id" },
   { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the receiver's key. The server stores ciphertext only.", href: "https://github.com/Ambuj001/NetPositive/blob/main/docs/vault.md" },
-  { icon: "clock", title: "Safety hold", body: "Money waits until the voucher is in the spender's account and still has its balance." },
+  { icon: "clock", title: "Review window", body: "Payout waits until the spender confirms the voucher works, or raises a dispute." },
   { icon: "scale", title: "Stake-backed disputes", body: "Raising a dispute costs a small stake. Bad-faith claims lose it and get banned." },
-  { icon: "chart", title: "Live price feed", body: "P2P and order-book prices with outlier rejection, signed as EIP-712 attestations." },
+  { icon: "chart", title: "Live price feed", body: "P2P and order-book prices with outlier rejection, so both sides see the real market." },
 ];
 
 function Trust() {
@@ -529,7 +514,7 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "What if the voucher doesn't work?",
-    a: "Don't confirm it. Raise a dispute during the hold with screenshots and a small USDC stake. The escrow is frozen until it's decided, and whoever acted in bad faith loses their stake.",
+    a: "Don't confirm it. Raise a dispute with screenshots and a small USDC stake. The escrow is frozen until it's decided, and whoever acted in bad faith loses their stake.",
   },
   {
     q: "How is the rate decided?",
@@ -544,7 +529,7 @@ function Faq() {
       <div className="grid gap-10 md:grid-cols-[1fr_1.5fr]">
         <div>
           <div className="eyebrow mb-3 flex items-center gap-2">
-            <span className="size-1.5 rounded-[2px] bg-mint" /> FAQ
+            <span className="size-1.5 rounded-[2px] bg-brand" /> FAQ
           </div>
           <h2 className="text-[34px] font-semibold leading-[1.06] tracking-[-0.035em] md:text-[40px]">Questions people ask first</h2>
         </div>
@@ -570,33 +555,30 @@ function Faq() {
   );
 }
 
-/* -------------------------------------------------------------------- cta */
+/* ------------------------------------------------------------------- band */
 
-function FinalCta() {
+function Band() {
   const { address, openWallet } = useApp();
   return (
-    <section className={wrap}>
-      <div className="relative overflow-hidden rounded-[28px] bg-sunken px-6 py-16 text-center md:py-24">
-        <div aria-hidden className="dot-bg absolute inset-0 [mask-image:radial-gradient(ellipse_50%_70%_at_50%_50%,#000,transparent)] opacity-60" />
-        <div className="relative">
-          <h2 className="mx-auto max-w-[680px] text-[34px] font-semibold leading-[1.05] tracking-[-0.04em] md:text-[52px]">
-            Make every rupee <Sticker tilt={-2}>net positive</Sticker>
-          </h2>
-          <p className="mx-auto mt-5 max-w-[480px] text-[16.5px] text-mute">Connect a wallet to post your first order, or fill one with the card already in your pocket.</p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {address ? (
-              <Button size="lg" to="/trade" icon={<ArrowRight className="size-4" />}>
-                Open the app
-              </Button>
-            ) : (
-              <Button size="lg" onClick={openWallet} icon={<ArrowRight className="size-4" />}>
-                Connect wallet
-              </Button>
-            )}
-            <Button size="lg" variant="outline" href="https://github.com/Ambuj001/NetPositive" icon={<ArrowUpRight className="size-4" />}>
-              Read the code
+    <section className="relative overflow-hidden bg-brand text-white">
+      <PlusField color="#ffffff" idle="rgba(255,255,255,0.2)" fade={false} />
+      <div className={cx(wrap, "relative flex flex-col items-center py-20 text-center md:py-28")}>
+        <h2 className="sr-only">NetPositive</h2>
+        <LedBoard text={["NET POSITIVE", "SPEND USDC", "EARN USDC", "KEEP REWARDS"]} color="#ffffff" hot="#00e07f" maxCell={12} interval={3000} className="w-full max-w-[860px]" />
+        <p className="mt-9 max-w-[520px] text-[18px] leading-relaxed text-white/75">Post your first order, or fill one with the card already in your pocket.</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {address ? (
+            <Button size="lg" variant="white" to="/trade" icon={<ArrowRight className="size-4" />}>
+              Open the app
             </Button>
-          </div>
+          ) : (
+            <Button size="lg" variant="white" onClick={openWallet} icon={<ArrowRight className="size-4" />}>
+              Connect wallet
+            </Button>
+          )}
+          <Button size="lg" href="https://github.com/Ambuj001/NetPositive" className="!bg-transparent text-white ring-1 ring-white/40 hover:!bg-white/10">
+            Read the code
+          </Button>
         </div>
       </div>
     </section>

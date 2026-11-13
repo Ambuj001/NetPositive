@@ -328,7 +328,7 @@ export default function Trade() {
               onClick={() => (stage === 5 ? reset() : setAuto((a) => !a))}
               className={cx(
                 "flex h-10 items-center gap-2 rounded-full px-4 text-[13px] font-medium ring-1 transition",
-                auto ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-fg ring-fg/12 hover:bg-fg/5",
+                auto ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-fg ring-fg/12 hover:bg-fg/5",
               )}
             >
               {stage === 5 ? <RotateCcw className="size-3.5" /> : auto ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
@@ -344,7 +344,7 @@ export default function Trade() {
           {STAGES.map((_, i) => (
             <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-fg/[0.07]">
               <motion.div
-                className={cx("h-full", i === 3 ? "bg-iris" : i === 1 || i === 2 ? "bg-amber" : "bg-mint")}
+                className={cx("h-full", i === 3 ? "bg-iris" : i === 1 || i === 2 ? "bg-amber" : "bg-brand")}
                 initial={false}
                 animate={{ width: i < stage || stage === 5 ? "100%" : i === stage ? "45%" : "0%" }}
                 transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -364,11 +364,11 @@ export default function Trade() {
                 const Icon = s.icon;
                 return (
                   <li key={s.k} className="relative flex gap-3 pb-4 last:pb-0">
-                    {i < STAGES.length - 1 && <span className={cx("absolute top-8 left-[15px] h-[calc(100%-24px)] w-px", done ? "bg-mint/50" : "bg-fg/[0.08]")} />}
+                    {i < STAGES.length - 1 && <span className={cx("absolute top-8 left-[15px] h-[calc(100%-24px)] w-px", done ? "bg-brand/50" : "bg-fg/[0.08]")} />}
                     <span
                       className={cx(
                         "relative grid size-8 shrink-0 place-items-center rounded-full ring-1 transition-all duration-500",
-                        done ? "bg-mint text-ink ring-mint" : on ? "bg-fg/[0.06] text-fg ring-fg/30" : "text-dim ring-fg/10",
+                        done ? "bg-brand text-white ring-brand" : on ? "bg-fg/[0.06] text-fg ring-fg/30" : "text-dim ring-fg/10",
                       )}
                     >
                       {on && <span className="absolute inset-0 animate-pulse-ring rounded-full ring-1 ring-fg/40" />}
@@ -428,7 +428,7 @@ export default function Trade() {
                       ))}
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint-ink" : "text-mute")}>
+                      <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-brand-ink" : "text-mute")}>
                         {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
                         {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
                       </div>
@@ -465,7 +465,7 @@ export default function Trade() {
                           >
                             <motion.span
                               animate={{ scale: checks[i] ? [1, 1.25, 1] : 1 }}
-                              className={cx("grid size-6 shrink-0 place-items-center rounded-full font-mono text-[11px]", checks[i] ? "bg-mint text-ink" : "bg-fg/[0.06] text-amber-ink")}
+                              className={cx("grid size-6 shrink-0 place-items-center rounded-full font-mono text-[11px]", checks[i] ? "bg-brand text-white" : "bg-fg/[0.06] text-amber-ink")}
                             >
                               {checks[i] ? <Check className="size-3.5" /> : i + 1}
                             </motion.span>
@@ -544,14 +544,14 @@ export default function Trade() {
                     <div
                       className={cx(
                         "mt-3 flex items-center justify-between rounded-2xl px-4 py-3 text-[13px] ring-1 transition",
-                        recheck === "ok" ? "bg-mint/[0.07] ring-mint/40" : "bg-fg/[0.02] ring-fg/[0.08]",
+                        recheck === "ok" ? "bg-brand/[0.07] ring-brand/40" : "bg-fg/[0.02] ring-fg/[0.08]",
                       )}
                     >
                       <span className="flex items-center gap-2 text-mute">
-                        {recheck === "busy" ? <LoaderCircle className="size-4 animate-spin text-iris" /> : recheck === "ok" ? <ShieldCheck className="size-4 text-mint-ink" /> : <EyeOff className="size-4" />}
+                        {recheck === "busy" ? <LoaderCircle className="size-4 animate-spin text-iris" /> : recheck === "ok" ? <ShieldCheck className="size-4 text-brand-ink" /> : <EyeOff className="size-4" />}
                         {recheck === "busy" ? "Re-checking balance…" : recheck === "ok" ? "Re-checked just now" : "Reveal to run the second check"}
                       </span>
-                      {recheck === "ok" && <span className="font-semibold text-mint-ink">{inr(order.amount)} live</span>}
+                      {recheck === "ok" && <span className="font-semibold text-brand-ink">{inr(order.amount)} live</span>}
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <span className="flex items-center gap-1.5 font-mono text-[11.5px] text-dim">
@@ -605,7 +605,7 @@ export default function Trade() {
                 <AnimatePresence initial={false}>
                   {log.map((l) => (
                     <motion.li key={l.t + l.e} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="flex gap-2.5">
-                      <span className={cx("mt-1.5 size-1.5 shrink-0 rounded-full", { mint: "bg-mint", amber: "bg-amber", iris: "bg-iris", fg: "bg-fg" }[l.tone])} />
+                      <span className={cx("mt-1.5 size-1.5 shrink-0 rounded-full", { mint: "bg-brand", amber: "bg-amber", iris: "bg-iris", fg: "bg-fg" }[l.tone])} />
                       <div className="min-w-0">
                         <div className="break-words font-mono text-[11px] leading-snug text-fg/85">{l.e}</div>
                         <div className="font-mono text-[10px] text-dim">{l.t}</div>
@@ -632,8 +632,8 @@ function RoleSwitch({ role, setRole }: { role: Role; setRole: (r: Role) => void 
   return (
     <div className="flex rounded-full bg-fg/[0.03] p-1 ring-1 ring-fg/[0.08]">
       {(["seller", "buyer"] as Role[]).map((r) => (
-        <button key={r} onClick={() => setRole(r)} className={cx("relative h-8 rounded-full px-4 text-[12.5px] font-medium transition", role === r ? "text-ink" : "text-mute hover:text-fg")}>
-          {role === r && <motion.span layoutId="role" className={cx("absolute inset-0 rounded-full", r === "seller" ? "bg-mint" : "bg-amber")} transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+        <button key={r} onClick={() => setRole(r)} className={cx("relative h-8 rounded-full px-4 text-[12.5px] font-medium transition", role === r ? "text-white" : "text-mute hover:text-fg")}>
+          {role === r && <motion.span layoutId="role" className={cx("absolute inset-0 rounded-full", "bg-fg")} transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
           <span className="relative">View as {r === "seller" ? "Spender" : "Buyer"}</span>
         </button>
       ))}
@@ -642,7 +642,7 @@ function RoleSwitch({ role, setRole }: { role: Role; setRole: (r: Role) => void 
 }
 
 function Panel({ title, sub, children, tone, right }: { title: string; sub?: string; children: ReactNode; tone: "mint" | "amber" | "iris"; right?: ReactNode }) {
-  const g = { mint: "rgba(61,220,151,0.10)", amber: "rgba(245,181,68,0.10)", iris: "rgba(139,123,255,0.12)" }[tone];
+  const g = { mint: "rgba(0,0,255,0.10)", amber: "rgba(245,181,68,0.10)", iris: "rgba(139,123,255,0.12)" }[tone];
   return (
     <Card glow={g} className="p-6 md:p-7">
       <div className="flex items-start justify-between gap-4">
@@ -670,9 +670,9 @@ function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number
     <Card className="p-8 text-center md:p-12">
       <div className="relative mx-auto grid size-28 place-items-center">
         {[0, 1, 2].map((i) => (
-          <span key={i} className={cx("absolute inset-0 animate-pulse-ring rounded-full ring-1", tone === "amber" ? "ring-amber/50" : "ring-mint/50")} style={{ animationDelay: `${i * 0.8}s` }} />
+          <span key={i} className={cx("absolute inset-0 animate-pulse-ring rounded-full ring-1", tone === "amber" ? "ring-amber/50" : "ring-brand/50")} style={{ animationDelay: `${i * 0.8}s` }} />
         ))}
-        <span className={cx("grid size-14 place-items-center rounded-full", tone === "amber" ? "bg-amber/15 text-amber-ink" : "bg-mint/15 text-mint-ink")}>
+        <span className={cx("grid size-14 place-items-center rounded-full", tone === "amber" ? "bg-amber/15 text-amber-ink" : "bg-brand/15 text-brand-ink")}>
           {stage === 0 ? <Radar className="size-6" /> : <ShoppingBag className="size-6" />}
         </span>
       </div>
@@ -713,9 +713,9 @@ function VerifierPanel({ n, nCodes, denom, brandName, merchantPortal, orderId, a
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
-            className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition-all duration-300", i < n ? "ring-mint/20 bg-mint/[0.04]" : i === n ? "ring-iris/40 bg-iris/[0.05]" : "ring-fg/[0.05]")}
+            className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition-all duration-300", i < n ? "ring-brand/20 bg-brand/[0.04]" : i === n ? "ring-iris/40 bg-iris/[0.05]" : "ring-fg/[0.05]")}
           >
-            <span className={cx("grid size-5 place-items-center rounded-full", i < n ? "bg-mint text-ink" : "text-iris")}>
+            <span className={cx("grid size-5 place-items-center rounded-full", i < n ? "bg-brand text-white" : "text-iris")}>
               {i < n ? <Check className="size-3" /> : i === n ? <LoaderCircle className="size-4 animate-spin" /> : <span className="size-1.5 rounded-full bg-fg/20" />}
             </span>
             <span className={i <= n ? "text-fg/90" : "text-dim"}>{c}</span>
@@ -739,14 +739,14 @@ function VerifierPanel({ n, nCodes, denom, brandName, merchantPortal, orderId, a
 
 function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<typeof quote>; role: Role; onDispute: () => void; onReplay: () => void; brandName: string }) {
   const bars = [
-    { k: "Buyer", v: q.buyerReceives, c: "bg-mint" },
+    { k: "Buyer", v: q.buyerReceives, c: "bg-brand" },
     { k: "Dispute reserve", v: q.reserveShare, c: "bg-iris" },
     { k: "Platform", v: q.platformShare, c: "bg-fg" },
   ];
   return (
-    <Card glow="rgba(61,220,151,0.14)" className="overflow-hidden p-6 text-center md:p-10">
+    <Card glow="rgba(0,0,255,0.14)" className="overflow-hidden p-6 text-center md:p-10">
       <Burst />
-      <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 14 }} className="relative mx-auto grid size-20 place-items-center rounded-full bg-mint text-ink shadow-[0_0_60px_-5px_rgba(61,220,151,0.8)]">
+      <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 220, damping: 14 }} className="relative mx-auto grid size-20 place-items-center rounded-full bg-brand text-white shadow-[0_0_60px_-5px_rgba(0,0,255,0.8)]">
         <Check className="size-9" strokeWidth={2.5} />
       </motion.div>
       <h2 className="relative mt-6 font-display text-3xl font-semibold tracking-tight">{role === "buyer" ? `${usdt(q.buyerReceives)} USDC is yours` : `Enjoy ${brandName} on Saturday`}</h2>
@@ -790,7 +790,7 @@ function Burst() {
       Array.from({ length: 28 }, (_, i) => ({
         a: (i / 28) * Math.PI * 2,
         d: 90 + Math.random() * 120,
-        c: ["#3ddc97", "#f5b544", "#8b7bff", "#ffffff"][i % 4],
+        c: ["#0000ff", "#f5b544", "#8b7bff", "#ffffff"][i % 4],
         s: 3 + Math.random() * 4,
       })),
     [],
@@ -856,8 +856,8 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
             <h3 className="mt-4 font-display text-2xl font-semibold tracking-tight">{brandName} voucher didn't work?</h3>
             <div className="mt-5 space-y-2">
               {steps.map((s, i) => (
-                <div key={s} className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition", i < n ? "ring-mint/20" : i === n ? "ring-iris/40" : "ring-fg/[0.06]")}>
-                  <span className={cx("grid size-5 place-items-center rounded-full font-mono text-[10px]", i < n ? "bg-mint text-ink" : "text-iris")}>
+                <div key={s} className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition", i < n ? "ring-brand/20" : i === n ? "ring-iris/40" : "ring-fg/[0.06]")}>
+                  <span className={cx("grid size-5 place-items-center rounded-full font-mono text-[10px]", i < n ? "bg-brand text-white" : "text-iris")}>
                     {i < n ? <Check className="size-3" /> : i === n ? <LoaderCircle className="size-4 animate-spin" /> : i + 1}
                   </span>
                   <span className={n >= 0 && i <= n ? "text-fg" : "text-mute"}>{s}</span>
@@ -865,8 +865,8 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
               ))}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-[12px]">
-              <div className="rounded-xl bg-mint/[0.05] p-3 ring-1 ring-mint/20">
-                <div className="font-medium text-mint-ink">Spent before your first use</div>
+              <div className="rounded-xl bg-brand/[0.05] p-3 ring-1 ring-brand/20">
+                <div className="font-medium text-brand-ink">Spent before your first use</div>
                 <div className="mt-1 text-mute">Refunded from the reserve</div>
               </div>
               <div className="rounded-xl bg-fg/[0.02] p-3 ring-1 ring-fg/[0.07]">
@@ -876,7 +876,7 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
             </div>
             <AnimatePresence>
               {n >= 3 && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-mint/[0.07] p-4 ring-1 ring-mint/30">
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-brand/[0.07] p-4 ring-1 ring-brand/30">
                   <div className="text-[14px] font-medium">Code 2 was redeemed 3 min before your first use</div>
                   <div className="mt-1 text-[12.5px] text-mute">
                     {usdt(q.sellerLocks / 2)} USDC refunded to you from the dispute reserve. The buyer's account is flagged; World ID stops a fresh sign-up.

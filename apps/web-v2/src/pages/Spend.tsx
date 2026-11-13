@@ -173,11 +173,11 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
   return (
     <>
       <div className="hairline relative flex h-[min(760px,calc(100dvh_-_230px))] min-h-[520px] flex-col overflow-hidden rounded-[28px] bg-surface/85 backdrop-blur-xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(61,220,151,0.14), transparent)" }} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(0,0,255,0.14), transparent)" }} />
         <div className="relative flex items-center gap-3 border-b border-fg/[0.06] px-5 py-4">
-          <span className="relative grid size-10 place-items-center rounded-2xl bg-mint/10 text-mint-ink ring-1 ring-fg/10">
+          <span className="relative grid size-10 place-items-center rounded-2xl bg-brand/10 text-brand-ink ring-1 ring-fg/10">
             <Bot className="size-5" />
-            <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-mint ring-2 ring-surface" />
+            <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-brand ring-2 ring-surface" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold">NetPositive AI</div>
@@ -195,7 +195,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           {msgs.map((m) => (
             <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={cx("flex gap-2.5", m.from === "user" && "justify-end")}>
               {m.from === "bot" && (
-                <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-mint/10 text-mint-ink">
+                <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-brand-ink">
                   <Sparkles className="size-3.5" />
                 </span>
               )}
@@ -206,7 +206,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
                       key={i}
                       className={cx(
                         "w-fit max-w-full rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap",
-                        m.from === "user" ? "ml-auto rounded-br-md bg-mint text-ink" : "rounded-tl-md bg-fg/[0.045] text-fg/90 ring-1 ring-fg/[0.06]",
+                        m.from === "user" ? "ml-auto rounded-br-md bg-brand text-white" : "rounded-tl-md bg-fg/[0.045] text-fg/90 ring-1 ring-fg/[0.06]",
                       )}
                     >
                       {b.text}
@@ -233,7 +233,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           <AnimatePresence>
             {busy && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2.5">
-                <span className="grid size-7 place-items-center rounded-full bg-mint/10 text-mint-ink">
+                <span className="grid size-7 place-items-center rounded-full bg-brand/10 text-brand-ink">
                   <Sparkles className="size-3.5" />
                 </span>
                 <span className="flex gap-1 rounded-2xl bg-fg/[0.04] px-4 py-3 ring-1 ring-fg/[0.06]">
@@ -261,7 +261,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
               e.preventDefault();
               submit();
             }}
-            className="flex items-center gap-2 rounded-2xl bg-fg/[0.04] p-1.5 pl-4 ring-1 ring-fg/10 transition focus-within:ring-mint/45"
+            className="flex items-center gap-2 rounded-2xl bg-fg/[0.04] p-1.5 pl-4 ring-1 ring-fg/10 transition focus-within:ring-brand/45"
           >
             <input
               ref={inputRef}
@@ -273,7 +273,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
               className="h-10 flex-1 bg-transparent text-[14.5px] outline-none placeholder:text-dim disabled:cursor-not-allowed"
               aria-label="Message the assistant"
             />
-            <button type="submit" disabled={!input.trim() || busy || step === "matched" || step === "posted"} className="grid size-10 place-items-center rounded-xl bg-mint text-ink transition disabled:opacity-30" aria-label="Send">
+            <button type="submit" disabled={!input.trim() || busy || step === "matched" || step === "posted"} className="grid size-10 place-items-center rounded-xl bg-brand text-white transition disabled:opacity-30" aria-label="Send">
               {busy ? <LoaderCircle className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
             </button>
           </form>
@@ -339,8 +339,8 @@ function CreateOrderPrompt({ amount, place, disabled, onCreate }: { amount: numb
 
 function Posted({ orderId }: { orderId: string }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-mint/[0.06] p-4 ring-1 ring-mint/30 sm:flex-row sm:items-center">
-      <span className="grid size-10 place-items-center rounded-full bg-mint text-ink">
+    <div className="flex flex-col gap-3 rounded-2xl bg-brand/[0.06] p-4 ring-1 ring-brand/30 sm:flex-row sm:items-center">
+      <span className="grid size-10 place-items-center rounded-full bg-brand text-white">
         <Check className="size-5" />
       </span>
       <div className="flex-1">
@@ -362,7 +362,7 @@ function OrdersInChat({ orders, selectedId, place }: { orders: Order[]; selected
         const on = o.id === selectedId;
         const b = brand(o.brandId);
         return (
-          <div key={o.id} className={cx("flex items-center gap-3 rounded-2xl p-3 ring-1", on ? "bg-mint/[0.07] ring-mint/50" : "bg-fg/[0.03] ring-fg/[0.07]")}>
+          <div key={o.id} className={cx("flex items-center gap-3 rounded-2xl p-3 ring-1", on ? "bg-brand/[0.07] ring-brand/50" : "bg-fg/[0.03] ring-fg/[0.07]")}>
             <BrandMark id={o.brandId} size={38} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13.5px] font-medium">
@@ -461,8 +461,8 @@ export function ReviewModal({
                   const done = i < rank;
                   const on = i === rank;
                   return (
-                    <div key={s.key} className={cx("flex items-center gap-3 rounded-xl p-3 ring-1", on ? "bg-mint/[0.05] ring-mint/40" : "ring-fg/[0.06]")}>
-                      <span className={cx("grid size-6 place-items-center rounded-full", done ? "bg-mint text-ink" : on ? "text-mint-ink" : "text-dim")}>
+                    <div key={s.key} className={cx("flex items-center gap-3 rounded-xl p-3 ring-1", on ? "bg-brand/[0.05] ring-brand/40" : "ring-fg/[0.06]")}>
+                      <span className={cx("grid size-6 place-items-center rounded-full", done ? "bg-brand text-white" : on ? "text-brand-ink" : "text-dim")}>
                         {done ? <Check className="size-3.5" /> : on ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-3.5" />}
                       </span>
                       <span className={cx("text-[13.5px]", on || done ? "text-fg" : "text-dim")}>{s.label}</span>
@@ -489,7 +489,7 @@ function Line({ k, v, mint }: { k: string; v: string; mint?: boolean }) {
   return (
     <div className="flex justify-between gap-3">
       <span className="text-mute">{k}</span>
-      <span className={cx("tabular", mint && "font-semibold text-mint-ink")}>{v}</span>
+      <span className={cx("tabular", mint && "font-semibold text-brand-ink")}>{v}</span>
     </div>
   );
 }

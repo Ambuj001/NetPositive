@@ -79,7 +79,7 @@ export function BuyView() {
                 <span className="rounded-md bg-fg/[0.06] px-1.5 py-0.5 font-mono text-[11px] text-mute">{open.length}</span>
                 <SourceTag source={source} onRetry={reload} />
               </div>
-              <label className="flex h-9 items-center gap-2 rounded-full bg-fg/[0.03] px-3.5 text-[13px] ring-1 ring-fg/[0.07] focus-within:ring-mint/40">
+              <label className="flex h-9 items-center gap-2 rounded-full bg-fg/[0.03] px-3.5 text-[13px] ring-1 ring-fg/[0.07] focus-within:ring-brand/40">
                 <Search className="size-3.5 text-dim" />
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search store or wallet" className="w-40 bg-transparent outline-none placeholder:text-dim" aria-label="Search orders by store or wallet" />
               </label>
@@ -127,7 +127,7 @@ export function BuyView() {
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           onClick={() => go(o)}
-                          className={cx("group cursor-pointer border-b border-fg/[0.05] transition last:border-0 hover:bg-fg/[0.03]", isMatch && "bg-mint/[0.035]")}
+                          className={cx("group cursor-pointer border-b border-fg/[0.05] transition last:border-0 hover:bg-fg/[0.03]", isMatch && "bg-brand/[0.035]")}
                         >
                           <td className="py-3.5">
                             <span className="flex items-center gap-3">
@@ -138,7 +138,7 @@ export function BuyView() {
                                   {isMine(o) ? (
                                     <span className="rounded-full bg-fg/[0.07] px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mute uppercase">yours</span>
                                   ) : (
-                                    isMatch && <span className="rounded-full bg-mint/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mint-ink uppercase">match</span>
+                                    isMatch && <span className="rounded-full bg-brand/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-brand-ink uppercase">match</span>
                                   )}
                                 </span>
                                 <span className="block font-mono text-[11px] text-dim" title={o.spender}>
@@ -153,7 +153,7 @@ export function BuyView() {
                           </td>
                           <td className="py-3.5 text-right text-mute tabular">₹{o.rate.toFixed(2)}</td>
                           <td className="py-3.5 text-right">
-                            <ArrowUpRight className="ml-auto size-3.5 text-dim transition group-hover:text-mint-ink" />
+                            <ArrowUpRight className="ml-auto size-3.5 text-dim transition group-hover:text-brand-ink" />
                           </td>
                         </motion.tr>
                       );
@@ -205,7 +205,7 @@ export function BuyView() {
               {(["market", "limit"] as const).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={cx("relative pb-3 capitalize transition", tab === t ? "text-fg" : "text-mute hover:text-fg")}>
                   {t}
-                  {tab === t && <motion.span layoutId="buytab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-mint" />}
+                  {tab === t && <motion.span layoutId="buytab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />}
                 </button>
               ))}
             </div>
@@ -226,7 +226,7 @@ export function BuyView() {
                   role="radio"
                   aria-checked={spend === p}
                   onClick={() => setSpend(p)}
-                  className={cx("h-10 rounded-xl text-[13px] ring-1 transition tabular", spend === p ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
+                  className={cx("h-10 rounded-xl text-[13px] ring-1 transition tabular", spend === p ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
                 >
                   {inr(p)}
                 </button>
@@ -248,7 +248,7 @@ export function BuyView() {
                       title={id !== "none" && n === 0 ? "No open orders for this voucher right now" : undefined}
                       className={cx(
                         "flex h-9 items-center gap-2 rounded-xl px-3 text-[12.5px] ring-1 transition",
-                        on ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20",
+                        on ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20",
                         !on && id !== "none" && n === 0 && "opacity-50",
                       )}
                     >
@@ -300,8 +300,8 @@ export function BuyView() {
 function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void }) {
   if (source === "live")
     return (
-      <span className="flex items-center gap-1.5 rounded-full bg-mint/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">
-        <span className="size-1.5 animate-pulse rounded-full bg-mint" /> live
+      <span className="flex items-center gap-1.5 rounded-full bg-brand/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">
+        <span className="size-1.5 animate-pulse rounded-full bg-brand" /> live
       </span>
     );
   if (source === "demo")

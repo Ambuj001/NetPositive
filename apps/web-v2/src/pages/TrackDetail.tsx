@@ -20,14 +20,14 @@ import { SubmitCode, VaultSetup } from "./VoucherTransfer";
  */
 
 const TONE: Record<Tone, string> = {
-  mint: "text-mint-ink bg-mint/10 ring-mint/25",
+  mint: "text-brand-ink bg-brand/10 ring-brand/25",
   amber: "text-amber-ink bg-amber/10 ring-amber/25",
   iris: "text-iris bg-iris/10 ring-iris/25",
   rose: "text-rose-ink bg-rose/10 ring-rose/25",
   mute: "text-mute bg-fg/[0.04] ring-fg/10",
 };
-const TONE_TEXT: Record<Tone, string> = { mint: "text-mint-ink", amber: "text-amber-ink", iris: "text-iris", rose: "text-rose-ink", mute: "text-mute" };
-const TONE_DOT: Record<Tone, string> = { mint: "bg-mint", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose", mute: "bg-fg/30" };
+const TONE_TEXT: Record<Tone, string> = { mint: "text-brand-ink", amber: "text-amber-ink", iris: "text-iris", rose: "text-rose-ink", mute: "text-mute" };
+const TONE_DOT: Record<Tone, string> = { mint: "bg-brand", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose", mute: "bg-fg/30" };
 
 const POLL_MS = 8000;
 const EXPLORER = "https://testnet.arcscan.app";
@@ -160,7 +160,7 @@ function Lookup({ initial = "" }: { initial?: string }) {
       }}
       className="flex w-full max-w-md items-center gap-2"
     >
-      <label className="flex h-10 flex-1 items-center gap-2 rounded-full bg-fg/[0.04] px-4 ring-1 ring-fg/10 focus-within:ring-mint/50">
+      <label className="flex h-10 flex-1 items-center gap-2 rounded-full bg-fg/[0.04] px-4 ring-1 ring-fg/10 focus-within:ring-brand/50">
         <Search className="size-3.5 text-dim" />
         <input value={v} onChange={(e) => setV(e.target.value)} placeholder="Order ID" aria-label="Order ID" className="w-full bg-transparent font-mono text-[12.5px] outline-none placeholder:text-dim" />
       </label>
@@ -397,11 +397,11 @@ function StageRow({ st, viewer, last, action }: { st: Stage; viewer: string; las
 
   return (
     <li className="relative flex gap-4 pb-6 last:pb-0">
-      {!last && <span className={cx("absolute top-7 bottom-0 left-[13px] w-px", done ? "bg-mint/40" : "bg-fg/[0.09]")} aria-hidden />}
+      {!last && <span className={cx("absolute top-7 bottom-0 left-[13px] w-px", done ? "bg-brand/40" : "bg-fg/[0.09]")} aria-hidden />}
       <span
         className={cx(
           "relative mt-0.5 grid size-[27px] shrink-0 place-items-center rounded-full ring-1",
-          done && "bg-mint/15 text-mint-ink ring-mint/40",
+          done && "bg-brand/15 text-brand-ink ring-brand/40",
           done && st.tone !== "mint" && TONE[st.tone],
           cur && cx(TONE[settledTone], "shadow-[0_0_0_4px_rgba(12,13,15,0.03)]"),
           st.state === "upcoming" && "bg-transparent text-dim ring-fg/12",
@@ -437,7 +437,7 @@ function StageRow({ st, viewer, last, action }: { st: Stage; viewer: string; las
             {st.actor && (
               <span className="inline-flex items-center gap-1.5">
                 <span className="font-mono">{short(st.actor)}</span>
-                {mine && <span className="rounded-full bg-mint/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">you</span>}
+                {mine && <span className="rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">you</span>}
               </span>
             )}
             {st.tx && !st.tx.startsWith("reconciled") && (
@@ -531,8 +531,8 @@ function Parties({ req, viewer }: { req: ApiRequest; viewer: string }) {
             <span className="text-mute">{r.label}</span>
             {r.addr ? (
               <span className="flex items-center gap-2">
-                {sameAddr(r.addr, viewer) && <span className="rounded-full bg-mint/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">you</span>}
-                <a href={`${EXPLORER}/address/${r.addr}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-mono text-[12px] hover:text-mint-ink">
+                {sameAddr(r.addr, viewer) && <span className="rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">you</span>}
+                <a href={`${EXPLORER}/address/${r.addr}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-mono text-[12px] hover:text-brand-ink">
                   {short(r.addr)} <ArrowUpRight className="size-3" />
                 </a>
                 <CopyBtn text={r.addr} label={`Copy ${r.label} address`} />
@@ -565,7 +565,7 @@ function Technical({ req }: { req: ApiRequest }) {
         {txs.map(([k, h]) => (
           <div key={k} className="flex gap-3">
             <span className="w-20 shrink-0 text-dim">{k} tx</span>
-            <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-fg/85 hover:text-mint-ink">
+            <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-fg/85 hover:text-brand-ink">
               {h}
             </a>
           </div>
@@ -605,7 +605,7 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
       }}
       className="grid size-6 shrink-0 place-items-center rounded-md text-dim hover:bg-fg/5 hover:text-fg"
     >
-      {ok ? <Check className="size-3.5 text-mint-ink" /> : <Copy className="size-3.5" />}
+      {ok ? <Check className="size-3.5 text-brand-ink" /> : <Copy className="size-3.5" />}
     </button>
   );
 }

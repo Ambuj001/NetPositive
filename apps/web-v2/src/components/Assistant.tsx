@@ -339,13 +339,13 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
     <div className="hairline relative flex h-[min(760px,calc(100dvh_-_230px))] min-h-[520px] flex-col overflow-hidden rounded-[28px] bg-surface/85 backdrop-blur-xl">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-40"
-        style={{ background: `radial-gradient(60% 100% at 50% 0%, ${tone === "mint" ? "rgba(61,220,151,0.14)" : "rgba(245,181,68,0.13)"}, transparent)` }}
+        style={{ background: `radial-gradient(60% 100% at 50% 0%, ${tone === "mint" ? "rgba(0,0,255,0.14)" : "rgba(245,181,68,0.13)"}, transparent)` }}
       />
       {/* header */}
       <div className="relative flex items-center gap-3 border-b border-fg/[0.06] px-5 py-4">
-        <span className={cx("relative grid size-10 place-items-center rounded-2xl ring-1 ring-fg/10", tone === "mint" ? "bg-mint/10 text-mint-ink" : "bg-amber/10 text-amber-ink")}>
+        <span className={cx("relative grid size-10 place-items-center rounded-2xl ring-1 ring-fg/10", tone === "mint" ? "bg-brand/10 text-brand-ink" : "bg-amber/10 text-amber-ink")}>
           <Bot className="size-5" />
-          <span className={cx("absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-surface", online ? "bg-mint" : online === false ? "bg-rose" : "bg-dim")} />
+          <span className={cx("absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-surface", online ? "bg-brand" : online === false ? "bg-rose" : "bg-dim")} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[15px] font-semibold">NetPositive AI</div>
@@ -373,7 +373,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
             className={cx("flex gap-2.5", m.from === "user" && "justify-end")}
           >
             {m.from === "bot" && (
-              <span className={cx("mt-1 grid size-7 shrink-0 place-items-center rounded-full", tone === "mint" ? "bg-mint/10 text-mint-ink" : "bg-amber/10 text-amber-ink")}>
+              <span className={cx("mt-1 grid size-7 shrink-0 place-items-center rounded-full", tone === "mint" ? "bg-brand/10 text-brand-ink" : "bg-amber/10 text-amber-ink")}>
                 <Sparkles className="size-3.5" />
               </span>
             )}
@@ -401,7 +401,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
         <AnimatePresence>
           {typing && (
             <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2.5">
-              <span className={cx("grid size-7 place-items-center rounded-full", tone === "mint" ? "bg-mint/10 text-mint-ink" : "bg-amber/10 text-amber-ink")}>
+              <span className={cx("grid size-7 place-items-center rounded-full", tone === "mint" ? "bg-brand/10 text-brand-ink" : "bg-amber/10 text-amber-ink")}>
                 <Sparkles className="size-3.5" />
               </span>
               <span className="flex gap-1 rounded-2xl bg-fg/[0.04] px-4 py-3 ring-1 ring-fg/[0.06]">
@@ -426,7 +426,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
                   "shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] ring-1 transition",
                   q.label.startsWith("Continue")
                     ? tone === "mint"
-                      ? "bg-mint text-ink ring-mint"
+                      ? "bg-brand text-white ring-brand"
                       : "bg-amber text-ink ring-amber"
                     : "text-fg/85 ring-fg/12 hover:bg-fg/[0.06] hover:ring-fg/25",
                 )}
@@ -441,7 +441,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
             e.preventDefault();
             submit();
           }}
-          className={cx("flex items-center gap-2 rounded-2xl bg-fg/[0.04] p-1.5 pl-4 ring-1 transition", tone === "mint" ? "ring-fg/10 focus-within:ring-mint/45" : "ring-fg/10 focus-within:ring-amber/45")}
+          className={cx("flex items-center gap-2 rounded-2xl bg-fg/[0.04] p-1.5 pl-4 ring-1 transition", tone === "mint" ? "ring-fg/10 focus-within:ring-brand/45" : "ring-fg/10 focus-within:ring-amber/45")}
         >
           <input
             ref={inputRef}
@@ -456,7 +456,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
           <button
             type="submit"
             disabled={!input.trim() || typing || online === false}
-            className={cx("grid size-10 place-items-center rounded-xl text-ink transition disabled:opacity-30", tone === "mint" ? "bg-mint" : "bg-amber")}
+            className={cx("grid size-10 place-items-center rounded-xl text-white transition disabled:opacity-30", tone === "mint" ? "bg-brand" : "bg-fg")}
             aria-label="Send"
           >
             <SendHorizontal className="size-4" />
@@ -496,14 +496,14 @@ function BlockView({
   onOpenTrade: (id: string) => void;
   onRetry: () => void;
 }) {
-  const accent = tone === "mint" ? "text-mint-ink" : "text-amber-ink";
+  const accent = tone === "mint" ? "text-brand-ink" : "text-amber-ink";
 
   if (b.kind === "text")
     return (
       <div
         className={cx(
           "w-fit max-w-full rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap",
-          from === "user" ? cx("ml-auto rounded-br-md text-ink", tone === "mint" ? "bg-mint" : "bg-amber") : "rounded-tl-md bg-fg/[0.045] text-fg/90 ring-1 ring-fg/[0.06]",
+          from === "user" ? cx("ml-auto rounded-br-md text-white", tone === "mint" ? "bg-brand" : "bg-fg") : "rounded-tl-md bg-fg/[0.045] text-fg/90 ring-1 ring-fg/[0.06]",
         )}
       >
         <RichText text={b.text} />
@@ -541,7 +541,7 @@ function BlockView({
               onClick={() => onPickStore(t)}
               className={cx(
                 "group flex items-center gap-3 rounded-2xl p-3 text-left ring-1 transition disabled:cursor-default disabled:opacity-60",
-                locked ? "bg-mint/[0.07] ring-mint/45" : "bg-fg/[0.03] ring-fg/[0.07] enabled:hover:bg-fg/[0.07] enabled:hover:ring-fg/20",
+                locked ? "bg-brand/[0.07] ring-brand/45" : "bg-fg/[0.03] ring-fg/[0.07] enabled:hover:bg-fg/[0.07] enabled:hover:ring-fg/20",
               )}
             >
               <BrandMark id={t.merchant_id} name={t.name} size={36} />
@@ -585,7 +585,7 @@ function BlockView({
         <div className="flex items-center justify-between gap-3 border-t border-dashed border-fg/10 p-4">
           <div>
             <div className="text-[12px] text-mute">You lock</div>
-            <div className="font-display text-xl font-semibold text-mint-ink tabular">{usdt(q.sellerLocks)} USDC</div>
+            <div className="font-display text-xl font-semibold text-brand-ink tabular">{usdt(q.sellerLocks)} USDC</div>
           </div>
           <Button onClick={onLock} disabled={!latest} icon={<Lock className="size-4" />}>
             Lock & post
@@ -598,8 +598,8 @@ function BlockView({
 
   if (b.kind === "posted")
     return (
-      <div className="flex flex-col gap-3 rounded-2xl bg-mint/[0.06] p-4 ring-1 ring-mint/30 sm:flex-row sm:items-center">
-        <span className="grid size-10 place-items-center rounded-full bg-mint text-ink">
+      <div className="flex flex-col gap-3 rounded-2xl bg-brand/[0.06] p-4 ring-1 ring-brand/30 sm:flex-row sm:items-center">
+        <span className="grid size-10 place-items-center rounded-full bg-brand text-white">
           <Check className="size-5" />
         </span>
         <div className="flex-1">
@@ -675,7 +675,7 @@ function BlockView({
                   <span className="text-[14px] font-medium">{op.card}</span>
                   {op.best && <span className="rounded-full bg-amber/15 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber-ink uppercase">best</span>}
                   <span
-                    className={cx("flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider uppercase ring-1", op.verified ? "text-mint-ink ring-mint/30" : "text-amber-ink ring-amber/30")}
+                    className={cx("flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider uppercase ring-1", op.verified ? "text-brand-ink ring-brand/30" : "text-amber-ink ring-amber/30")}
                     title={`${op.source} · checked ${op.checked_on}`}
                   >
                     {op.verified ? <BadgeCheck className="size-3" /> : <TriangleAlert className="size-3" />} {op.verified ? op.grade.toLowerCase() : "confirm"}

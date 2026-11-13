@@ -75,8 +75,8 @@ export function VaultSetup() {
   }
 
   return (
-    <div className="rounded-[22px] bg-mint/[0.05] p-4 ring-1 ring-mint/25">
-      <div className="text-[14px] font-medium text-mint-ink">Unlock your voucher vault</div>
+    <div className="rounded-[22px] bg-brand/[0.05] p-4 ring-1 ring-brand/25">
+      <div className="text-[14px] font-medium text-brand-ink">Unlock your voucher vault</div>
       <p className="mt-1 text-[12.5px] leading-relaxed text-mute">
         The buyer seals the voucher code to your wallet before it is sent. Your wallet signs a message, and that signature becomes the key. It stays in this browser. The server only keeps the public key.
       </p>

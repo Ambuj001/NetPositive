@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-
 import { Shell } from "./components/Shell";
 import { AppProvider } from "./lib/store";
 import { WorldIdProvider } from "./lib/world";
+import Brand from "./pages/Brand";
 import Cards from "./pages/Cards";
 import DisputePage from "./pages/DisputePage";
 import TradeHub from "./pages/TradeHub";
@@ -24,6 +25,7 @@ export default function App() {
           <Routes>
             <Route element={<Shell />}>
               <Route index element={<Landing />} />
+              <Route path="brand" element={<Brand />} />
               <Route path="trade" element={<TradeHub />} />
               {/* Old addresses still work: they open the matching tab of the Trade page. */}
               <Route path="home" element={<Navigate to="/trade" replace />} />

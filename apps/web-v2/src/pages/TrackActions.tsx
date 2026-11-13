@@ -67,7 +67,7 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
   }
 
   return (
-    <div className="mt-3 rounded-2xl bg-mint/[0.05] p-3.5 ring-1 ring-mint/20">
+    <div className="mt-3 rounded-2xl bg-brand/[0.05] p-3.5 ring-1 ring-brand/20">
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" onClick={go} disabled={busy || signingIn} icon={busy || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}>
           {busy || signingIn ? "Check your wallet…" : expired ? "Ready again" : "Ready"}
@@ -155,7 +155,7 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
             <EyeOff className="size-3.5" /> Hide
           </button>
         ) : (
-          <button onClick={show} disabled={state.kind === "loading"} className="inline-flex items-center gap-1 text-mint-ink hover:brightness-110 disabled:opacity-50">
+          <button onClick={show} disabled={state.kind === "loading"} className="inline-flex items-center gap-1 text-brand-ink hover:brightness-110 disabled:opacity-50">
             {state.kind === "loading" ? <LoaderCircle className="size-3.5 animate-spin" /> : <Eye className="size-3.5" />} {state.kind === "loading" ? "Unlocking…" : "Show the code"}
           </button>
         )}
@@ -274,8 +274,8 @@ function ConfirmSettle({ req, token, open, onClose, onUpdated }: { req: ApiReque
         <div className="flex justify-between gap-4 py-2.5"><dt className="text-mute">Order</dt><dd className="font-mono text-[12px]">{req.id}</dd></div>
       </dl>
 
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-fg/[0.03] p-3 ring-1 ring-fg/[0.07] has-[:checked]:ring-mint/40">
-        <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={busy} className="mt-0.5 size-4 accent-[#3ddc97]" />
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-fg/[0.03] p-3 ring-1 ring-fg/[0.07] has-[:checked]:ring-brand/40">
+        <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={busy} className="mt-0.5 size-4 accent-[#0000ff]" />
         <span className="text-[13px] leading-relaxed">I've received the voucher and checked that it works.</span>
       </label>
       <p className="mt-2 text-[12px] text-mute">If it doesn't work, close this and raise a dispute instead.</p>

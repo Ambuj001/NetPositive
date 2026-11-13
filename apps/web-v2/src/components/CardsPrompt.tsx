@@ -66,7 +66,7 @@ export function CardsPromptDialog({ saved, onAdd, onClose }: { saved: Card[]; on
         </div>
         <p className="relative mt-3 text-[14px] leading-relaxed text-mute">Search the list and tick the cards you have. We use them to find the best way to buy each voucher and your real price per USDC.</p>
         <p className="relative mt-2 flex items-start gap-2 text-[12px] leading-relaxed text-dim">
-          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint-ink" />
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-brand-ink" />
           Only the card name and reward rates are saved, never a card number.
         </p>
 
