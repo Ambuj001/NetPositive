@@ -102,9 +102,9 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
   if (!mine && !(amount > 0)) return null;
 
   return (
-    <div className="mt-5 rounded-2xl bg-white/[0.03] p-3.5 ring-1 ring-white/[0.07]" data-testid="buy-request">
+    <div className="mt-5 rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]" data-testid="buy-request">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-mint/10 text-mint ring-1 ring-white/10">
+        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-mint/10 text-mint-ink ring-1 ring-fg/10">
           <HandCoins className="size-4" />
         </span>
         <div className="min-w-0 flex-1 text-[12.5px] leading-relaxed">
@@ -138,8 +138,8 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
           </Button>
         )}
       </div>
-      {tooBig && !mine && <p className="mt-2 text-[11.5px] text-amber">Buy requests go up to {inr(MAX_BUY_INR)}.</p>}
-      {error && <p className="mt-2 text-[12px] leading-relaxed text-rose">{error}</p>}
+      {tooBig && !mine && <p className="mt-2 text-[11.5px] text-amber-ink">Buy requests go up to {inr(MAX_BUY_INR)}.</p>}
+      {error && <p className="mt-2 text-[12px] leading-relaxed text-rose-ink">{error}</p>}
     </div>
   );
 }
@@ -172,7 +172,7 @@ export function BuyerList({
   return (
     <div className={cx("rounded-2xl bg-mint/[0.05] p-3.5 ring-1 ring-mint/25", className)} data-testid="buyer-recommendations">
       <div className="flex items-center gap-2 text-[12.5px] font-medium">
-        <HandCoins className="size-4 text-mint" />
+        <HandCoins className="size-4 text-mint-ink" />
         Recommended · {intents.length === 1 ? "a buyer wants" : `${intents.length} buyers want`} {inr(amount)}
         {place ? ` ${place}` : ""}
       </div>
@@ -181,11 +181,11 @@ export function BuyerList({
           const v = voucherOf(i);
           const row = (
             <>
-              {v ? <BrandMark id={v} size={26} /> : <span className="grid size-[26px] place-items-center rounded-full bg-white/[0.07] font-mono text-[9px] text-mute">ANY</span>}
+              {v ? <BrandMark id={v} size={26} /> : <span className="grid size-[26px] place-items-center rounded-full bg-fg/[0.07] font-mono text-[9px] text-mute">ANY</span>}
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5 truncate font-mono text-[12.5px]">
                   {shortAddr(i.crypto_buyer)}
-                  {isMe(i) && <span className="rounded-full bg-white/[0.08] px-1.5 py-0.5 font-sans text-[9px] tracking-wider text-mute uppercase">you</span>}
+                  {isMe(i) && <span className="rounded-full bg-fg/[0.08] px-1.5 py-0.5 font-sans text-[9px] tracking-wider text-mute uppercase">you</span>}
                 </span>
                 <span className="block text-[11px] text-dim">
                   {v ? `Has a ${brand(v).name} voucher` : "Any voucher"} · {ago(i.createdAt)}
@@ -193,7 +193,7 @@ export function BuyerList({
               </span>
               <span className="text-[12.5px] tabular">{inr(i.amountInr)}</span>
               {onPick && (
-                <span className="flex items-center gap-1 rounded-full bg-mint/10 px-2.5 py-1 text-[11.5px] font-medium text-mint ring-1 ring-mint/30">
+                <span className="flex items-center gap-1 rounded-full bg-mint/10 px-2.5 py-1 text-[11.5px] font-medium text-mint-ink ring-1 ring-mint/30">
                   Create order <ArrowRight className="size-3" />
                 </span>
               )}
@@ -206,12 +206,12 @@ export function BuyerList({
                   type="button"
                   disabled={pickDisabled}
                   onClick={() => onPick(i)}
-                  className="flex w-full items-center gap-3 rounded-xl bg-ink-2/70 px-3 py-2 text-left ring-1 ring-white/[0.06] transition hover:bg-ink-2 hover:ring-mint/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center gap-3 rounded-xl bg-surface/70 px-3 py-2 text-left ring-1 ring-fg/[0.06] transition hover:bg-surface hover:ring-mint/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {row}
                 </button>
               ) : (
-                <div className="flex items-center gap-3 rounded-xl bg-ink-2/70 px-3 py-2 ring-1 ring-white/[0.06]">{row}</div>
+                <div className="flex items-center gap-3 rounded-xl bg-surface/70 px-3 py-2 ring-1 ring-fg/[0.06]">{row}</div>
               )}
             </li>
           );
@@ -247,7 +247,7 @@ export function RecommendedBuyers({
   const { intents, loaded } = useMatchingBuyers(amount, brandId);
   if (loaded && !intents.length) {
     return (
-      <p className={cx("rounded-2xl bg-white/[0.03] px-3.5 py-3 text-[12px] leading-relaxed text-mute ring-1 ring-white/[0.06]", className)} data-testid="no-buyers">
+      <p className={cx("rounded-2xl bg-fg/[0.03] px-3.5 py-3 text-[12px] leading-relaxed text-mute ring-1 ring-fg/[0.06]", className)} data-testid="no-buyers">
         No buyers are waiting for {inr(amount)} {brandName} yet. Buyers who post a request at this size show up here.
       </p>
     );

@@ -54,9 +54,9 @@ export default function Market() {
   };
 
   return (
-    <div className="relative pt-32 pb-14">
+    <div className="relative pt-10 md:pt-14 pb-14">
       <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-6xl px-6">
+      <div className="relative mx-auto max-w-[1200px] px-5 md:px-8">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <div className="label">Marketplace</div>
@@ -68,15 +68,15 @@ export default function Market() {
 
         {/* search + sort */}
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-white/[0.03] px-4 ring-1 ring-white/10 transition focus-within:ring-mint/45">
+          <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-fg/[0.03] px-4 ring-1 ring-fg/10 transition focus-within:ring-mint/45">
             <Search className="size-4 text-dim" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or spenders" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or spenders" />
           </label>
-          <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-white/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-white/10 transition focus-within:ring-mint/45">
+          <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-fg/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-fg/10 transition focus-within:ring-mint/45">
             <SlidersHorizontal className="size-4 text-dim" />
             <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="appearance-none bg-transparent outline-none" aria-label="Sort orders">
               {SORTS.map((s) => (
-                <option key={s.id} value={s.id} className="bg-ink-2">
+                <option key={s.id} value={s.id} className="bg-surface">
                   {s.label}
                 </option>
               ))}
@@ -92,7 +92,7 @@ export default function Market() {
               key={c}
               onClick={() => setCat(c)}
               aria-pressed={cat === c}
-              className={cx("h-9 shrink-0 rounded-full px-4 text-[12.5px] ring-1 transition", cat === c ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
+              className={cx("h-9 shrink-0 rounded-full px-4 text-[12.5px] ring-1 transition", cat === c ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
             >
               {c}
             </button>
@@ -100,11 +100,11 @@ export default function Market() {
         </div>
 
         {/* order table */}
-        <div className="hairline mt-6 overflow-hidden rounded-[24px] bg-ink-2/70 backdrop-blur-xl">
+        <div className="hairline mt-6 overflow-hidden rounded-[24px] bg-surface/70 backdrop-blur-xl">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-[13.5px]">
               <thead>
-                <tr className="border-b border-white/[0.06] bg-white/[0.015] text-left text-[11.5px] text-dim">
+                <tr className="border-b border-fg/[0.06] bg-fg/[0.015] text-left text-[11.5px] text-dim">
                   <th className="px-6 py-4 font-normal">Voucher</th>
                   <th className="px-4 py-4 font-normal">Value</th>
                   <th className="px-4 py-4 font-normal">You receive</th>
@@ -125,7 +125,7 @@ export default function Market() {
                       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(o))}
                       tabIndex={0}
                       aria-label={`Open ${brand(o.brandId).name} ${inr(o.amount)} order`}
-                      className="group cursor-pointer border-b border-white/[0.05] transition outline-none last:border-0 hover:bg-white/[0.03] focus-visible:bg-white/[0.04]"
+                      className="group cursor-pointer border-b border-fg/[0.05] transition outline-none last:border-0 hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04]"
                     >
                       <td className="px-6 py-4">
                         <span className="flex items-center gap-3.5">
@@ -141,11 +141,11 @@ export default function Market() {
                         {usdt(receive)} <span className="text-[10px] text-dim">USDC</span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="block font-medium text-mint tabular">{net === null ? "—" : `₹${net.toFixed(2)}`}</span>
+                        <span className="block font-medium text-mint-ink tabular">{net === null ? "—" : `₹${net.toFixed(2)}`}</span>
                         <span className="block text-[11px] text-dim">{route ? `${route.cardLabel} · ${route.channel.name}` : "Add a card to rank"}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <ArrowUpRight className="ml-auto size-4 text-dim transition group-hover:text-mint" />
+                        <ArrowUpRight className="ml-auto size-4 text-dim transition group-hover:text-mint-ink" />
                       </td>
                     </motion.tr>
                   ))}
@@ -163,7 +163,7 @@ export default function Market() {
 function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void }) {
   if (source === "live")
     return (
-      <span className="flex w-fit items-center gap-1.5 rounded-full bg-mint/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-mint uppercase ring-1 ring-mint/25">
+      <span className="flex w-fit items-center gap-1.5 rounded-full bg-mint/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">
         <span className="size-1.5 animate-pulse rounded-full bg-mint" /> Live order book
       </span>
     );
@@ -172,7 +172,7 @@ function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void })
       <button
         onClick={onRetry}
         title="Backend not reachable. Showing sample orders. Click to retry."
-        className="flex w-fit items-center gap-1.5 rounded-full bg-amber/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-amber uppercase ring-1 ring-amber/25 transition hover:bg-amber/15"
+        className="flex w-fit items-center gap-1.5 rounded-full bg-amber/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25 transition hover:bg-amber/15"
       >
         Sample order book <RefreshCw className="size-3" />
       </button>

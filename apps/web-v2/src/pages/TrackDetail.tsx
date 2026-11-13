@@ -20,14 +20,14 @@ import { SubmitCode, VaultSetup } from "./VoucherTransfer";
  */
 
 const TONE: Record<Tone, string> = {
-  mint: "text-mint bg-mint/10 ring-mint/25",
-  amber: "text-amber bg-amber/10 ring-amber/25",
+  mint: "text-mint-ink bg-mint/10 ring-mint/25",
+  amber: "text-amber-ink bg-amber/10 ring-amber/25",
   iris: "text-iris bg-iris/10 ring-iris/25",
-  rose: "text-rose bg-rose/10 ring-rose/25",
-  mute: "text-mute bg-white/[0.04] ring-white/10",
+  rose: "text-rose-ink bg-rose/10 ring-rose/25",
+  mute: "text-mute bg-fg/[0.04] ring-fg/10",
 };
-const TONE_TEXT: Record<Tone, string> = { mint: "text-mint", amber: "text-amber", iris: "text-iris", rose: "text-rose", mute: "text-mute" };
-const TONE_DOT: Record<Tone, string> = { mint: "bg-mint", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose", mute: "bg-white/30" };
+const TONE_TEXT: Record<Tone, string> = { mint: "text-mint-ink", amber: "text-amber-ink", iris: "text-iris", rose: "text-rose-ink", mute: "text-mute" };
+const TONE_DOT: Record<Tone, string> = { mint: "bg-mint", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose", mute: "bg-fg/30" };
 
 const POLL_MS = 8000;
 const EXPLORER = "https://testnet.arcscan.app";
@@ -93,7 +93,7 @@ export default function TrackDetail({ id }: { id: string }) {
   }, [id, settled, fetchOrder]);
 
   return (
-    <div className="relative pt-28 pb-16">
+    <div className="relative pt-10 md:pt-14 pb-16">
       <Aurora className="h-[45vh] opacity-40" />
       <div className="relative mx-auto max-w-5xl px-6">
         <Link to="/track" className="inline-flex items-center gap-1.5 text-[12.5px] text-mute hover:text-fg">
@@ -134,7 +134,7 @@ export default function TrackDetail({ id }: { id: string }) {
 
 function Missing({ id, title, body, retry }: { id: string; title: string; body: string; retry?: () => void }) {
   return (
-    <div className="hairline mt-8 rounded-[24px] bg-ink-2/60 px-6 py-12 text-center">
+    <div className="hairline mt-8 rounded-[24px] bg-surface/60 px-6 py-12 text-center">
       <div className="text-[16px] font-medium">{title}</div>
       <p className="mx-auto mt-1.5 max-w-md text-[13px] text-mute">{body}</p>
       <div className="mt-6 flex justify-center">
@@ -160,7 +160,7 @@ function Lookup({ initial = "" }: { initial?: string }) {
       }}
       className="flex w-full max-w-md items-center gap-2"
     >
-      <label className="flex h-10 flex-1 items-center gap-2 rounded-full bg-white/[0.04] px-4 ring-1 ring-white/10 focus-within:ring-mint/50">
+      <label className="flex h-10 flex-1 items-center gap-2 rounded-full bg-fg/[0.04] px-4 ring-1 ring-fg/10 focus-within:ring-mint/50">
         <Search className="size-3.5 text-dim" />
         <input value={v} onChange={(e) => setV(e.target.value)} placeholder="Order ID" aria-label="Order ID" className="w-full bg-transparent font-mono text-[12.5px] outline-none placeholder:text-dim" />
       </label>
@@ -256,11 +256,11 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-dim">
         <span>
-          {stale ? <span className="text-amber">Couldn't refresh just now. Showing the last known state. </span> : null}
+          {stale ? <span className="text-amber-ink">Couldn't refresh just now. Showing the last known state. </span> : null}
           Updated {ago(new Date(updatedAt).toISOString())}
           {live ? ` · refreshes every ${POLL_MS / 1000}s` : " · this order is settled, so it no longer refreshes"}
         </span>
-        <button onClick={onRefresh} className="flex h-8 items-center gap-1.5 rounded-full px-3 text-mute ring-1 ring-white/10 hover:text-fg">
+        <button onClick={onRefresh} className="flex h-8 items-center gap-1.5 rounded-full px-3 text-mute ring-1 ring-fg/10 hover:text-fg">
           <RefreshCw className={cx("size-3.5", refreshing && "animate-spin")} /> Refresh
         </button>
       </div>
@@ -326,7 +326,7 @@ function NextCard({ req, next, id, role, status, token, signIn, signingIn, onCha
   }
 
   return (
-    <div className={cx("hairline rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl")}>
+    <div className={cx("hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl")}>
       <div className="label">{role === "observer" ? "Where it stands" : "What happens next for you"}</div>
       <div className={cx("mt-2 text-[17px] font-semibold tracking-tight", TONE_TEXT[next.tone])}>{next.title}</div>
       <p className="mt-1.5 text-[13.5px] leading-relaxed text-fg/80">{next.body}</p>
@@ -367,7 +367,7 @@ function NextCard({ req, next, id, role, status, token, signIn, signingIn, onCha
             ))}
         </div>
       )}
-      {err && <p className="mt-3 text-[12.5px] text-rose">{err}</p>}
+      {err && <p className="mt-3 text-[12.5px] text-rose-ink">{err}</p>}
     </div>
   );
 }
@@ -376,7 +376,7 @@ function NextCard({ req, next, id, role, status, token, signIn, signingIn, onCha
 
 function Timeline({ stages, viewer, actions }: { stages: Stage[]; viewer: string; actions: Partial<Record<StageKey, ReactNode>> }) {
   return (
-    <div className="hairline rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl">
+    <div className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <div className="label">Lifecycle</div>
       <ol className="mt-4">
         {stages.map((st, i) => (
@@ -397,15 +397,15 @@ function StageRow({ st, viewer, last, action }: { st: Stage; viewer: string; las
 
   return (
     <li className="relative flex gap-4 pb-6 last:pb-0">
-      {!last && <span className={cx("absolute top-7 bottom-0 left-[13px] w-px", done ? "bg-mint/40" : "bg-white/[0.09]")} aria-hidden />}
+      {!last && <span className={cx("absolute top-7 bottom-0 left-[13px] w-px", done ? "bg-mint/40" : "bg-fg/[0.09]")} aria-hidden />}
       <span
         className={cx(
           "relative mt-0.5 grid size-[27px] shrink-0 place-items-center rounded-full ring-1",
-          done && "bg-mint/15 text-mint ring-mint/40",
+          done && "bg-mint/15 text-mint-ink ring-mint/40",
           done && st.tone !== "mint" && TONE[st.tone],
-          cur && cx(TONE[settledTone], "shadow-[0_0_0_4px_rgba(255,255,255,0.03)]"),
-          st.state === "upcoming" && "bg-transparent text-dim ring-white/12",
-          skipped && "bg-transparent text-dim/60 ring-white/[0.07]",
+          cur && cx(TONE[settledTone], "shadow-[0_0_0_4px_rgba(12,13,15,0.03)]"),
+          st.state === "upcoming" && "bg-transparent text-dim ring-fg/12",
+          skipped && "bg-transparent text-dim/60 ring-fg/[0.07]",
         )}
       >
         {done ? <Check className="size-3.5" /> : skipped ? <Minus className="size-3.5" /> : cur ? <span className={cx("size-2 animate-pulse rounded-full", TONE_DOT[settledTone])} /> : null}
@@ -422,7 +422,7 @@ function StageRow({ st, viewer, last, action }: { st: Stage; viewer: string; las
         <p className="mt-0.5 text-[13px] leading-relaxed text-mute">{st.detail}</p>
 
         {st.facts.length > 0 && (
-          <dl className="mt-2 space-y-1 rounded-xl bg-white/[0.03] px-3 py-2 text-[12.5px] ring-1 ring-white/[0.06]">
+          <dl className="mt-2 space-y-1 rounded-xl bg-fg/[0.03] px-3 py-2 text-[12.5px] ring-1 ring-fg/[0.06]">
             {st.facts.map((f) => (
               <div key={f.label} className="flex gap-3">
                 <dt className="w-20 shrink-0 text-dim">{f.label}</dt>
@@ -437,7 +437,7 @@ function StageRow({ st, viewer, last, action }: { st: Stage; viewer: string; las
             {st.actor && (
               <span className="inline-flex items-center gap-1.5">
                 <span className="font-mono">{short(st.actor)}</span>
-                {mine && <span className="rounded-full bg-mint/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-mint uppercase ring-1 ring-mint/25">you</span>}
+                {mine && <span className="rounded-full bg-mint/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">you</span>}
               </span>
             )}
             {st.tx && !st.tx.startsWith("reconciled") && (
@@ -446,7 +446,7 @@ function StageRow({ st, viewer, last, action }: { st: Stage; viewer: string; las
               </a>
             )}
             {st.deadline && (
-              <span className="inline-flex items-center gap-1.5 text-amber">
+              <span className="inline-flex items-center gap-1.5 text-amber-ink">
                 <Clock className="size-3" /> {st.deadline.label} <Countdown to={st.deadline.at} />
               </span>
             )}
@@ -471,7 +471,7 @@ function NoticeBar({ notice, onClose }: { notice: Notice; onClose: () => void })
           </a>
         )}
       </div>
-      <button onClick={onClose} aria-label="Dismiss" className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-white/10">
+      <button onClick={onClose} aria-label="Dismiss" className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-fg/10">
         <X className="size-3.5" />
       </button>
     </div>
@@ -491,9 +491,9 @@ function Money({ req, role, brandName }: { req: ApiRequest; role: Role; brandNam
   const voucher = `${inr(req.amountInr)} ${brandName} voucher`;
   const amt = `${usdt(Number(req.amountUsdc) || 0)} USDC`;
   return (
-    <div className="hairline rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl">
+    <div className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <div className="label">{role === "observer" ? "The trade" : "Your side of the trade"}</div>
-      <div className="mt-2 divide-y divide-white/[0.06]">
+      <div className="mt-2 divide-y divide-fg/[0.06]">
         {role === "buyer" ? (
           <>
             <Row k="You pay for" v={voucher} />
@@ -523,16 +523,16 @@ function Parties({ req, viewer }: { req: ApiRequest; viewer: string }) {
     { label: "Crypto buyer", addr: req.crypto_buyer },
   ];
   return (
-    <div className="hairline rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl">
+    <div className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <div className="label">Who's involved</div>
-      <div className="mt-2 divide-y divide-white/[0.06]">
+      <div className="mt-2 divide-y divide-fg/[0.06]">
         {rows.map((r) => (
           <div key={r.label} className="flex items-center justify-between gap-3 py-2.5 text-[13.5px]">
             <span className="text-mute">{r.label}</span>
             {r.addr ? (
               <span className="flex items-center gap-2">
-                {sameAddr(r.addr, viewer) && <span className="rounded-full bg-mint/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-mint uppercase ring-1 ring-mint/25">you</span>}
-                <a href={`${EXPLORER}/address/${r.addr}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-mono text-[12px] hover:text-mint">
+                {sameAddr(r.addr, viewer) && <span className="rounded-full bg-mint/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">you</span>}
+                <a href={`${EXPLORER}/address/${r.addr}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-mono text-[12px] hover:text-mint-ink">
                   {short(r.addr)} <ArrowUpRight className="size-3" />
                 </a>
                 <CopyBtn text={r.addr} label={`Copy ${r.label} address`} />
@@ -554,7 +554,7 @@ function Technical({ req }: { req: ApiRequest }) {
     ["Refund", req.refundTxHash],
   ].filter((t): t is [string, string] => !!t[1] && !t[1].startsWith("reconciled"));
   return (
-    <details className="hairline group rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl">
+    <details className="hairline group rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <summary className="label cursor-pointer list-none select-none">Technical details</summary>
       <div className="mt-3 space-y-2 text-[12px]">
         <Kv k="Order ID" v={req.id} />
@@ -565,7 +565,7 @@ function Technical({ req }: { req: ApiRequest }) {
         {txs.map(([k, h]) => (
           <div key={k} className="flex gap-3">
             <span className="w-20 shrink-0 text-dim">{k} tx</span>
-            <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-fg/85 hover:text-mint">
+            <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-fg/85 hover:text-mint-ink">
               {h}
             </a>
           </div>
@@ -603,9 +603,9 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
           /* clipboard blocked: nothing to do */
         }
       }}
-      className="grid size-6 shrink-0 place-items-center rounded-md text-dim hover:bg-white/5 hover:text-fg"
+      className="grid size-6 shrink-0 place-items-center rounded-md text-dim hover:bg-fg/5 hover:text-fg"
     >
-      {ok ? <Check className="size-3.5 text-mint" /> : <Copy className="size-3.5" />}
+      {ok ? <Check className="size-3.5 text-mint-ink" /> : <Copy className="size-3.5" />}
     </button>
   );
 }

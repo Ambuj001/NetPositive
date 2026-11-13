@@ -64,7 +64,7 @@ export function FlowDiagram({ className }: { className?: string }) {
             const was = done.has(e.id);
             return (
               <g key={e.id}>
-                <path d={e.d} stroke="rgba(255,255,255,0.07)" strokeWidth="1.5" fill="none" />
+                <path d={e.d} stroke="rgba(12,13,15,0.07)" strokeWidth="1.5" fill="none" />
                 <path
                   d={e.d}
                   stroke={e.color}
@@ -86,7 +86,7 @@ export function FlowDiagram({ className }: { className?: string }) {
                   textAnchor="middle"
                   className="font-mono max-sm:hidden"
                   fontSize="11"
-                  fill={on ? e.color : "rgba(255,255,255,0.25)"}
+                  fill={on ? e.color : "rgba(12,13,15,0.25)"}
                   style={{ transition: "fill .4s", letterSpacing: "0.02em" }}
                 >
                   {e.label}
@@ -114,7 +114,7 @@ export function FlowDiagram({ className }: { className?: string }) {
               transition={{ duration: 0.35 }}
               className="text-[14px] text-fg/90"
             >
-              <span className="mr-2 font-mono text-[12px] text-mint">0{step + 1}</span>
+              <span className="mr-2 font-mono text-[12px] text-mint-ink">0{step + 1}</span>
               {cur.title}
             </motion.div>
           </AnimatePresence>
@@ -125,7 +125,7 @@ export function FlowDiagram({ className }: { className?: string }) {
               key={i}
               onClick={() => setStep(i)}
               aria-label={`Step ${i + 1}`}
-              className="relative h-1 w-8 overflow-hidden rounded-full bg-white/10"
+              className="relative h-1 w-8 overflow-hidden rounded-full bg-fg/10"
             >
               {i < step && <span className="absolute inset-0 bg-mint/60" />}
               {i === step && (
@@ -180,9 +180,9 @@ function Node({
           style={{
             background: on ? `radial-gradient(100% 100% at 50% 0%, ${c}33, #0b0d12)` : "#0b0d12",
             color: on ? c : "#5a6170",
-            boxShadow: on ? `0 0 40px -6px ${c}88, inset 0 1px 0 rgba(255,255,255,0.1)` : "inset 0 1px 0 rgba(255,255,255,0.06)",
+            boxShadow: on ? `0 0 40px -6px ${c}88, inset 0 1px 0 rgba(12,13,15,0.1)` : "inset 0 1px 0 rgba(12,13,15,0.06)",
             borderColor: "transparent",
-            ["--tw-ring-color" as string]: on ? `${c}66` : "rgba(255,255,255,0.08)",
+            ["--tw-ring-color" as string]: on ? `${c}66` : "rgba(12,13,15,0.08)",
           }}
         >
           {icon}

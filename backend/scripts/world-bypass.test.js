@@ -81,6 +81,14 @@ try {
   r = await call('POST', '/requests', { token: ta, body: { brand: 'amazon', amountInr: 500, amountUsdc: '5.6' } });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   console.log('  ✓ bypass: no proof needed, two wallets both register, separate fake identities, idempotent, can post, shown on /health');
+  {
+    // The app reads its World ID settings from the server, so the two .env files can't disagree.
+    const cfg = await (await fetch(`${base}/world-id/config`)).json();
+    assert.equal(cfg.bypass, true, 'config reports the bypass so the app skips the World App step');
+    assert.equal(cfg.environment, 'staging');
+    assert.equal(cfg.action, 'netpositive-account');
+    console.log('  ✓ /world-id/config tells the app the bypass is on (one source of truth for app id, action, environment)');
+  }
   console.log('\nAll bypass checks passed.');
 } catch (err) {
   console.error('\nBYPASS TEST FAILED:', err);

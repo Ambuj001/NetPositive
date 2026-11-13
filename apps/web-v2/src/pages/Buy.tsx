@@ -72,14 +72,14 @@ export function BuyView() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* ---------------------------------------------------- order book */}
         <div className="min-w-0 space-y-4">
-          <section className="hairline rounded-[24px] bg-ink-2/70 p-5 backdrop-blur-xl md:p-6">
+          <section className="hairline rounded-[24px] bg-surface/70 p-5 backdrop-blur-xl md:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-[17px] font-semibold tracking-tight">Available orders</h1>
-                <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 font-mono text-[11px] text-mute">{open.length}</span>
+                <span className="rounded-md bg-fg/[0.06] px-1.5 py-0.5 font-mono text-[11px] text-mute">{open.length}</span>
                 <SourceTag source={source} onRetry={reload} />
               </div>
-              <label className="flex h-9 items-center gap-2 rounded-full bg-white/[0.03] px-3.5 text-[13px] ring-1 ring-white/[0.07] focus-within:ring-mint/40">
+              <label className="flex h-9 items-center gap-2 rounded-full bg-fg/[0.03] px-3.5 text-[13px] ring-1 ring-fg/[0.07] focus-within:ring-mint/40">
                 <Search className="size-3.5 text-dim" />
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search store or wallet" className="w-40 bg-transparent outline-none placeholder:text-dim" aria-label="Search orders by store or wallet" />
               </label>
@@ -92,7 +92,7 @@ export function BuyView() {
                   <button
                     key={o.brandId}
                     onClick={() => setQ(b.name)}
-                    className="group relative rounded-2xl bg-white/[0.025] p-4 text-left ring-1 ring-white/[0.07] transition hover:bg-white/[0.05] hover:ring-white/15"
+                    className="group relative rounded-2xl bg-fg/[0.025] p-4 text-left ring-1 ring-fg/[0.07] transition hover:bg-fg/[0.05] hover:ring-fg/15"
                   >
                     <ArrowUpRight className="absolute top-4 right-4 size-3.5 text-dim transition group-hover:text-fg" />
                     <BrandMark id={o.brandId} size={30} />
@@ -106,7 +106,7 @@ export function BuyView() {
             <div className="mt-6 overflow-x-auto">
               <table className="w-full min-w-[520px] text-[13.5px]">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-left text-[11.5px] text-dim">
+                  <tr className="border-b border-fg/[0.06] text-left text-[11.5px] text-dim">
                     <th className="pb-3 font-normal">Store · from wallet</th>
                     <th className="pb-3 text-right font-normal">Value</th>
                     <th className="pb-3 text-right font-normal">You receive</th>
@@ -127,7 +127,7 @@ export function BuyView() {
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
                           onClick={() => go(o)}
-                          className={cx("group cursor-pointer border-b border-white/[0.05] transition last:border-0 hover:bg-white/[0.03]", isMatch && "bg-mint/[0.035]")}
+                          className={cx("group cursor-pointer border-b border-fg/[0.05] transition last:border-0 hover:bg-fg/[0.03]", isMatch && "bg-mint/[0.035]")}
                         >
                           <td className="py-3.5">
                             <span className="flex items-center gap-3">
@@ -136,9 +136,9 @@ export function BuyView() {
                                 <span className="flex items-center gap-2">
                                   <span className="font-medium">{b.name}</span>
                                   {isMine(o) ? (
-                                    <span className="rounded-full bg-white/[0.07] px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mute uppercase">yours</span>
+                                    <span className="rounded-full bg-fg/[0.07] px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mute uppercase">yours</span>
                                   ) : (
-                                    isMatch && <span className="rounded-full bg-mint/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mint uppercase">match</span>
+                                    isMatch && <span className="rounded-full bg-mint/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mint-ink uppercase">match</span>
                                   )}
                                 </span>
                                 <span className="block font-mono text-[11px] text-dim" title={o.spender}>
@@ -153,7 +153,7 @@ export function BuyView() {
                           </td>
                           <td className="py-3.5 text-right text-mute tabular">₹{o.rate.toFixed(2)}</td>
                           <td className="py-3.5 text-right">
-                            <ArrowUpRight className="ml-auto size-3.5 text-dim transition group-hover:text-mint" />
+                            <ArrowUpRight className="ml-auto size-3.5 text-dim transition group-hover:text-mint-ink" />
                           </td>
                         </motion.tr>
                       );
@@ -193,7 +193,7 @@ export function BuyView() {
 
         {/* ---------------------------------------------------- buy panel */}
         <aside className="lg:sticky lg:top-28 lg:self-start">
-          <div className="hairline rounded-[24px] bg-ink-2/80 p-6 backdrop-blur-xl">
+          <div className="hairline rounded-[24px] bg-surface/80 p-6 backdrop-blur-xl">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-[22px] font-semibold tracking-tight">Buy USDC</h2>
               <span className="grid size-8 place-items-center rounded-full bg-[#2775ca] font-display text-[13px] font-bold text-white" aria-hidden>
@@ -201,7 +201,7 @@ export function BuyView() {
               </span>
             </div>
 
-            <div className="mt-5 flex gap-6 border-b border-white/[0.07] text-[13px]">
+            <div className="mt-5 flex gap-6 border-b border-fg/[0.07] text-[13px]">
               {(["market", "limit"] as const).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={cx("relative pb-3 capitalize transition", tab === t ? "text-fg" : "text-mute hover:text-fg")}>
                   {t}
@@ -226,7 +226,7 @@ export function BuyView() {
                   role="radio"
                   aria-checked={spend === p}
                   onClick={() => setSpend(p)}
-                  className={cx("h-10 rounded-xl text-[13px] ring-1 transition tabular", spend === p ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20")}
+                  className={cx("h-10 rounded-xl text-[13px] ring-1 transition tabular", spend === p ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
                 >
                   {inr(p)}
                 </button>
@@ -248,7 +248,7 @@ export function BuyView() {
                       title={id !== "none" && n === 0 ? "No open orders for this voucher right now" : undefined}
                       className={cx(
                         "flex h-9 items-center gap-2 rounded-xl px-3 text-[12.5px] ring-1 transition",
-                        on ? "bg-mint/10 text-mint ring-mint/40" : "text-mute ring-white/[0.08] hover:text-fg hover:ring-white/20",
+                        on ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20",
                         !on && id !== "none" && n === 0 && "opacity-50",
                       )}
                     >
@@ -273,7 +273,7 @@ export function BuyView() {
             />
 
             {tab === "limit" && (
-              <div className="mt-4 flex items-center justify-between rounded-xl bg-white/[0.03] px-3.5 py-2.5 ring-1 ring-white/[0.07]">
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-fg/[0.03] px-3.5 py-2.5 ring-1 ring-fg/[0.07]">
                 <span className="text-[12.5px] text-mute">Max rate</span>
                 <span className="flex items-center gap-1 text-[14px] tabular">
                   ₹
@@ -300,7 +300,7 @@ export function BuyView() {
 function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void }) {
   if (source === "live")
     return (
-      <span className="flex items-center gap-1.5 rounded-full bg-mint/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-mint uppercase ring-1 ring-mint/25">
+      <span className="flex items-center gap-1.5 rounded-full bg-mint/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-mint-ink uppercase ring-1 ring-mint/25">
         <span className="size-1.5 animate-pulse rounded-full bg-mint" /> live
       </span>
     );
@@ -309,7 +309,7 @@ function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void })
       <button
         onClick={onRetry}
         title="Backend not reachable. Showing demo orders. Click to retry."
-        className="flex items-center gap-1.5 rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber uppercase ring-1 ring-amber/25"
+        className="flex items-center gap-1.5 rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25"
       >
         demo <RefreshCw className="size-2.5" />
       </button>

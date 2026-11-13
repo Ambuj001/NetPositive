@@ -1,6 +1,6 @@
 import { IDKitErrorCodes, IDKitRequestWidget, proofOfHuman, type IDKitResult, type RpContext } from "@worldcoin/idkit";
 import { X } from "lucide-react";
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ApiError, api, type ApiUser } from "./api";
 import { useApp } from "./store";
 import { walletMessage } from "./wallet";
@@ -12,10 +12,46 @@ import { cx } from "../components/ui";
  * stable nullifier so a banned person cannot come back on a new wallet.
  */
 
-const APP_ID = readAppId();
-const ACTION = ((import.meta.env.VITE_WORLD_ID_ACTION as string | undefined) ?? "").trim() || "netpositive-account";
-const RP_ID = ((import.meta.env.VITE_WORLD_ID_RP_ID as string | undefined) ?? "").trim();
-const ENVIRONMENT = readEnv();
+/** Values the app falls back to when the server's /world-id/config can't be read. The server is the source of truth. */
+const ENV_DEFAULTS = {
+  app_id: readAppId(),
+  action: ((import.meta.env.VITE_WORLD_ID_ACTION as string | undefined) ?? "").trim() || "netpositive-account",
+  rp_id: ((import.meta.env.VITE_WORLD_ID_RP_ID as string | undefined) ?? "").trim(),
+  environment: readEnv(),
+};
+
+export type WorldConfig = {
+  app_id: `app_${string}`;
+  action: string;
+  rp_id: string;
+  environment: "production" | "staging" | "sandbox";
+  /** Server has the RP id and signing key. */
+  ready: boolean;
+  /** Server runs WORLD_ID_DEV_BYPASS (local only): no World App step. */
+  bypass: boolean;
+  /** Loaded from the server (false = fallback values). */
+  fromServer: boolean;
+};
+
+let configPromise: Promise<WorldConfig> | null = null;
+/** One fetch per page load. Keeps the app's app_id / action / environment identical to what the server will check. */
+export function loadWorldConfig(): Promise<WorldConfig> {
+  configPromise ??= api<{ app_id?: string; rp_id?: string | null; action?: string; environment?: string; ready?: boolean; bypass?: boolean }>("/world-id/config")
+    .then((c) => ({
+      app_id: (c.app_id?.startsWith("app_") ? c.app_id : ENV_DEFAULTS.app_id) as `app_${string}`,
+      action: c.action || ENV_DEFAULTS.action,
+      rp_id: c.rp_id || ENV_DEFAULTS.rp_id,
+      environment: c.environment === "production" || c.environment === "sandbox" || c.environment === "staging" ? c.environment : ENV_DEFAULTS.environment,
+      ready: !!c.ready,
+      bypass: !!c.bypass,
+      fromServer: true,
+    }))
+    .catch(() => {
+      configPromise = null; // try again next time
+      return { ...ENV_DEFAULTS, ready: false, bypass: LOCAL_BYPASS, fromServer: false };
+    });
+  return configPromise;
+}
 
 export type WorldOutcome = "cancelled" | "rejected" | "unavailable" | "ineligible";
 export type WorldPhase = "idle" | "signing" | "world";
@@ -27,6 +63,8 @@ export type WorldNotice = {
 };
 
 type WorldCtx = {
+  /** Server-side World ID settings, once loaded. */
+  config: WorldConfig | null;
   /** Opens Proof of Human. Resolves true only after the server accepts the proof. */
   verifyHuman: () => Promise<boolean>;
   phase: WorldPhase;
@@ -72,7 +110,7 @@ function alreadyLinked(error: ApiError, connected?: string): WorldNotice {
  * wallet directly (the backend must also run WORLD_ID_DEV_BYPASS=true). `import.meta.env.DEV` is false in a production build,
  * so this can never be switched on in a deployed app.
  */
-const BYPASS = import.meta.env.DEV && (import.meta.env.VITE_WORLD_ID_BYPASS as string | undefined) === "true";
+const LOCAL_BYPASS = import.meta.env.DEV && (import.meta.env.VITE_WORLD_ID_BYPASS as string | undefined) === "true";
 
 function readAppId(): `app_${string}` {
   const id = ((import.meta.env.VITE_WORLD_ID_APP_ID as string | undefined) ?? "").trim() || "app_ee3eaaf80b272b3dff6854c30744dd65";
@@ -158,6 +196,19 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<WorldNotice | null>(null);
   const [open, setOpen] = useState(false);
   const [request, setRequest] = useState<RpContext | null>(null);
+  const [config, setConfig] = useState<WorldConfig | null>(null);
+  const configRef = useRef<WorldConfig | null>(null);
+  useEffect(() => {
+    let live = true;
+    void loadWorldConfig().then((c) => {
+      if (!live) return;
+      configRef.current = c;
+      setConfig(c);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const tokenRef = useRef<string | null>(null);
   const requestRef = useRef<RpContext | null>(null);
@@ -194,20 +245,27 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
     return { token: res.token, already: verified };
   }, []);
 
-  const fetchSignature = useCallback(async (token: string) => {
-    if (!APP_ID.startsWith("app_") || APP_ID === "app_invalid") {
-      throw new ApiError(0, "not_configured", "Set VITE_WORLD_ID_APP_ID to the app id from the Developer Portal.");
+  const fetchSignature = useCallback(async (token: string, cfg: WorldConfig) => {
+    if (!cfg.app_id.startsWith("app_") || cfg.app_id === "app_invalid") {
+      throw new ApiError(0, "not_configured", "Set WORLD_ID_APP_ID to the app id from the World Developer Portal.");
+    }
+    if (cfg.fromServer && !cfg.ready) {
+      throw new ApiError(
+        503,
+        "not_configured",
+        "The server has no World ID keys yet. Add WORLD_ID_RP_ID and WORLD_ID_SIGNING_KEY to backend/.env (World Developer Portal → your app → World ID 4.0), or for local testing set WORLD_ID_DEV_BYPASS=true and restart the backend.",
+      );
     }
     let body: RpSignatureResponse;
     try {
-      body = await api<RpSignatureResponse>("/world-id/rp-signature", { token, body: { action: ACTION } });
+      body = await api<RpSignatureResponse>("/world-id/rp-signature", { token, body: { action: cfg.action } });
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         throw new ApiError(404, "not_configured", "The server can't sign a World ID request yet. Proof of Human stays locked until that route exists. You can keep browsing.");
       }
       throw error;
     }
-    const rpId = (body.rp_id || RP_ID).trim();
+    const rpId = (body.rp_id || cfg.rp_id).trim();
     const signature = body.sig || body.signature || "";
     const createdAt = Number(body.created_at);
     const expiresAt = Number(body.expires_at);
@@ -238,13 +296,15 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
       const session = await ensureSession();
       tokenRef.current = session.token;
       if (session.already) return true;
-      if (BYPASS) {
+      const cfg = configRef.current ?? (await loadWorldConfig());
+      configRef.current = cfg;
+      if (cfg.bypass) {
         await api("/world-id/verify", { token: session.token, body: {} });
         appRef.current.applySession(appRef.current.fullAddress, session.token, true);
         appRef.current.toast({ title: "Registered (dev bypass)", body: "World ID was skipped for local testing. This wallet counts as a verified human.", tone: "amber" });
         return true;
       }
-      const rp = await fetchSignature(session.token);
+      const rp = await fetchSignature(session.token, cfg);
       requestRef.current = rp;
       setRequest(rp);
       setPhase("world");
@@ -320,7 +380,7 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
     resolve(false);
   }, []);
 
-  const value = useMemo<WorldCtx>(() => ({ verifyHuman, phase, notice, clearNotice }), [verifyHuman, phase, notice, clearNotice]);
+  const value = useMemo<WorldCtx>(() => ({ config, verifyHuman, phase, notice, clearNotice }), [config, verifyHuman, phase, notice, clearNotice]);
 
   return (
     <Ctx.Provider value={value}>
@@ -330,12 +390,12 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
           key={request.nonce}
           open={open}
           onOpenChange={onOpenChange}
-          app_id={APP_ID}
-          action={ACTION}
+          app_id={config?.app_id ?? ENV_DEFAULTS.app_id}
+          action={config?.action ?? ENV_DEFAULTS.action}
           action_description="Prove you are one unique person. NetPositive binds this proof to your wallet so a banned account cannot come back."
           rp_context={request}
           allow_legacy_proofs
-          environment={ENVIRONMENT}
+          environment={config?.environment ?? ENV_DEFAULTS.environment}
           preset={preset}
           handleVerify={handleVerify}
           onSuccess={onSuccess}
@@ -363,7 +423,7 @@ export function WorldIdNotice({ className }: { className?: string }) {
           <div className="text-[13.5px] font-medium">{notice.title}</div>
           <p className="mt-1 text-[12.5px] leading-relaxed text-mute">{notice.detail}</p>
         </div>
-        <button onClick={clearNotice} className="grid size-7 shrink-0 place-items-center rounded-full text-mute hover:bg-white/5 hover:text-fg" aria-label="Dismiss">
+        <button onClick={clearNotice} className="grid size-7 shrink-0 place-items-center rounded-full text-mute hover:bg-fg/5 hover:text-fg" aria-label="Dismiss">
           <X className="size-3.5" />
         </button>
       </div>

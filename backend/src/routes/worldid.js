@@ -38,6 +38,10 @@ router.get('/config', (_req, res) => {
     action: config.WORLD_ID_ACTION,
     environment: config.WORLD_ID_ENV,
     ready: worldIdReady(),
+    // Local development only (refused in production by config.js). The app then skips the World App step.
+    bypass: config.WORLD_ID_DEV_BYPASS,
+    // Proofs are checked for shape and wallet binding but not sent to World (tests / offline demos).
+    mock: config.WORLD_ID_MOCK,
   });
 });
 

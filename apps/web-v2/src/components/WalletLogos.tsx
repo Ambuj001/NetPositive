@@ -63,7 +63,7 @@ export function WalletLogo({ id, name, icon, className = "size-9" }: { id: strin
   const mark = MARKS[id];
   if (mark) return <span className={`${className} block shrink-0 overflow-hidden rounded-xl`}>{mark}</span>;
   return (
-    <span className={`${className} grid shrink-0 place-items-center rounded-xl bg-white/10 text-[13px] font-bold text-white`} aria-hidden>
+    <span className={`${className} grid shrink-0 place-items-center rounded-xl bg-fg/10 text-[13px] font-bold text-white`} aria-hidden>
       {name.slice(0, 1)}
     </span>
   );

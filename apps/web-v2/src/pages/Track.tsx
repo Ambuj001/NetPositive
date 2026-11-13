@@ -102,9 +102,9 @@ function TrackList() {
   const active = rows.filter((r) => !isFinal(r.status)).length;
 
   return (
-    <div className="relative pt-28 pb-10">
+    <div className="relative pt-10 md:pt-14 pb-10">
       <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-6xl px-6">
+      <div className="relative mx-auto max-w-[1200px] px-5 md:px-8">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <div className="label">Track</div>
@@ -113,7 +113,7 @@ function TrackList() {
           </div>
           <div className="flex items-center gap-2">
             {token ? (
-              <button onClick={load} className="flex h-9 items-center gap-2 rounded-full px-3.5 text-[12.5px] text-mute ring-1 ring-white/10 hover:text-fg">
+              <button onClick={load} className="flex h-9 items-center gap-2 rounded-full px-3.5 text-[12.5px] text-mute ring-1 ring-fg/10 hover:text-fg">
                 <RefreshCw className={cx("size-3.5", state === "loading" && "animate-spin")} /> Refresh
               </button>
             ) : (
@@ -125,7 +125,7 @@ function TrackList() {
         </div>
 
         {(state === "offline" || state === "error") && (
-          <div className="mt-5 rounded-2xl bg-amber/[0.06] px-4 py-3 text-[13px] text-amber ring-1 ring-amber/25">
+          <div className="mt-5 rounded-2xl bg-amber/[0.06] px-4 py-3 text-[13px] text-amber-ink ring-1 ring-amber/25">
             {state === "offline" ? "The NetPositive backend isn't reachable, so only orders from this session are shown." : err}
           </div>
         )}
@@ -133,7 +133,7 @@ function TrackList() {
           <p className="mt-4 text-[12.5px] text-dim">Showing orders from this session. Sign in with your wallet to load every order saved on NetPositive.</p>
         )}
 
-        <div className="mt-6 flex gap-6 border-b border-white/[0.07] text-[13.5px]">
+        <div className="mt-6 flex gap-6 border-b border-fg/[0.07] text-[13.5px]">
           {(
             [
               ["requester", "Created by me"],
@@ -152,7 +152,7 @@ function TrackList() {
             <OrderCard key={r.id} r={r} delay={i * 0.04} token={token} onChanged={load} />
           ))}
           {rows.length === 0 && (
-            <div className="hairline rounded-[24px] bg-ink-2/60 px-6 py-14 text-center">
+            <div className="hairline rounded-[24px] bg-surface/60 px-6 py-14 text-center">
               <div className="text-[15px] font-medium">{tab === "requester" ? "No orders yet" : "You're not filling any orders"}</div>
               <p className="mt-1 text-[13px] text-mute">{tab === "requester" ? "Create a voucher request and it will show up here." : "Accept an order on Buy and it will show up here."}</p>
               <Button className="mt-5" size="sm" to={tab === "requester" ? "/spend" : "/buy"} icon={<ArrowRight className="size-3.5" />}>
@@ -172,11 +172,11 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
   const idx = stepIndex(r.status);
   const off = r.status === "cancelled" || r.status === "refunded" || r.status === "refunding";
   const [busy, setBusy] = useState(false);
-  const tone = { mint: "text-mint bg-mint/10 ring-mint/25", amber: "text-amber bg-amber/10 ring-amber/25", iris: "text-iris bg-iris/10 ring-iris/25", rose: "text-rose bg-rose/10 ring-rose/25", mute: "text-mute bg-white/[0.04] ring-white/10" }[s.tone];
+  const tone = { mint: "text-mint-ink bg-mint/10 ring-mint/25", amber: "text-amber-ink bg-amber/10 ring-amber/25", iris: "text-iris bg-iris/10 ring-iris/25", rose: "text-rose-ink bg-rose/10 ring-rose/25", mute: "text-mute bg-fg/[0.04] ring-fg/10" }[s.tone];
   const canCancel = r.live && r.role === "requester" && (r.status === "pending_funding" || r.status === "open") && token;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="hairline rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <div className="flex flex-wrap items-center gap-4">
         <BrandMark id={r.brandId} size={42} />
         <div className="min-w-0 flex-1">
@@ -185,7 +185,7 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
               {b.name} {inr(r.amountInr)}
             </span>
             <span className={cx("rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider uppercase ring-1", tone)}>{s.label}</span>
-            {!r.live && <span className="rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-dim uppercase ring-1 ring-white/10">this session</span>}
+            {!r.live && <span className="rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-dim uppercase ring-1 ring-fg/10">this session</span>}
           </div>
           <div className="mt-0.5 truncate font-mono text-[11px] text-dim">
             {r.id}
@@ -205,11 +205,11 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
           const now = !off && !done && i <= idx + 0.5 && i >= idx;
           return (
             <div key={st.key}>
-              <div className="h-1 overflow-hidden rounded-full bg-white/[0.07]">
+              <div className="h-1 overflow-hidden rounded-full bg-fg/[0.07]">
                 <div className={cx("h-full transition-all duration-700", done ? "w-full bg-mint" : now ? "w-1/2 bg-mint/70" : "w-0", r.status === "disputed" && now && "bg-rose")} />
               </div>
               <div className={cx("mt-1.5 flex items-center gap-1 text-[11px]", done || now ? "text-fg/85" : "text-dim")}>
-                {done && <Check className="size-3 text-mint" />}
+                {done && <Check className="size-3 text-mint-ink" />}
                 {st.label}
               </div>
             </div>
@@ -217,11 +217,11 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-3.5">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-fg/[0.06] pt-3.5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-mute">
           <span>{s.note}</span>
           {r.deadline && (
-            <span className="flex items-center gap-1.5 text-amber">
+            <span className="flex items-center gap-1.5 text-amber-ink">
               <Clock className="size-3.5" /> {r.deadlineLabel} <Countdown to={r.deadline} />
             </span>
           )}
@@ -233,7 +233,7 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
             </a>
           )}
           {r.live && (
-            <Link to={`/track?id=${encodeURIComponent(r.id)}`} className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.05] px-3 text-[12px] ring-1 ring-white/10 hover:bg-white/10">
+            <Link to={`/track?id=${encodeURIComponent(r.id)}`} className="flex h-8 items-center gap-1.5 rounded-full bg-fg/[0.05] px-3 text-[12px] ring-1 ring-fg/10 hover:bg-fg/10">
               Details <ArrowRight className="size-3" />
             </Link>
           )}
@@ -249,13 +249,13 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
                   setBusy(false);
                 }
               }}
-              className="flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] text-mute ring-1 ring-white/10 hover:text-rose hover:ring-rose/30 disabled:opacity-50"
+              className="flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] text-mute ring-1 ring-fg/10 hover:text-rose-ink hover:ring-rose/30 disabled:opacity-50"
             >
               {busy ? <LoaderCircle className="size-3 animate-spin" /> : <X className="size-3" />} {r.status === "open" ? "Cancel & refund" : "Cancel"}
             </button>
           )}
           {!r.live && (
-            <Link to={`/trade/${r.id}`} className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.05] px-3 text-[12px] ring-1 ring-white/10 hover:bg-white/10">
+            <Link to={`/trade/${r.id}`} className="flex h-8 items-center gap-1.5 rounded-full bg-fg/[0.05] px-3 text-[12px] ring-1 ring-fg/10 hover:bg-fg/10">
               Open trade <ArrowRight className="size-3" />
             </Link>
           )}

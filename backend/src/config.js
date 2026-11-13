@@ -79,6 +79,20 @@ const schema = z.object({
   ESCROW_CONTRACT_ADDRESS: z.string().optional().default(''),
   ESCROW_OPERATOR_PRIVATE_KEY: hexPrivateKey('ESCROW_OPERATOR_PRIVATE_KEY must be 32 bytes of hex'),
   USDC_DECIMALS: z.coerce.number().int().default(6),
+  // Signs /rates/attestation when RATES_SIGNER_PRIVATE_KEY is empty (first key is used).
+  ATTESTOR_PRIVATE_KEYS: csv,
+  // ---------- Live rates (/rates) ----------
+  // Comma list to restrict sources (default: all): coinbase,frankfurter,erapi,pyth,wazirx,coindcx,binance,bybit,kucoin
+  RATES_SOURCES: csv,
+  RATES_REFRESH_SECONDS: z.coerce.number().int().min(0).default(60), // background snapshot for /rates/history (0 = off)
+  RATES_P2P_TTL_SECONDS: z.coerce.number().int().min(1).default(30),
+  RATES_MAX_STALE_SECONDS: z.coerce.number().int().min(0).default(900), // serve last good value this long if all sources fail
+  RATES_OUTLIER_PCT: z.coerce.number().positive().default(3), // drop a source this far from the cross-source median
+  RATES_DEFAULT_AMOUNT_INR: z.coerce.number().int().positive().default(10_000),
+  P2P_MIN_COMPLETION: z.coerce.number().min(0).max(1).default(0.9),
+  P2P_MIN_ORDERS: z.coerce.number().int().min(0).default(20),
+  RATES_SIGNER_PRIVATE_KEY: z.string().optional().default(''), // signs /rates/attestation; default: first attestor key
+  PYTH_API_KEY: z.string().optional().default(''),
 });
 
 const parsed = schema.safeParse(process.env);

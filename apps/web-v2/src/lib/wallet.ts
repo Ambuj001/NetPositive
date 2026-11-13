@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ARC, chainIdNumber, switchToArc } from "./arc";
+export { ARC, switchToArc };
 
 /** Minimal EIP-1193 provider surface. */
 export type Provider = {
@@ -67,12 +69,6 @@ const NATIVE_BY_CHAIN: Record<number, { symbol: string; decimals: number }> = {
   [ARC_CHAIN_ID]: { symbol: "USDC", decimals: 18 },
 };
 
-function chainIdNumber(id: string) {
-  if (!id) return 0;
-  const n = id.startsWith("0x") || id.startsWith("0X") ? Number.parseInt(id, 16) : Number(id);
-  return Number.isFinite(n) ? n : 0;
-}
-
 function parseHex(raw: unknown) {
   if (typeof raw !== "string" || !/^0x[0-9a-fA-F]+$/.test(raw)) return 0n;
   return BigInt(raw);
@@ -128,20 +124,24 @@ type CatalogEntry = {
   name: string;
   /** EIP-6963 rdns values that identify the installed extension. */
   rdns: string[];
+  /** Legacy window.ethereum flags that identify it when the wallet doesn't announce itself (EIP-6963). */
+  flag?: string;
   /** What to do when the extension isn't installed. */
   fallback: Fallback;
   install?: string;
 };
 
 const CATALOG: CatalogEntry[] = [
-  { id: "base", name: "Base", rdns: [], fallback: "base-sdk" },
-  { id: "metamask", name: "MetaMask", rdns: ["io.metamask", "io.metamask.flask"], fallback: "install", install: "https://metamask.io/download/" },
-  { id: "coinbase", name: "Coinbase Wallet", rdns: ["com.coinbase.wallet"], fallback: "coinbase-sdk" },
-  { id: "rainbow", name: "Rainbow", rdns: ["me.rainbow"], fallback: "walletconnect", install: "https://rainbow.me/download" },
-  { id: "rabby", name: "Rabby", rdns: ["io.rabby"], fallback: "install", install: "https://rabby.io/" },
-  { id: "trust", name: "Trust Wallet", rdns: ["com.trustwallet.app"], fallback: "walletconnect", install: "https://trustwallet.com/download" },
-  { id: "phantom", name: "Phantom", rdns: ["app.phantom"], fallback: "install", install: "https://phantom.com/download" },
-  { id: "brave", name: "Brave Wallet", rdns: ["com.brave.wallet"], fallback: "install", install: "https://brave.com/wallet/" },
+  { id: "metamask", name: "MetaMask", rdns: ["io.metamask", "io.metamask.flask", "io.metamask.mobile"], flag: "isMetaMask", fallback: "install", install: "https://metamask.io/download/" },
+  { id: "coinbase", name: "Coinbase Wallet", rdns: ["com.coinbase.wallet"], flag: "isCoinbaseWallet", fallback: "coinbase-sdk" },
+  { id: "base", name: "Base Account", rdns: [], fallback: "base-sdk" },
+  { id: "rabby", name: "Rabby", rdns: ["io.rabby"], flag: "isRabby", fallback: "install", install: "https://rabby.io/" },
+  { id: "rainbow", name: "Rainbow", rdns: ["me.rainbow"], flag: "isRainbow", fallback: "walletconnect", install: "https://rainbow.me/download" },
+  { id: "trust", name: "Trust Wallet", rdns: ["com.trustwallet.app"], flag: "isTrust", fallback: "walletconnect", install: "https://trustwallet.com/download" },
+  { id: "okx", name: "OKX Wallet", rdns: ["com.okex.wallet"], flag: "isOkxWallet", fallback: "walletconnect", install: "https://www.okx.com/web3" },
+  { id: "phantom", name: "Phantom", rdns: ["app.phantom"], flag: "isPhantom", fallback: "install", install: "https://phantom.com/download" },
+  { id: "zerion", name: "Zerion", rdns: ["io.zerion.wallet"], flag: "isZerion", fallback: "walletconnect", install: "https://zerion.io/download" },
+  { id: "brave", name: "Brave Wallet", rdns: ["com.brave.wallet"], flag: "isBraveWallet", fallback: "install", install: "https://brave.com/wallet/" },
   { id: "walletconnect", name: "WalletConnect", rdns: [], fallback: "walletconnect" },
 ];
 
@@ -175,7 +175,7 @@ async function loadSdk(kind: "base-sdk" | "coinbase-sdk"): Promise<Provider> {
     sdkCache[kind] = createBaseAccountSDK({
       appName: APP.name,
       appLogoUrl: APP.logo,
-      appChainIds: [84532, 8453],
+      appChainIds: [8453, 84532],
       preference: { telemetry: false },
     }).getProvider() as unknown as Provider;
   } else {
@@ -183,7 +183,7 @@ async function loadSdk(kind: "base-sdk" | "coinbase-sdk"): Promise<Provider> {
     sdkCache[kind] = createCoinbaseWalletSDK({
       appName: APP.name,
       appLogoUrl: APP.logo,
-      appChainIds: [84532, 8453],
+      appChainIds: [8453, 84532, 1],
       preference: { options: "all" },
     }).getProvider() as unknown as Provider;
   }
@@ -195,7 +195,9 @@ async function loadWalletConnect(): Promise<Provider> {
   const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
   wcProvider = (await EthereumProvider.init({
     projectId: WC_PROJECT_ID,
-    optionalChains: [84532, 8453, 1],
+    // Arc is where the escrow lives, so the session must allow it. Wallets that don't know Arc yet still connect on the others.
+    optionalChains: [ARC.id, 8453, 84532, 1, 10, 42161, 137],
+    rpcMap: { [ARC.id]: ARC.rpc },
     showQrModal: true,
     metadata: {
       name: APP.name,
@@ -209,85 +211,172 @@ async function loadWalletConnect(): Promise<Provider> {
 
 /** Warm SDK modules when the picker opens so popups aren't blocked. */
 export function preloadConnectors() {
-  void loadSdk("base-sdk").catch(() => {});
-  void loadSdk("coinbase-sdk").catch(() => {});
+  void import("@base-org/account").catch(() => {});
+  void import("@coinbase/wallet-sdk").catch(() => {});
 }
 
 /* ---------------------------------------------------------------- messages */
 
 export function walletMessage(error: unknown) {
-  const e = error as { code?: number; message?: string };
-  if (e?.code === 4001 || /reject|denied|closed|cancel/i.test(e?.message ?? ""))
-    return "You rejected the request in your wallet. Try again when you're ready.";
-  if (e?.code === -32002) return "A request is already open. Check your wallet.";
-  if (/popup/i.test(e?.message ?? "")) return "Your browser blocked the wallet popup. Allow popups for this site and try again.";
-  return "Couldn't connect. Open your wallet and try again.";
+  const e = error as { code?: number; message?: string; data?: { originalError?: { code?: number } } };
+  const msg = e?.message ?? "";
+  if (e?.code === 4001 || /reject|denied|closed|cancel/i.test(msg)) return "You rejected the request in your wallet. Try again when you're ready.";
+  if (e?.code === -32002 || /already pending|already processing/i.test(msg)) return "Your wallet already has a request open. Open the wallet and finish or close it.";
+  if (/popup/i.test(msg)) return "Your browser blocked the wallet popup. Allow popups for this site and try again.";
+  if (/locked|unlock/i.test(msg)) return "Your wallet is locked. Unlock it and try again.";
+  if (/project ?id/i.test(msg)) return "WalletConnect isn't set up yet (missing project ID).";
+  return msg && msg.length < 140 ? `Couldn't connect: ${msg}` : "Couldn't connect. Open your wallet and try again.";
 }
+
+/* ------------------------------------------------- remember last wallet */
+
+// Only which wallet was used (id + extension rdns). The wallet itself decides whether the site is still approved.
+const SAVED_KEY = "np.wallet.last";
+type Saved = { id: string; rdns?: string; kind: Session["kind"] };
+function readSaved(): Saved | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(SAVED_KEY) ?? "null");
+    return v && typeof v.id === "string" ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeSaved(v: Saved | null) {
+  try {
+    if (v) localStorage.setItem(SAVED_KEY, JSON.stringify(v));
+    else localStorage.removeItem(SAVED_KEY);
+  } catch {
+    /* storage blocked: reconnect just won't persist */
+  }
+}
+const toHexChain = (c: unknown) => (typeof c === "string" ? c : typeof c === "number" ? "0x" + c.toString(16) : "");
 
 /* -------------------------------------------------------------------- hook */
 
 type Session = { id: string; name: string; icon?: string; provider: Provider; kind: "injected" | Fallback };
 
+function legacyName(p: Provider & Record<string, unknown>) {
+  const hit = CATALOG.find((c) => c.flag && p[c.flag]);
+  // Many wallets set isMetaMask for compatibility; prefer the more specific flag.
+  if (hit?.id === "metamask") {
+    const specific = CATALOG.find((c) => c.flag && c.id !== "metamask" && p[c.flag]);
+    if (specific) return specific;
+  }
+  return hit;
+}
+
 export function useWallet() {
   const [announced, setAnnounced] = useState<Announced[]>([]);
+  const [discovered, setDiscovered] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [address, setAddress] = useState("");
   const [chainId, setChainId] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [walletBalance, setWalletBalance] = useState<ChainBalance | null>(null);
+  const [restoring, setRestoring] = useState(() => readSaved() !== null);
   const attemptRef = useRef(0);
+  const restoreTried = useRef(false);
 
-  // Discover installed extensions (EIP-6963), with a legacy window.ethereum fallback.
+  // Discover installed extensions (EIP-6963), plus the legacy window.ethereum for wallets that don't announce.
   useEffect(() => {
     const onAnnounce = (event: Event) => {
       const w = (event as CustomEvent<Announced>).detail;
       if (!w?.info?.uuid || typeof w.provider?.request !== "function") return;
-      setAnnounced((prev) => [...prev.filter((x) => x.info.uuid !== w.info.uuid && x.info.uuid !== "injected"), w]);
+      setAnnounced((prev) => [...prev.filter((x) => x.info.uuid !== w.info.uuid && x.provider !== w.provider), w]);
     };
     window.addEventListener("eip6963:announceProvider", onAnnounce);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
     const t = setTimeout(() => {
-      const provider = window.ethereum;
-      if (!provider) return;
-      setAnnounced((prev) =>
-        prev.length
-          ? prev
-          : [{ info: { uuid: "injected", name: provider.isMetaMask ? "MetaMask" : "Browser wallet", rdns: provider.isMetaMask ? "io.metamask" : "" }, provider }],
-      );
-    }, 400);
+      const provider = window.ethereum as (Provider & Record<string, unknown>) | undefined;
+      if (provider && typeof provider.request === "function") {
+        setAnnounced((prev) => {
+          if (prev.some((a) => a.provider === provider)) return prev;
+          const known = legacyName(provider);
+          // If the same wallet already announced itself, the legacy object is a duplicate.
+          if (known && prev.some((a) => a.info.rdns && known.rdns.includes(a.info.rdns))) return prev;
+          return [...prev, { info: { uuid: "injected", name: known?.name ?? "Browser wallet", rdns: known?.rdns[0] ?? "" }, provider }];
+        });
+      }
+      setDiscovered(true);
+    }, 350);
     return () => {
       window.removeEventListener("eip6963:announceProvider", onAnnounce);
       clearTimeout(t);
     };
   }, []);
 
-  // Build picker rows: catalog first, then any other installed extension.
+  // Build picker rows: installed first, then the catalog.
   const choices = useMemo<WalletChoice[]>(() => {
     const used = new Set<string>();
     const rows: WalletChoice[] = CATALOG.map((c) => {
       const hit = announced.find((a) => a.info.rdns && c.rdns.includes(a.info.rdns));
       if (hit) {
         used.add(hit.info.uuid);
-        return { id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: "Installed", announced: hit, fallback: c.fallback, install: c.install };
+        return { id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: "Detected in this browser", announced: hit, fallback: c.fallback, install: c.install };
       }
       const base = { id: c.id, name: c.name, fallback: c.fallback, install: c.install };
-      if (c.fallback === "base-sdk") return { ...base, status: "popup", hint: "Base Account · passkey popup, no extension needed" };
-      if (c.fallback === "coinbase-sdk") return { ...base, status: "popup", hint: "Extension or Coinbase popup" };
+      if (c.fallback === "base-sdk") return { ...base, status: "popup", hint: "Passkey smart wallet · no extension" };
+      if (c.fallback === "coinbase-sdk") return { ...base, status: "popup", hint: "Coinbase app or popup" };
       if (c.fallback === "walletconnect")
         return WC_PROJECT_ID
-          ? { ...base, status: "qr", hint: "Scan a QR code with your phone" }
-          : { ...base, status: c.install ? "install" : "unavailable", hint: c.install ? "Not installed · get it" : "Needs a WalletConnect project ID" };
-      return { ...base, status: "install", hint: "Not installed · get it" };
+          ? { ...base, status: "qr", hint: c.id === "walletconnect" ? "Any mobile wallet · scan a QR" : "Scan with the mobile app" }
+          : { ...base, status: c.install ? "install" : "unavailable", hint: c.install ? "Not detected · get it" : "Needs VITE_WALLETCONNECT_PROJECT_ID" };
+      return { ...base, status: "install", hint: "Not detected · get it" };
     });
     const others: WalletChoice[] = announced
       .filter((a) => !used.has(a.info.uuid))
-      .map((a) => ({ id: a.info.uuid, name: a.info.name, icon: a.info.icon, status: "installed", hint: "Installed", announced: a, fallback: "install" }));
-    // Installed first, keep catalog order otherwise.
+      .map((a) => ({ id: a.info.rdns || a.info.uuid, name: a.info.name, icon: a.info.icon, status: "installed", hint: "Detected in this browser", announced: a, fallback: "install" }));
     return [...rows.filter((r) => r.status === "installed"), ...others, ...rows.filter((r) => r.status !== "installed")];
   }, [announced]);
 
-  // Live balance for the navbar. The 120 figure elsewhere is only the simulated escrow.
+  const adopt = useCallback((choice: WalletChoice, provider: Provider, kind: Session["kind"], account: string, chain: unknown) => {
+    setSession({ id: choice.id, name: choice.name, icon: choice.icon, provider, kind });
+    setAddress(account);
+    setChainId(toHexChain(chain));
+    writeSaved({ id: choice.id, rdns: choice.announced?.info.rdns || undefined, kind });
+  }, []);
+
+  // After a reload, reconnect the last wallet silently. eth_accounts never opens a popup and returns [] when the
+  // person revoked this site inside the wallet, so nothing is forced.
+  useEffect(() => {
+    if (!discovered || restoreTried.current) return;
+    restoreTried.current = true;
+    const saved = readSaved();
+    if (!saved) {
+      setRestoring(false);
+      return;
+    }
+    const choice = choices.find((c) => c.id === saved.id) ?? (saved.rdns ? choices.find((c) => c.announced?.info.rdns === saved.rdns) : undefined);
+    const attempt = ++attemptRef.current;
+    (async () => {
+      try {
+        if (!choice) return;
+        let provider: Provider | null = null;
+        let kind: Session["kind"] = "injected";
+        if (choice.announced) provider = choice.announced.provider;
+        else if (saved.kind === "base-sdk" || saved.kind === "coinbase-sdk") {
+          provider = await loadSdk(saved.kind);
+          kind = saved.kind;
+        } else if (saved.kind === "walletconnect" && WC_PROJECT_ID) {
+          provider = await loadWalletConnect();
+          kind = "walletconnect";
+        }
+        if (!provider) return;
+        const accounts = await provider.request({ method: "eth_accounts" });
+        const first = Array.isArray(accounts) ? accounts[0] : undefined;
+        if (!isAddress(first) || attempt !== attemptRef.current) return;
+        const chain = await provider.request({ method: "eth_chainId" }).catch(() => "");
+        adopt(choice, provider, kind, first, chain);
+      } catch {
+        /* silent: they can connect by hand */
+      } finally {
+        if (attempt === attemptRef.current) setRestoring(false);
+      }
+    })();
+  }, [discovered, choices, adopt]);
+
+  // Live balance for the navbar.
   useEffect(() => {
     const provider = session?.provider;
     if (!provider || !address) {
@@ -326,13 +415,13 @@ export function useWallet() {
         setAddress("");
         setChainId("");
         setSession(null);
+        writeSaved(null);
       }
     };
-    const onChain = (c: unknown) => {
-      if (typeof c === "string") setChainId(c);
-      else if (typeof c === "number") setChainId("0x" + c.toString(16));
-    };
-    const onDisconnect = () => {
+    const onChain = (c: unknown) => setChainId(toHexChain(c));
+    const onDisconnect = (err?: unknown) => {
+      // MetaMask emits disconnect with code 1013 while it reconnects to its RPC. That is not the user leaving.
+      if ((err as { code?: number } | undefined)?.code === 1013) return;
       attemptRef.current++;
       setAddress("");
       setChainId("");
@@ -349,55 +438,57 @@ export function useWallet() {
   }, [session]);
 
   /**
-   * Opens the chosen wallet's own approval UI (extension popup, Base/Coinbase popup,
-   * or WalletConnect QR). Resolves true when the user approves.
+   * Opens the chosen wallet's own approval UI (extension popup, Base/Coinbase popup, or WalletConnect QR).
+   * Resolves true when the user approves.
    */
-  const connect = useCallback(async (choice: WalletChoice) => {
-    if (choice.status === "install") {
-      if (choice.install) window.open(choice.install, "_blank", "noopener,noreferrer");
-      return false;
-    }
-    if (choice.status === "unavailable") {
-      setError("WalletConnect needs a project ID. Add VITE_WALLETCONNECT_PROJECT_ID to .env and restart.");
-      return false;
-    }
-    const attempt = ++attemptRef.current;
-    setPending(choice.id);
-    setError("");
-    try {
-      let provider: Provider;
-      let kind: Session["kind"];
-      if (choice.announced) {
-        provider = choice.announced.provider;
-        kind = "injected";
-      } else if (choice.fallback === "walletconnect") {
-        provider = await loadWalletConnect();
-        kind = "walletconnect";
-        await provider.enable?.(); // shows the QR modal
-      } else {
-        provider = await loadSdk(choice.fallback as "base-sdk" | "coinbase-sdk");
-        kind = choice.fallback;
+  const connect = useCallback(
+    async (choice: WalletChoice) => {
+      if (choice.status === "install") {
+        if (choice.install) window.open(choice.install, "_blank", "noopener,noreferrer");
+        return false;
       }
-      const accounts = await provider.request({ method: "eth_requestAccounts" });
-      const first = Array.isArray(accounts) ? accounts[0] : undefined;
-      if (!isAddress(first)) throw new Error("Wallet returned no account");
-      const chain = await provider.request({ method: "eth_chainId" });
-      if (attempt !== attemptRef.current) return false;
-      setSession({ id: choice.id, name: choice.name, icon: choice.icon, provider, kind });
-      setAddress(first);
-      setChainId(typeof chain === "string" ? chain : typeof chain === "number" ? "0x" + chain.toString(16) : "");
-      return true;
-    } catch (e) {
-      if (attempt === attemptRef.current) setError(walletMessage(e));
-      return false;
-    } finally {
-      if (attempt === attemptRef.current) setPending(null);
-    }
-  }, []);
+      if (choice.status === "unavailable") {
+        setError("WalletConnect needs a free project ID. Add VITE_WALLETCONNECT_PROJECT_ID to apps/web-v2/.env and restart.");
+        return false;
+      }
+      const attempt = ++attemptRef.current;
+      setPending(choice.id);
+      setError("");
+      try {
+        let provider: Provider;
+        let kind: Session["kind"];
+        if (choice.announced) {
+          provider = choice.announced.provider;
+          kind = "injected";
+        } else if (choice.fallback === "walletconnect") {
+          provider = await loadWalletConnect();
+          kind = "walletconnect";
+          await provider.enable?.(); // shows the QR modal
+        } else {
+          provider = await loadSdk(choice.fallback as "base-sdk" | "coinbase-sdk");
+          kind = choice.fallback;
+        }
+        const accounts = await provider.request({ method: "eth_requestAccounts" });
+        const first = Array.isArray(accounts) ? accounts[0] : undefined;
+        if (!isAddress(first)) throw new Error("Wallet returned no account");
+        const chain = await provider.request({ method: "eth_chainId" }).catch(() => "");
+        if (attempt !== attemptRef.current) return false;
+        adopt(choice, provider, kind, first, chain);
+        return true;
+      } catch (e) {
+        if (attempt === attemptRef.current) setError(walletMessage(e));
+        return false;
+      } finally {
+        if (attempt === attemptRef.current) setPending(null);
+      }
+    },
+    [adopt],
+  );
 
   const disconnect = useCallback(async () => {
     attemptRef.current++;
     const s = session;
+    writeSaved(null);
     setSession(null);
     setAddress("");
     setChainId("");
@@ -425,13 +516,28 @@ export function useWallet() {
     [session, address],
   );
 
+  const switchChain = useCallback(async () => {
+    const p = session?.provider;
+    if (!p) throw new Error("Connect a wallet first");
+    await switchToArc(p.request.bind(p));
+    const c = await p.request({ method: "eth_chainId" }).catch(() => "");
+    setChainId(toHexChain(c));
+  }, [session]);
+
   /** personal_sign with the connected wallet (used for backend sign-in). */
   const signMessage = useCallback(
     async (message: string) => {
       const p = session?.provider;
       if (!p || !address) throw new Error("Connect a wallet first");
       const hexMsg = "0x" + Array.from(new TextEncoder().encode(message), (b) => b.toString(16).padStart(2, "0")).join("");
-      const sig = await p.request({ method: "personal_sign", params: [hexMsg, address] });
+      let sig: unknown;
+      try {
+        sig = await p.request({ method: "personal_sign", params: [hexMsg, address] });
+      } catch (e) {
+        // A few wallets (older Trust / some WalletConnect bridges) want the plain string.
+        if ((e as { code?: number }).code === 4001) throw e;
+        sig = await p.request({ method: "personal_sign", params: [message, address] });
+      }
       if (typeof sig !== "string" || !/^0x[0-9a-fA-F]+$/.test(sig)) throw new Error("Wallet returned no signature");
       return sig;
     },
@@ -441,14 +547,17 @@ export function useWallet() {
   return {
     request,
     signMessage,
+    switchChain,
     choices,
     address,
     chainId,
+    onArc: chainIdNumber(chainId) === ARC.id,
     walletId: session?.id ?? "",
     walletName: session?.name ?? "",
     walletIcon: session?.icon ?? "",
     walletBalance,
     pending,
+    restoring,
     error,
     clearError: () => setError(""),
     connect,

@@ -39,7 +39,7 @@ export function CardsPrompt() {
 /** The pop-up itself (no store access), so it can be looked at on its own. */
 export function CardsPromptDialog({ saved, onAdd, onClose }: { saved: Card[]; onAdd: (cards: Card[]) => void; onClose: () => void }) {
   return (
-    <motion.div className="fixed inset-0 z-[75] grid place-items-center overflow-y-auto bg-black/60 p-4 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+    <motion.div className="fixed inset-0 z-[75] grid place-items-center overflow-y-auto bg-fg/30 p-4 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.div
         role="dialog"
         aria-modal
@@ -49,15 +49,15 @@ export function CardsPromptDialog({ saved, onAdd, onClose }: { saved: Card[]; on
         animate={{ y: 0, scale: 1, opacity: 1 }}
         exit={{ y: 16, opacity: 0 }}
         transition={{ type: "spring", stiffness: 280, damping: 26 }}
-        className="hairline relative my-auto w-full max-w-[520px] overflow-hidden rounded-[26px] bg-ink-2 p-6 sm:p-7"
+        className="hairline relative my-auto w-full max-w-[520px] overflow-hidden rounded-[26px] bg-surface p-6 sm:p-7"
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(245,181,68,0.14), transparent)" }} />
-        <button type="button" onClick={onClose} className="absolute top-4 right-4 grid size-8 place-items-center rounded-full text-mute transition hover:bg-white/5 hover:text-fg" aria-label="Close">
+        <button type="button" onClick={onClose} className="absolute top-4 right-4 grid size-8 place-items-center rounded-full text-mute transition hover:bg-fg/5 hover:text-fg" aria-label="Close">
           <X className="size-4" />
         </button>
 
         <div className="relative flex items-center gap-3.5">
-          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber/10 text-amber ring-1 ring-amber/25">
+          <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber/10 text-amber-ink ring-1 ring-amber/25">
             <CreditCard className="size-5" />
           </span>
           <h2 id="cards-prompt-title" className="font-display text-2xl font-semibold tracking-tight">
@@ -66,7 +66,7 @@ export function CardsPromptDialog({ saved, onAdd, onClose }: { saved: Card[]; on
         </div>
         <p className="relative mt-3 text-[14px] leading-relaxed text-mute">Search the list and tick the cards you have. We use them to find the best way to buy each voucher and your real price per USDC.</p>
         <p className="relative mt-2 flex items-start gap-2 text-[12px] leading-relaxed text-dim">
-          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint" />
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-mint-ink" />
           Only the card name and reward rates are saved, never a card number.
         </p>
 

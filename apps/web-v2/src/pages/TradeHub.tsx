@@ -26,21 +26,21 @@ export default function TradeHub() {
   const active = myOrders.filter((o) => !isFinal(o.status)).length;
 
   return (
-    <div className="relative pt-28 pb-12">
+    <div className="relative pt-10 md:pt-14 pb-12">
       <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-6xl px-6">
+      <div className="relative mx-auto max-w-[1200px] px-5 md:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-gradient font-display text-4xl font-semibold tracking-[-0.03em]">Trade</h1>
           <div className="flex items-center gap-4">
             <span className="text-[13px] text-mute">India · INR</span>
-            <Link to="/track" className="flex h-10 items-center gap-2.5 rounded-full bg-white/[0.03] pr-1.5 pl-4 text-[13px] ring-1 ring-white/10 transition hover:bg-white/[0.06]">
-              My orders <span className="grid h-7 min-w-7 place-items-center rounded-full bg-white/[0.07] px-2 font-mono text-[11px] text-mute">{active}</span>
+            <Link to="/track" className="flex h-10 items-center gap-2.5 rounded-full bg-fg/[0.03] pr-1.5 pl-4 text-[13px] ring-1 ring-fg/10 transition hover:bg-fg/[0.06]">
+              My orders <span className="grid h-7 min-w-7 place-items-center rounded-full bg-fg/[0.07] px-2 font-mono text-[11px] text-mute">{active}</span>
             </Link>
           </div>
         </div>
 
         <div className="mt-7 flex flex-wrap items-center gap-4">
-          <div className="flex rounded-full bg-white/[0.03] p-1 ring-1 ring-white/[0.08]" role="tablist" aria-label="Trade mode">
+          <div className="flex rounded-full bg-fg/[0.03] p-1 ring-1 ring-fg/[0.08]" role="tablist" aria-label="Trade mode">
             {(
               [
                 ["buy", "Buy", <ArrowDownLeft key="i" className="size-3.5" />],
@@ -88,8 +88,8 @@ function PayWithCrypto() {
         {chatOpen ? (
           <SpendChat key={session} book={orders} onRestart={() => setSession((s) => s + 1)} onClose={() => setChatOpen(false)} />
         ) : (
-          <button type="button" onClick={() => setChatOpen(true)} className="hairline flex w-full items-center gap-3 rounded-[24px] bg-ink-2/70 p-5 text-left backdrop-blur-xl transition hover:bg-ink-2">
-            <span className="grid size-10 place-items-center rounded-2xl bg-mint/10 text-mint ring-1 ring-white/10">
+          <button type="button" onClick={() => setChatOpen(true)} className="hairline flex w-full items-center gap-3 rounded-[24px] bg-surface/70 p-5 text-left backdrop-blur-xl transition hover:bg-surface">
+            <span className="grid size-10 place-items-center rounded-2xl bg-mint/10 text-mint-ink ring-1 ring-fg/10">
               <Bot className="size-5" />
             </span>
             <span className="flex-1">

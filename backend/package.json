@@ -22,7 +22,10 @@
     "cards:test": "node --import ./test-support/register.mjs scripts/cards-test.mjs",
     "dispute:test": "node --import ./test-support/register.mjs scripts/dispute-test.mjs && node --import ./test-support/register.mjs scripts/dispute-test.mjs nobond",
     "buyintents:test": "node --import ./test-support/register.mjs scripts/buy-intents.test.js",
-    "world:bypass:test": "node --import ./test-support/register.mjs scripts/world-bypass.test.js"
+    "world:bypass:test": "node --import ./test-support/register.mjs scripts/world-bypass.test.js",
+    "test:rates": "node --import ./test-support/register.mjs scripts/rates-test.js",
+    "rates:live": "node scripts/rates-live.js",
+    "dev:mem": "node --import ./test-support/register.mjs scripts/dev-mem.js"
   },
   "dependencies": {
     "@noble/ciphers": "^1.3.0",

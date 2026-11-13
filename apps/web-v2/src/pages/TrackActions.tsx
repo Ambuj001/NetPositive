@@ -5,7 +5,7 @@ import { Button, cx } from "../components/ui";
 import { ApiError, api, type ApiRequest } from "../lib/api";
 import { inr, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
-import { readSealedVoucher, unlockVault } from "../lib/vault";
+import { readSealedVoucher, registerVault, unlockVault } from "../lib/vault";
 
 /**
  * The spender's three actions on the tracker, shown inside the lifecycle step they belong to:
@@ -39,6 +39,7 @@ function messageOf(e: unknown, fallback: string) {
 export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, walletRequest, expired }: Common & { viewer: string; walletRequest: WalletRequest; expired: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const { signMessage } = useApp();
 
   async function go() {
     setErr("");
@@ -46,6 +47,8 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
     try {
       const t = token ?? (await signIn());
       if (!t) throw new Error("Sign in with your wallet first.");
+      // "Ready" means "I can receive the code": publish this wallet's vault key first if it isn't published yet.
+      await registerVault(viewer, t, signMessage);
       const { validUntil, typedData } = await api.readyPermit(req.id, t);
       let signature: unknown;
       try {
@@ -74,7 +77,7 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
           {!token && " The first time, your wallet asks twice: once to sign in, once for the permit."}
         </p>
       </div>
-      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
     </div>
   );
 }
@@ -89,7 +92,7 @@ export function SettleActions({ req, token, signIn, signingIn, onUpdated }: Comm
 
   if (!token) {
     return (
-      <div className="mt-3 rounded-2xl bg-white/[0.03] p-3.5 ring-1 ring-white/[0.07]">
+      <div className="mt-3 rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]">
         <Button size="sm" variant="outline" onClick={signIn} disabled={signingIn} icon={signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : undefined}>
           {signingIn ? "Check your wallet…" : "Sign in to settle or dispute"}
         </Button>
@@ -99,7 +102,7 @@ export function SettleActions({ req, token, signIn, signingIn, onUpdated }: Comm
   }
 
   return (
-    <div className="mt-3 space-y-3 rounded-2xl bg-white/[0.03] p-3.5 ring-1 ring-white/[0.07]">
+    <div className="mt-3 space-y-3 rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]">
       <VoucherPeek req={req} token={token} />
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => { setDisputing(false); setConfirming(true); }} icon={<ShieldCheck className="size-3.5" />}>
@@ -152,19 +155,19 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
             <EyeOff className="size-3.5" /> Hide
           </button>
         ) : (
-          <button onClick={show} disabled={state.kind === "loading"} className="inline-flex items-center gap-1 text-mint hover:brightness-110 disabled:opacity-50">
+          <button onClick={show} disabled={state.kind === "loading"} className="inline-flex items-center gap-1 text-mint-ink hover:brightness-110 disabled:opacity-50">
             {state.kind === "loading" ? <LoaderCircle className="size-3.5 animate-spin" /> : <Eye className="size-3.5" />} {state.kind === "loading" ? "Unlocking…" : "Show the code"}
           </button>
         )}
       </div>
-      {state.kind === "loading" && <p className="mt-1.5 text-[12px] text-amber">{state.text}</p>}
+      {state.kind === "loading" && <p className="mt-1.5 text-[12px] text-amber-ink">{state.text}</p>}
       {state.kind === "code" && (
-        <dl className="mt-2 space-y-1 rounded-xl bg-ink px-3 py-2 font-mono text-[12.5px] ring-1 ring-white/10">
+        <dl className="mt-2 space-y-1 rounded-xl bg-canvas px-3 py-2 font-mono text-[12.5px] ring-1 ring-fg/10">
           <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">Code</dt><dd className="min-w-0 break-all whitespace-pre-wrap select-all text-fg">{state.code}</dd></div>
           {state.pin && <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">PIN</dt><dd className="select-all text-fg">{state.pin}</dd></div>}
         </dl>
       )}
-      {state.kind === "error" && <p role="alert" className="mt-1.5 text-[12px] text-rose">{state.message}</p>}
+      {state.kind === "error" && <p role="alert" className="mt-1.5 text-[12px] text-rose-ink">{state.message}</p>}
     </div>
   );
 }
@@ -191,10 +194,10 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
 
   return (
     <div className="rounded-xl bg-rose/[0.05] p-3 ring-1 ring-rose/25">
-      <div className="text-[12.5px] font-medium text-rose">What's wrong with the voucher?</div>
+      <div className="text-[12.5px] font-medium text-rose-ink">What's wrong with the voucher?</div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {REASONS.map((r) => (
-          <button key={r} type="button" onClick={() => setReason(r)} className={cx("rounded-full px-2.5 py-1 text-[11.5px] ring-1 transition", reason === r ? "bg-rose/15 text-rose ring-rose/40" : "text-mute ring-white/10 hover:text-fg")}>
+          <button key={r} type="button" onClick={() => setReason(r)} className={cx("rounded-full px-2.5 py-1 text-[11.5px] ring-1 transition", reason === r ? "bg-rose/15 text-rose-ink ring-rose/40" : "text-mute ring-fg/10 hover:text-fg")}>
             {r}
           </button>
         ))}
@@ -207,11 +210,11 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
           maxLength={1000}
           rows={3}
           placeholder="Describe the problem (at least 5 characters)"
-          className="w-full resize-none rounded-lg bg-ink px-3 py-2 text-[13px] ring-1 ring-white/10 outline-none placeholder:text-dim focus:ring-rose/40"
+          className="w-full resize-none rounded-lg bg-canvas px-3 py-2 text-[13px] ring-1 ring-fg/10 outline-none placeholder:text-dim focus:ring-rose/40"
         />
       </label>
       <p className="mt-1 text-[11.5px] text-mute">Your USDC stays locked while an admin reviews it. Raise a dispute before the review deadline.</p>
-      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
       <div className="mt-2.5 flex items-center gap-2">
         <Button size="sm" variant="amber" onClick={submit} disabled={!ok || busy} icon={busy ? <LoaderCircle className="size-3.5 animate-spin" /> : undefined}>
           {busy ? "Sending…" : "Raise dispute"}
@@ -265,20 +268,20 @@ function ConfirmSettle({ req, token, open, onClose, onUpdated }: { req: ApiReque
         This pays the buyer for the {inr(req.amountInr)} voucher. The escrow contract sends the locked USDC on Arc, and <strong className="font-medium text-fg">it can't be undone</strong>.
       </p>
 
-      <dl className="mt-4 divide-y divide-white/[0.06] rounded-xl bg-white/[0.03] px-3.5 text-[13px] ring-1 ring-white/[0.07]">
+      <dl className="mt-4 divide-y divide-fg/[0.06] rounded-xl bg-fg/[0.03] px-3.5 text-[13px] ring-1 ring-fg/[0.07]">
         <div className="flex justify-between gap-4 py-2.5"><dt className="text-mute">Amount</dt><dd className="font-semibold tabular">{amount}</dd></div>
         <div className="flex justify-between gap-4 py-2.5"><dt className="text-mute">Paid to the buyer</dt><dd className="min-w-0 break-all text-right font-mono text-[12px]" title={buyer}>{buyer ? `${short(buyer)}` : "—"}</dd></div>
         <div className="flex justify-between gap-4 py-2.5"><dt className="text-mute">Order</dt><dd className="font-mono text-[12px]">{req.id}</dd></div>
       </dl>
 
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-white/[0.03] p-3 ring-1 ring-white/[0.07] has-[:checked]:ring-mint/40">
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-fg/[0.03] p-3 ring-1 ring-fg/[0.07] has-[:checked]:ring-mint/40">
         <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={busy} className="mt-0.5 size-4 accent-[#3ddc97]" />
         <span className="text-[13px] leading-relaxed">I've received the voucher and checked that it works.</span>
       </label>
       <p className="mt-2 text-[12px] text-mute">If it doesn't work, close this and raise a dispute instead.</p>
 
-      {err && <p role="alert" className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-[12.5px] text-rose ring-1 ring-rose/25">{err}</p>}
-      {busy && <p className="mt-3 text-[12.5px] text-amber">Releasing on Arc. This can take up to a minute. Keep this page open.</p>}
+      {err && <p role="alert" className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-[12.5px] text-rose-ink ring-1 ring-rose/25">{err}</p>}
+      {busy && <p className="mt-3 text-[12.5px] text-amber-ink">Releasing on Arc. This can take up to a minute. Keep this page open.</p>}
 
       <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onClose} disabled={busy}>
@@ -331,8 +334,8 @@ function Modal({ open, onClose, labelledBy, children }: { open: boolean; onClose
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-[80] grid place-items-center bg-black/70 px-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-          <motion.div ref={box} role="dialog" aria-modal="true" aria-labelledby={labelledBy} initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} className="hairline relative w-full max-w-md rounded-[24px] bg-ink-2 p-6 shadow-2xl">
-            <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4 grid size-7 place-items-center rounded-full text-dim hover:bg-white/5 hover:text-fg">
+          <motion.div ref={box} role="dialog" aria-modal="true" aria-labelledby={labelledBy} initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} className="hairline relative w-full max-w-md rounded-[24px] bg-surface p-6 shadow-2xl">
+            <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4 grid size-7 place-items-center rounded-full text-dim hover:bg-fg/5 hover:text-fg">
               <X className="size-4" />
             </button>
             {children}

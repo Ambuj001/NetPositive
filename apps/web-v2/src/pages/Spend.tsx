@@ -172,21 +172,21 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
 
   return (
     <>
-      <div className="hairline relative flex h-[min(760px,calc(100dvh_-_230px))] min-h-[520px] flex-col overflow-hidden rounded-[28px] bg-ink-2/85 backdrop-blur-xl">
+      <div className="hairline relative flex h-[min(760px,calc(100dvh_-_230px))] min-h-[520px] flex-col overflow-hidden rounded-[28px] bg-surface/85 backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(61,220,151,0.14), transparent)" }} />
-        <div className="relative flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
-          <span className="relative grid size-10 place-items-center rounded-2xl bg-mint/10 text-mint ring-1 ring-white/10">
+        <div className="relative flex items-center gap-3 border-b border-fg/[0.06] px-5 py-4">
+          <span className="relative grid size-10 place-items-center rounded-2xl bg-mint/10 text-mint-ink ring-1 ring-fg/10">
             <Bot className="size-5" />
-            <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-mint ring-2 ring-ink-2" />
+            <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-mint ring-2 ring-surface" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold">NetPositive AI</div>
             <div className="truncate text-[11.5px] text-mute">Spend USDC</div>
           </div>
-          <button type="button" onClick={onRestart} disabled={!!lock.held} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-white/10 transition hover:text-fg disabled:opacity-40" aria-label="Start over" title="Start over">
+          <button type="button" onClick={onRestart} disabled={!!lock.held} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-fg/10 transition hover:text-fg disabled:opacity-40" aria-label="Start over" title="Start over">
             <RotateCcw className="size-4" />
           </button>
-          <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-white/10 transition hover:text-fg" aria-label="Close assistant" title="Close">
+          <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-fg/10 transition hover:text-fg" aria-label="Close assistant" title="Close">
             <X className="size-4" />
           </button>
         </div>
@@ -195,7 +195,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           {msgs.map((m) => (
             <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={cx("flex gap-2.5", m.from === "user" && "justify-end")}>
               {m.from === "bot" && (
-                <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-mint/10 text-mint">
+                <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-mint/10 text-mint-ink">
                   <Sparkles className="size-3.5" />
                 </span>
               )}
@@ -206,7 +206,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
                       key={i}
                       className={cx(
                         "w-fit max-w-full rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap",
-                        m.from === "user" ? "ml-auto rounded-br-md bg-mint text-ink" : "rounded-tl-md bg-white/[0.045] text-fg/90 ring-1 ring-white/[0.06]",
+                        m.from === "user" ? "ml-auto rounded-br-md bg-mint text-ink" : "rounded-tl-md bg-fg/[0.045] text-fg/90 ring-1 ring-fg/[0.06]",
                       )}
                     >
                       {b.text}
@@ -233,10 +233,10 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           <AnimatePresence>
             {busy && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2.5">
-                <span className="grid size-7 place-items-center rounded-full bg-mint/10 text-mint">
+                <span className="grid size-7 place-items-center rounded-full bg-mint/10 text-mint-ink">
                   <Sparkles className="size-3.5" />
                 </span>
-                <span className="flex gap-1 rounded-2xl bg-white/[0.04] px-4 py-3 ring-1 ring-white/[0.06]">
+                <span className="flex gap-1 rounded-2xl bg-fg/[0.04] px-4 py-3 ring-1 ring-fg/[0.06]">
                   {[0, 1, 2].map((i) => (
                     <motion.span key={i} className="size-1.5 rounded-full bg-mute" animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }} transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }} />
                   ))}
@@ -246,11 +246,11 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           </AnimatePresence>
         </div>
 
-        <div className="relative border-t border-white/[0.06] p-3 md:p-4">
+        <div className="relative border-t border-fg/[0.06] p-3 md:p-4">
           {quick.length > 0 && !busy && (
             <div className="scrollbar-none mb-3 flex gap-2 overflow-x-auto">
               {quick.map((q) => (
-                <button key={q.label} type="button" onClick={q.on} className="shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] text-fg/85 ring-1 ring-white/12 transition hover:bg-white/[0.06] hover:ring-white/25">
+                <button key={q.label} type="button" onClick={q.on} className="shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] text-fg/85 ring-1 ring-fg/12 transition hover:bg-fg/[0.06] hover:ring-fg/25">
                   {q.label}
                 </button>
               ))}
@@ -261,7 +261,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
               e.preventDefault();
               submit();
             }}
-            className="flex items-center gap-2 rounded-2xl bg-white/[0.04] p-1.5 pl-4 ring-1 ring-white/10 transition focus-within:ring-mint/45"
+            className="flex items-center gap-2 rounded-2xl bg-fg/[0.04] p-1.5 pl-4 ring-1 ring-fg/10 transition focus-within:ring-mint/45"
           >
             <input
               ref={inputRef}
@@ -326,7 +326,7 @@ async function loadBuyers(place: Place, amount: number) {
 
 function CreateOrderPrompt({ amount, place, disabled, onCreate }: { amount: number; place: string; disabled: boolean; onCreate: () => void }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-white/[0.03] p-4 ring-1 ring-white/[0.07] sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 rounded-2xl bg-fg/[0.03] p-4 ring-1 ring-fg/[0.07] sm:flex-row sm:items-center">
       <div className="flex-1 text-[13px] leading-relaxed text-mute">
         Nothing fits? Create a new {place} {amountLabel(amount)} order. You'll review it before any USDC is locked.
       </div>
@@ -355,14 +355,14 @@ function Posted({ orderId }: { orderId: string }) {
 }
 
 function OrdersInChat({ orders, selectedId, place }: { orders: Order[]; selectedId: string | null; place: string }) {
-  if (!orders.length) return <div className="rounded-2xl bg-white/[0.03] px-4 py-3 text-[13px] text-mute ring-1 ring-white/[0.06]">No open orders for {place}.</div>;
+  if (!orders.length) return <div className="rounded-2xl bg-fg/[0.03] px-4 py-3 text-[13px] text-mute ring-1 ring-fg/[0.06]">No open orders for {place}.</div>;
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {orders.map((o) => {
         const on = o.id === selectedId;
         const b = brand(o.brandId);
         return (
-          <div key={o.id} className={cx("flex items-center gap-3 rounded-2xl p-3 ring-1", on ? "bg-mint/[0.07] ring-mint/50" : "bg-white/[0.03] ring-white/[0.07]")}>
+          <div key={o.id} className={cx("flex items-center gap-3 rounded-2xl p-3 ring-1", on ? "bg-mint/[0.07] ring-mint/50" : "bg-fg/[0.03] ring-fg/[0.07]")}>
             <BrandMark id={o.brandId} size={38} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13.5px] font-medium">
@@ -423,7 +423,7 @@ export function ReviewModal({
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-fg/30 p-4 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
           <motion.div
             role="dialog"
             aria-modal
@@ -433,22 +433,22 @@ export function ReviewModal({
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 16, opacity: 0 }}
             transition={{ type: "spring", stiffness: 280, damping: 26 }}
-            className="hairline w-full max-w-[440px] rounded-[26px] bg-ink-2 p-6"
+            className="hairline w-full max-w-[440px] rounded-[26px] bg-surface p-6"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-display text-xl font-semibold tracking-tight">Review order</h3>
-              <button type="button" onClick={onClose} disabled={!!phase || publishOnly} className="grid size-8 place-items-center rounded-full text-mute hover:bg-white/5 disabled:opacity-40" aria-label="Close">
+              <button type="button" onClick={onClose} disabled={!!phase || publishOnly} className="grid size-8 place-items-center rounded-full text-mute hover:bg-fg/5 disabled:opacity-40" aria-label="Close">
                 <X className="size-4" />
               </button>
             </div>
-            <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white/[0.03] p-3 ring-1 ring-white/[0.07]">
+            <div className="mt-5 flex items-center gap-3 rounded-2xl bg-fg/[0.03] p-3 ring-1 ring-fg/[0.07]">
               <BrandMark id={brandId} size={40} />
               <div className="min-w-0 flex-1">
                 <div className="text-[14px] font-medium">{title}</div>
                 <div className="text-[12px] text-dim">You spend crypto. A buyer purchases the gift card.</div>
               </div>
             </div>
-            <div className="mt-4 space-y-2 rounded-2xl bg-white/[0.02] p-4 text-[13px] ring-1 ring-white/[0.06]">
+            <div className="mt-4 space-y-2 rounded-2xl bg-fg/[0.02] p-4 text-[13px] ring-1 ring-fg/[0.06]">
               <Line k="You lock" v={`${usdt(lock)} USDC`} mint />
               <Line k="Gift-card buyer receives" v={`${usdt(receives)} USDC`} />
               <Line k="Fee" v={`${usdt(fee)} USDC`} />
@@ -461,8 +461,8 @@ export function ReviewModal({
                   const done = i < rank;
                   const on = i === rank;
                   return (
-                    <div key={s.key} className={cx("flex items-center gap-3 rounded-xl p-3 ring-1", on ? "bg-mint/[0.05] ring-mint/40" : "ring-white/[0.06]")}>
-                      <span className={cx("grid size-6 place-items-center rounded-full", done ? "bg-mint text-ink" : on ? "text-mint" : "text-dim")}>
+                    <div key={s.key} className={cx("flex items-center gap-3 rounded-xl p-3 ring-1", on ? "bg-mint/[0.05] ring-mint/40" : "ring-fg/[0.06]")}>
+                      <span className={cx("grid size-6 place-items-center rounded-full", done ? "bg-mint text-ink" : on ? "text-mint-ink" : "text-dim")}>
                         {done ? <Check className="size-3.5" /> : on ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-3.5" />}
                       </span>
                       <span className={cx("text-[13.5px]", on || done ? "text-fg" : "text-dim")}>{s.label}</span>
@@ -471,7 +471,7 @@ export function ReviewModal({
                 })}
               </div>
             )}
-            {error && <p className="mt-3 text-[12.5px] leading-relaxed text-rose">{error}</p>}
+            {error && <p className="mt-3 text-[12.5px] leading-relaxed text-rose-ink">{error}</p>}
             {!phase && (
               <Button className="mt-5 w-full" size="lg" onClick={onConfirm} icon={publishOnly ? <ArrowRight className="size-4" /> : <Lock className="size-4" />}>
                 {publishOnly ? "Publish order" : "Lock USDC & post order"}
@@ -489,7 +489,7 @@ function Line({ k, v, mint }: { k: string; v: string; mint?: boolean }) {
   return (
     <div className="flex justify-between gap-3">
       <span className="text-mute">{k}</span>
-      <span className={cx("tabular", mint && "font-semibold text-mint")}>{v}</span>
+      <span className={cx("tabular", mint && "font-semibold text-mint-ink")}>{v}</span>
     </div>
   );
 }

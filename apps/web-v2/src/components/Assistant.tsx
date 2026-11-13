@@ -336,16 +336,16 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
   const isActive = (msgId: number, kind: Block["kind"]) => lastOfKind[kind] === msgId && (!stepFor[kind] || stepFor[kind]!.includes(step));
 
   return (
-    <div className="hairline relative flex h-[min(760px,calc(100dvh_-_230px))] min-h-[520px] flex-col overflow-hidden rounded-[28px] bg-ink-2/85 backdrop-blur-xl">
+    <div className="hairline relative flex h-[min(760px,calc(100dvh_-_230px))] min-h-[520px] flex-col overflow-hidden rounded-[28px] bg-surface/85 backdrop-blur-xl">
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-40"
         style={{ background: `radial-gradient(60% 100% at 50% 0%, ${tone === "mint" ? "rgba(61,220,151,0.14)" : "rgba(245,181,68,0.13)"}, transparent)` }}
       />
       {/* header */}
-      <div className="relative flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
-        <span className={cx("relative grid size-10 place-items-center rounded-2xl ring-1 ring-white/10", tone === "mint" ? "bg-mint/10 text-mint" : "bg-amber/10 text-amber")}>
+      <div className="relative flex items-center gap-3 border-b border-fg/[0.06] px-5 py-4">
+        <span className={cx("relative grid size-10 place-items-center rounded-2xl ring-1 ring-fg/10", tone === "mint" ? "bg-mint/10 text-mint-ink" : "bg-amber/10 text-amber-ink")}>
           <Bot className="size-5" />
-          <span className={cx("absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-ink-2", online ? "bg-mint" : online === false ? "bg-rose" : "bg-dim")} />
+          <span className={cx("absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-surface", online ? "bg-mint" : online === false ? "bg-rose" : "bg-dim")} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[15px] font-semibold">NetPositive AI</div>
@@ -354,10 +354,10 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
             {mode === "spend" ? "Spend USDC" : "Buy USDC"}
           </div>
         </div>
-        <button onClick={onRestart} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-white/10 transition hover:text-fg" aria-label="Start over" title="Start over">
+        <button onClick={onRestart} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-fg/10 transition hover:text-fg" aria-label="Start over" title="Start over">
           <RotateCcw className="size-4" />
         </button>
-        <button onClick={onClose} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-white/10 transition hover:text-fg" aria-label="Close assistant" title="Close">
+        <button onClick={onClose} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-fg/10 transition hover:text-fg" aria-label="Close assistant" title="Close">
           <X className="size-4" />
         </button>
       </div>
@@ -373,7 +373,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
             className={cx("flex gap-2.5", m.from === "user" && "justify-end")}
           >
             {m.from === "bot" && (
-              <span className={cx("mt-1 grid size-7 shrink-0 place-items-center rounded-full", tone === "mint" ? "bg-mint/10 text-mint" : "bg-amber/10 text-amber")}>
+              <span className={cx("mt-1 grid size-7 shrink-0 place-items-center rounded-full", tone === "mint" ? "bg-mint/10 text-mint-ink" : "bg-amber/10 text-amber-ink")}>
                 <Sparkles className="size-3.5" />
               </span>
             )}
@@ -401,10 +401,10 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
         <AnimatePresence>
           {typing && (
             <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2.5">
-              <span className={cx("grid size-7 place-items-center rounded-full", tone === "mint" ? "bg-mint/10 text-mint" : "bg-amber/10 text-amber")}>
+              <span className={cx("grid size-7 place-items-center rounded-full", tone === "mint" ? "bg-mint/10 text-mint-ink" : "bg-amber/10 text-amber-ink")}>
                 <Sparkles className="size-3.5" />
               </span>
-              <span className="flex gap-1 rounded-2xl bg-white/[0.04] px-4 py-3 ring-1 ring-white/[0.06]">
+              <span className="flex gap-1 rounded-2xl bg-fg/[0.04] px-4 py-3 ring-1 ring-fg/[0.06]">
                 {[0, 1, 2].map((i) => (
                   <motion.span key={i} className="size-1.5 rounded-full bg-mute" animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }} transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }} />
                 ))}
@@ -415,7 +415,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
       </div>
 
       {/* composer */}
-      <div className="relative border-t border-white/[0.06] p-3 md:p-4">
+      <div className="relative border-t border-fg/[0.06] p-3 md:p-4">
         {quick.length > 0 && !typing && online !== false && (
           <div className="scrollbar-none mb-3 flex gap-2 overflow-x-auto">
             {quick.map((q) => (
@@ -428,7 +428,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
                     ? tone === "mint"
                       ? "bg-mint text-ink ring-mint"
                       : "bg-amber text-ink ring-amber"
-                    : "text-fg/85 ring-white/12 hover:bg-white/[0.06] hover:ring-white/25",
+                    : "text-fg/85 ring-fg/12 hover:bg-fg/[0.06] hover:ring-fg/25",
                 )}
               >
                 {q.label}
@@ -441,7 +441,7 @@ export default function Assistant({ mode, userId, onRestart, onClose }: { mode: 
             e.preventDefault();
             submit();
           }}
-          className={cx("flex items-center gap-2 rounded-2xl bg-white/[0.04] p-1.5 pl-4 ring-1 transition", tone === "mint" ? "ring-white/10 focus-within:ring-mint/45" : "ring-white/10 focus-within:ring-amber/45")}
+          className={cx("flex items-center gap-2 rounded-2xl bg-fg/[0.04] p-1.5 pl-4 ring-1 transition", tone === "mint" ? "ring-fg/10 focus-within:ring-mint/45" : "ring-fg/10 focus-within:ring-amber/45")}
         >
           <input
             ref={inputRef}
@@ -496,14 +496,14 @@ function BlockView({
   onOpenTrade: (id: string) => void;
   onRetry: () => void;
 }) {
-  const accent = tone === "mint" ? "text-mint" : "text-amber";
+  const accent = tone === "mint" ? "text-mint-ink" : "text-amber-ink";
 
   if (b.kind === "text")
     return (
       <div
         className={cx(
           "w-fit max-w-full rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap",
-          from === "user" ? cx("ml-auto rounded-br-md text-ink", tone === "mint" ? "bg-mint" : "bg-amber") : "rounded-tl-md bg-white/[0.045] text-fg/90 ring-1 ring-white/[0.06]",
+          from === "user" ? cx("ml-auto rounded-br-md text-ink", tone === "mint" ? "bg-mint" : "bg-amber") : "rounded-tl-md bg-fg/[0.045] text-fg/90 ring-1 ring-fg/[0.06]",
         )}
       >
         <RichText text={b.text} />
@@ -513,7 +513,7 @@ function BlockView({
   if (b.kind === "offline")
     return (
       <div className="rounded-2xl bg-rose/[0.06] p-4 ring-1 ring-rose/25">
-        <div className="flex items-center gap-2 text-[14px] font-medium text-rose">
+        <div className="flex items-center gap-2 text-[14px] font-medium text-rose-ink">
           <TriangleAlert className="size-4" /> The AI server isn't running
         </div>
         <p className="mt-1.5 text-[13px] text-mute">
@@ -521,7 +521,7 @@ function BlockView({
         </p>
         <pre className="mt-2 overflow-x-auto rounded-lg bg-black/40 px-3 py-2 font-mono text-[12px] text-fg/85">cd chatbot && python3 server.py</pre>
         <p className="mt-2 font-mono text-[11px] text-dim">Expected at {CHATBOT_URL}</p>
-        <button onClick={onRetry} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-4 text-[13px] font-medium text-ink">
+        <button onClick={onRetry} className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-fg px-4 text-[13px] font-medium text-white">
           <RotateCcw className="size-3.5" /> Retry
         </button>
       </div>
@@ -541,7 +541,7 @@ function BlockView({
               onClick={() => onPickStore(t)}
               className={cx(
                 "group flex items-center gap-3 rounded-2xl p-3 text-left ring-1 transition disabled:cursor-default disabled:opacity-60",
-                locked ? "bg-mint/[0.07] ring-mint/45" : "bg-white/[0.03] ring-white/[0.07] enabled:hover:bg-white/[0.07] enabled:hover:ring-white/20",
+                locked ? "bg-mint/[0.07] ring-mint/45" : "bg-fg/[0.03] ring-fg/[0.07] enabled:hover:bg-fg/[0.07] enabled:hover:ring-fg/20",
               )}
             >
               <BrandMark id={t.merchant_id} name={t.name} size={36} />
@@ -560,8 +560,8 @@ function BlockView({
     const r = b.data.request;
     const q = quote(r.amount_inr, RATE);
     return (
-      <div className="overflow-hidden rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.08]">
-        <div className="flex items-center gap-3 border-b border-white/[0.06] p-4">
+      <div className="overflow-hidden rounded-2xl bg-fg/[0.03] ring-1 ring-fg/[0.08]">
+        <div className="flex items-center gap-3 border-b border-fg/[0.06] p-4">
           <BrandMark id={r.merchant_id} name={r.merchant} size={44} />
           <div className="min-w-0 flex-1">
             <div className="text-[15px] font-semibold">{r.voucher_brand} voucher</div>
@@ -569,7 +569,7 @@ function BlockView({
           </div>
           <div className="font-display text-2xl font-semibold tabular">{inr(r.amount_inr)}</div>
         </div>
-        <div className="divide-y divide-white/[0.05] px-4 text-[13px]">
+        <div className="divide-y divide-fg/[0.05] px-4 text-[13px]">
           {[
             ["Suggested vouchers", r.suggested_split.map((x) => inr(x)).join(" + ")],
             ["Rate", `₹${RATE} / USDC`],
@@ -582,10 +582,10 @@ function BlockView({
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-between gap-3 border-t border-dashed border-white/10 p-4">
+        <div className="flex items-center justify-between gap-3 border-t border-dashed border-fg/10 p-4">
           <div>
             <div className="text-[12px] text-mute">You lock</div>
-            <div className="font-display text-xl font-semibold text-mint tabular">{usdt(q.sellerLocks)} USDC</div>
+            <div className="font-display text-xl font-semibold text-mint-ink tabular">{usdt(q.sellerLocks)} USDC</div>
           </div>
           <Button onClick={onLock} disabled={!latest} icon={<Lock className="size-4" />}>
             Lock & post
@@ -617,9 +617,9 @@ function BlockView({
       <div className="flex flex-wrap gap-2">
         {(latest ? portfolio : b.cards).map((c) => (
           <span key={c} className="flex items-center gap-1.5 rounded-full bg-amber/[0.08] py-1.5 pr-1.5 pl-3 text-[12.5px] ring-1 ring-amber/30">
-            <CreditCard className="size-3.5 text-amber" /> {c}
+            <CreditCard className="size-3.5 text-amber-ink" /> {c}
             {latest && (
-              <button onClick={() => onRemoveCard(c)} className="grid size-5 place-items-center rounded-full text-mute hover:bg-white/10 hover:text-fg" aria-label={`Remove ${c}`}>
+              <button onClick={() => onRemoveCard(c)} className="grid size-5 place-items-center rounded-full text-mute hover:bg-fg/10 hover:text-fg" aria-label={`Remove ${c}`}>
                 <X className="size-3" />
               </button>
             )}
@@ -641,7 +641,7 @@ function BlockView({
               key={o.id}
               disabled={!latest}
               onClick={() => onPickRequest(o.id)}
-              className="group flex items-center gap-3 rounded-2xl bg-white/[0.03] p-3 text-left ring-1 ring-white/[0.07] transition enabled:hover:bg-white/[0.07] enabled:hover:ring-amber/40 disabled:cursor-default disabled:opacity-60"
+              className="group flex items-center gap-3 rounded-2xl bg-fg/[0.03] p-3 text-left ring-1 ring-fg/[0.07] transition enabled:hover:bg-fg/[0.07] enabled:hover:ring-amber/40 disabled:cursor-default disabled:opacity-60"
             >
               <BrandMark id={o.brandId} size={38} />
               <span className="min-w-0 flex-1">
@@ -652,7 +652,7 @@ function BlockView({
                   Get <span className="text-fg tabular">{usdt(q.buyerReceives)} USDC</span> · ₹{o.rate}
                 </span>
               </span>
-              <ArrowRight className="size-4 text-dim transition group-hover:translate-x-0.5 group-hover:text-amber" />
+              <ArrowRight className="size-4 text-dim transition group-hover:translate-x-0.5 group-hover:text-amber-ink" />
             </button>
           );
         })}
@@ -667,15 +667,15 @@ function BlockView({
     return (
       <div className="space-y-2">
         {f.options.map((op) => (
-          <div key={op.rank} className={cx("rounded-2xl p-4 ring-1", op.best ? "bg-amber/[0.07] ring-amber/45" : "bg-white/[0.025] ring-white/[0.07]")}>
+          <div key={op.rank} className={cx("rounded-2xl p-4 ring-1", op.best ? "bg-amber/[0.07] ring-amber/45" : "bg-fg/[0.025] ring-fg/[0.07]")}>
             <div className="flex items-start gap-3">
-              <span className={cx("grid size-7 shrink-0 place-items-center rounded-full font-mono text-[11px]", op.best ? "bg-amber text-ink" : "bg-white/[0.06] text-mute")}>{op.rank}</span>
+              <span className={cx("grid size-7 shrink-0 place-items-center rounded-full font-mono text-[11px]", op.best ? "bg-amber text-ink" : "bg-fg/[0.06] text-mute")}>{op.rank}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[14px] font-medium">{op.card}</span>
-                  {op.best && <span className="rounded-full bg-amber/15 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber uppercase">best</span>}
+                  {op.best && <span className="rounded-full bg-amber/15 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber-ink uppercase">best</span>}
                   <span
-                    className={cx("flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider uppercase ring-1", op.verified ? "text-mint ring-mint/30" : "text-amber ring-amber/30")}
+                    className={cx("flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider uppercase ring-1", op.verified ? "text-mint-ink ring-mint/30" : "text-amber-ink ring-amber/30")}
                     title={`${op.source} · checked ${op.checked_on}`}
                   >
                     {op.verified ? <BadgeCheck className="size-3" /> : <TriangleAlert className="size-3" />} {op.verified ? op.grade.toLowerCase() : "confirm"}
@@ -684,12 +684,12 @@ function BlockView({
                 <div className="mt-0.5 text-[12.5px] text-mute">{op.channel}</div>
               </div>
               <div className="text-right">
-                <div className={cx("text-[17px] font-semibold tabular", op.best && "text-amber")}>{op.expected_value_pct}%</div>
+                <div className={cx("text-[17px] font-semibold tabular", op.best && "text-amber-ink")}>{op.expected_value_pct}%</div>
                 <div className="text-[11px] text-dim tabular">≈ {inr(op.expected_value_rupees)} back</div>
               </div>
             </div>
             {op.best && op.steps.length > 0 && (
-              <ol className="mt-3 space-y-1.5 border-t border-white/[0.06] pt-3 pl-10">
+              <ol className="mt-3 space-y-1.5 border-t border-fg/[0.06] pt-3 pl-10">
                 {op.steps.slice(0, 4).map((s, i) => (
                   <li key={i} className="flex gap-2 text-[12.5px] text-fg/80">
                     <span className={cx("font-mono", accent)}>{i + 1}</span> {s}
@@ -707,7 +707,7 @@ function BlockView({
           </div>
         ))}
 
-        <div className="rounded-2xl bg-white/[0.02] p-3.5 text-[12.5px] ring-1 ring-white/[0.06]">
+        <div className="rounded-2xl bg-fg/[0.02] p-3.5 text-[12.5px] ring-1 ring-fg/[0.06]">
           <div className="text-mute">
             Must match: <span className="text-fg">{f.must_match.voucher_brand}</span>, total <span className="text-fg">{inr(f.must_match.total_amount_inr)}</span>{" "}
             ({f.must_match.suggested_split.map((x) => inr(x)).join(" + ")})

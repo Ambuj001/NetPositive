@@ -6,7 +6,7 @@ import { useApp } from "../lib/store";
 
 const pill = "inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-medium tracking-tight transition";
 const primary = `${pill} bg-mint text-ink shadow-[0_0_0_1px_rgba(61,220,151,0.5),0_8px_30px_-6px_rgba(61,220,151,0.55)] hover:brightness-110`;
-const outline = `${pill} bg-white/[0.03] text-fg ring-1 ring-white/12 hover:bg-white/[0.07] hover:ring-white/25`;
+const outline = `${pill} bg-fg/[0.03] text-fg ring-1 ring-fg/12 hover:bg-fg/[0.07] hover:ring-fg/25`;
 
 function Out({ portal, className, children }: { portal: Portal; className: string; children: string }) {
   return (

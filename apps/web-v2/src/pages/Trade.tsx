@@ -118,6 +118,23 @@ export default function Trade() {
       const ok = await verifyHuman();
       if (!ok) return;
     }
+    // A live order: accept it on the server (locks it to this wallet), then open the buy step.
+    if (request) {
+      if (request.status !== "open") {
+        toast({ title: "This order can't be accepted", body: `It is ${request.status.replaceAll("_", " ")}.`, tone: "amber" });
+        return;
+      }
+      try {
+        const auth = token ?? (await signIn());
+        if (!auth) return;
+        const { request: next } = await api.accept(request.id, auth);
+        setRequest(next);
+      } catch (e) {
+        toast({ title: "Couldn't accept", body: e instanceof Error ? e.message : "Try again.", tone: "rose" });
+        api.get(request.id).then(({ request: fresh }) => setRequest(fresh)).catch(() => undefined);
+        return;
+      }
+    }
     go();
   };
   const bought = () => {
@@ -125,6 +142,11 @@ export default function Trade() {
     push(`VoucherPurchased(${order.id}, ${nCodes} × ${inr(denom)})`, "amber");
   };
   const iAmBuyer = !!request && !!fullAddress && request.crypto_buyer?.toLowerCase() === fullAddress.toLowerCase();
+
+  // A live order: the connected wallet decides which side you see.
+  useEffect(() => {
+    if (request && fullAddress && request.crypto_spender?.toLowerCase() === fullAddress.toLowerCase()) setRole("seller");
+  }, [request, fullAddress]);
 
   // A live order the buyer already accepted: skip the walkthrough and open the seal step.
   useEffect(() => {
@@ -270,9 +292,9 @@ export default function Trade() {
   const mine = actor === role || actor === "verifier" || actor === null;
 
   return (
-    <div className="relative pt-28">
+    <div className="relative pt-10 md:pt-14">
       <Aurora className="h-[55vh] opacity-50" />
-      <div className="relative mx-auto max-w-6xl px-6">
+      <div className="relative mx-auto max-w-[1200px] px-5 md:px-8">
         {/* Header */}
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
@@ -290,24 +312,37 @@ export default function Trade() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {request ? (
+              <Pill tone={request.status === "released" ? "mint" : request.status === "disputed" ? "rose" : "amber"} dot>
+                Live order · {request.status.replaceAll("_", " ")}
+              </Pill>
+            ) : null}
+            {request && role === "seller" ? (
+              <Button size="sm" to={`/track?id=${encodeURIComponent(request.id)}`} icon={<ArrowUpRight className="size-3.5" />}>
+                Manage your order
+              </Button>
+            ) : request ? null : (
+              <>
             <RoleSwitch role={role} setRole={setRole} />
             <button
               onClick={() => (stage === 5 ? reset() : setAuto((a) => !a))}
               className={cx(
                 "flex h-10 items-center gap-2 rounded-full px-4 text-[13px] font-medium ring-1 transition",
-                auto ? "bg-mint/10 text-mint ring-mint/40" : "text-fg ring-white/12 hover:bg-white/5",
+                auto ? "bg-mint/10 text-mint-ink ring-mint/40" : "text-fg ring-fg/12 hover:bg-fg/5",
               )}
             >
               {stage === 5 ? <RotateCcw className="size-3.5" /> : auto ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
               {stage === 5 ? "Replay" : auto ? "Pause demo" : "Autoplay demo"}
             </button>
+              </>
+            )}
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="mt-8 flex gap-1.5">
           {STAGES.map((_, i) => (
-            <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-white/[0.07]">
+            <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-fg/[0.07]">
               <motion.div
                 className={cx("h-full", i === 3 ? "bg-iris" : i === 1 || i === 2 ? "bg-amber" : "bg-mint")}
                 initial={false}
@@ -329,14 +364,14 @@ export default function Trade() {
                 const Icon = s.icon;
                 return (
                   <li key={s.k} className="relative flex gap-3 pb-4 last:pb-0">
-                    {i < STAGES.length - 1 && <span className={cx("absolute top-8 left-[15px] h-[calc(100%-24px)] w-px", done ? "bg-mint/50" : "bg-white/[0.08]")} />}
+                    {i < STAGES.length - 1 && <span className={cx("absolute top-8 left-[15px] h-[calc(100%-24px)] w-px", done ? "bg-mint/50" : "bg-fg/[0.08]")} />}
                     <span
                       className={cx(
                         "relative grid size-8 shrink-0 place-items-center rounded-full ring-1 transition-all duration-500",
-                        done ? "bg-mint text-ink ring-mint" : on ? "bg-white/[0.06] text-fg ring-white/30" : "text-dim ring-white/10",
+                        done ? "bg-mint text-ink ring-mint" : on ? "bg-fg/[0.06] text-fg ring-fg/30" : "text-dim ring-fg/10",
                       )}
                     >
-                      {on && <span className="absolute inset-0 animate-pulse-ring rounded-full ring-1 ring-white/40" />}
+                      {on && <span className="absolute inset-0 animate-pulse-ring rounded-full ring-1 ring-fg/40" />}
                       {done ? <Check className="size-3.5" /> : <Icon className="size-3.5" />}
                     </span>
                     <div className="pt-1">
@@ -370,11 +405,11 @@ export default function Trade() {
                           onClick={() => setRoute(i)}
                           className={cx(
                             "flex w-full items-center gap-4 rounded-2xl p-4 text-left ring-1 transition",
-                            route === i ? "bg-amber/[0.07] ring-amber/50" : "bg-white/[0.02] ring-white/[0.07] hover:ring-white/15",
+                            route === i ? "bg-amber/[0.07] ring-amber/50" : "bg-fg/[0.02] ring-fg/[0.07] hover:ring-fg/15",
                           )}
                         >
-                          <span className={cx("grid size-5 place-items-center rounded-full ring-1", route === i ? "bg-amber ring-amber" : "ring-white/20")}>
-                            {route === i && <span className="size-2 rounded-full bg-ink" />}
+                          <span className={cx("grid size-5 place-items-center rounded-full ring-1", route === i ? "bg-amber ring-amber" : "ring-fg/20")}>
+                            {route === i && <span className="size-2 rounded-full bg-canvas" />}
                           </span>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 text-[14px] font-medium">
@@ -393,7 +428,7 @@ export default function Trade() {
                       ))}
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint" : "text-mute")}>
+                      <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint-ink" : "text-mute")}>
                         {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
                         {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
                       </div>
@@ -426,11 +461,11 @@ export default function Trade() {
                         <li key={s}>
                           <button
                             onClick={() => setChecks((c) => c.map((v, j) => (j === i ? !v : v)))}
-                            className={cx("flex w-full items-center gap-3 rounded-2xl p-4 text-left text-[14px] ring-1 transition", checks[i] ? "bg-white/[0.02] text-mute ring-white/[0.05]" : "ring-white/[0.08] hover:ring-amber/40")}
+                            className={cx("flex w-full items-center gap-3 rounded-2xl p-4 text-left text-[14px] ring-1 transition", checks[i] ? "bg-fg/[0.02] text-mute ring-fg/[0.05]" : "ring-fg/[0.08] hover:ring-amber/40")}
                           >
                             <motion.span
                               animate={{ scale: checks[i] ? [1, 1.25, 1] : 1 }}
-                              className={cx("grid size-6 shrink-0 place-items-center rounded-full font-mono text-[11px]", checks[i] ? "bg-mint text-ink" : "bg-white/[0.06] text-amber")}
+                              className={cx("grid size-6 shrink-0 place-items-center rounded-full font-mono text-[11px]", checks[i] ? "bg-mint text-ink" : "bg-fg/[0.06] text-amber-ink")}
                             >
                               {checks[i] ? <Check className="size-3.5" /> : i + 1}
                             </motion.span>
@@ -455,7 +490,7 @@ export default function Trade() {
                   <Panel tone="amber" title="Paste your voucher codes" sub={request ? "Encrypted on this device to the spender's vault key. The server only stores the locked box." : "They're encrypted on this device to the verifier's key. The spender only sees them after they pass."}>
                     <div className="space-y-2.5">
                       {codes.map((c, i) => (
-                        <div key={i} className="flex items-center gap-3 rounded-2xl bg-white/[0.02] p-2 pl-4 ring-1 ring-white/[0.08] focus-within:ring-amber/40">
+                        <div key={i} className="flex items-center gap-3 rounded-2xl bg-fg/[0.02] p-2 pl-4 ring-1 ring-fg/[0.08] focus-within:ring-amber/40">
                           <span className="font-mono text-[11px] text-dim">#{i + 1}</span>
                           <input
                             value={encrypting ? "" : c}
@@ -465,7 +500,7 @@ export default function Trade() {
                             aria-label={`Voucher code ${i + 1}`}
                           />
                           {encrypting && <Scramble className="flex-1" />}
-                          <span className="rounded-lg bg-white/[0.04] px-2.5 py-1.5 font-mono text-[11px] text-mute">{inr(denom)}</span>
+                          <span className="rounded-lg bg-fg/[0.04] px-2.5 py-1.5 font-mono text-[11px] text-mute">{inr(denom)}</span>
                         </div>
                       ))}
                     </div>
@@ -486,7 +521,7 @@ export default function Trade() {
                   <Panel tone="mint" title={`${nCodes} × ${b.name} ${inr(denom)}`} sub="Codes visible to you only. Re-checked against the issuer the moment you open them.">
                     <div className="space-y-2">
                       {DEMO_CODES.slice(0, nCodes).map((c) => (
-                        <div key={c} className="flex items-center justify-between rounded-2xl bg-white/[0.03] px-4 py-3.5 ring-1 ring-white/[0.08]">
+                        <div key={c} className="flex items-center justify-between rounded-2xl bg-fg/[0.03] px-4 py-3.5 ring-1 ring-fg/[0.08]">
                           <span className={cx("font-mono text-[15px] tracking-[0.12em] transition-all duration-700", revealed ? "blur-0" : "select-none blur-[6px]")}>{c}</span>
                           <button
                             onClick={() => {
@@ -495,7 +530,7 @@ export default function Trade() {
                                 toast({ title: "Code copied", tone: "mint" });
                               } else setRevealed(true);
                             }}
-                            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] text-mute ring-1 ring-white/10 hover:text-fg"
+                            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] text-mute ring-1 ring-fg/10 hover:text-fg"
                           >
                             {revealed ? "Copy" : (
                               <>
@@ -509,14 +544,14 @@ export default function Trade() {
                     <div
                       className={cx(
                         "mt-3 flex items-center justify-between rounded-2xl px-4 py-3 text-[13px] ring-1 transition",
-                        recheck === "ok" ? "bg-mint/[0.07] ring-mint/40" : "bg-white/[0.02] ring-white/[0.08]",
+                        recheck === "ok" ? "bg-mint/[0.07] ring-mint/40" : "bg-fg/[0.02] ring-fg/[0.08]",
                       )}
                     >
                       <span className="flex items-center gap-2 text-mute">
-                        {recheck === "busy" ? <LoaderCircle className="size-4 animate-spin text-iris" /> : recheck === "ok" ? <ShieldCheck className="size-4 text-mint" /> : <EyeOff className="size-4" />}
+                        {recheck === "busy" ? <LoaderCircle className="size-4 animate-spin text-iris" /> : recheck === "ok" ? <ShieldCheck className="size-4 text-mint-ink" /> : <EyeOff className="size-4" />}
                         {recheck === "busy" ? "Re-checking balance…" : recheck === "ok" ? "Re-checked just now" : "Reveal to run the second check"}
                       </span>
-                      {recheck === "ok" && <span className="font-semibold text-mint">{inr(order.amount)} live</span>}
+                      {recheck === "ok" && <span className="font-semibold text-mint-ink">{inr(order.amount)} live</span>}
                     </div>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <span className="flex items-center gap-1.5 font-mono text-[11.5px] text-dim">
@@ -554,7 +589,7 @@ export default function Trade() {
                 </motion.span>
                 <span className="text-[13px] text-mute">USDC held</span>
               </div>
-              <div className="mt-3 divide-y divide-white/[0.06]">
+              <div className="mt-3 divide-y divide-fg/[0.06]">
                 <Row k="Buyer gets" v={usdt(q.buyerReceives)} />
                 <Row k="Dispute reserve" v={usdt(q.reserveShare)} />
                 <Row k="Platform" v={usdt(q.platformShare)} />
@@ -595,7 +630,7 @@ function fmt(s: number) {
 
 function RoleSwitch({ role, setRole }: { role: Role; setRole: (r: Role) => void }) {
   return (
-    <div className="flex rounded-full bg-white/[0.03] p-1 ring-1 ring-white/[0.08]">
+    <div className="flex rounded-full bg-fg/[0.03] p-1 ring-1 ring-fg/[0.08]">
       {(["seller", "buyer"] as Role[]).map((r) => (
         <button key={r} onClick={() => setRole(r)} className={cx("relative h-8 rounded-full px-4 text-[12.5px] font-medium transition", role === r ? "text-ink" : "text-mute hover:text-fg")}>
           {role === r && <motion.span layoutId="role" className={cx("absolute inset-0 rounded-full", r === "seller" ? "bg-mint" : "bg-amber")} transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
@@ -637,7 +672,7 @@ function Waiting({ actor, stage, onSwitch, clock }: { actor: Role; stage: number
         {[0, 1, 2].map((i) => (
           <span key={i} className={cx("absolute inset-0 animate-pulse-ring rounded-full ring-1", tone === "amber" ? "ring-amber/50" : "ring-mint/50")} style={{ animationDelay: `${i * 0.8}s` }} />
         ))}
-        <span className={cx("grid size-14 place-items-center rounded-full", tone === "amber" ? "bg-amber/15 text-amber" : "bg-mint/15 text-mint")}>
+        <span className={cx("grid size-14 place-items-center rounded-full", tone === "amber" ? "bg-amber/15 text-amber-ink" : "bg-mint/15 text-mint-ink")}>
           {stage === 0 ? <Radar className="size-6" /> : <ShoppingBag className="size-6" />}
         </span>
       </div>
@@ -678,10 +713,10 @@ function VerifierPanel({ n, nCodes, denom, brandName, merchantPortal, orderId, a
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.05 }}
-            className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition-all duration-300", i < n ? "ring-mint/20 bg-mint/[0.04]" : i === n ? "ring-iris/40 bg-iris/[0.05]" : "ring-white/[0.05]")}
+            className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition-all duration-300", i < n ? "ring-mint/20 bg-mint/[0.04]" : i === n ? "ring-iris/40 bg-iris/[0.05]" : "ring-fg/[0.05]")}
           >
             <span className={cx("grid size-5 place-items-center rounded-full", i < n ? "bg-mint text-ink" : "text-iris")}>
-              {i < n ? <Check className="size-3" /> : i === n ? <LoaderCircle className="size-4 animate-spin" /> : <span className="size-1.5 rounded-full bg-white/20" />}
+              {i < n ? <Check className="size-3" /> : i === n ? <LoaderCircle className="size-4 animate-spin" /> : <span className="size-1.5 rounded-full bg-fg/20" />}
             </span>
             <span className={i <= n ? "text-fg/90" : "text-dim"}>{c}</span>
           </motion.li>
@@ -719,7 +754,7 @@ function Settled({ q, role, onDispute, onReplay, brandName }: { q: ReturnType<ty
         {role === "buyer" ? "Plus 1,650 reward points from HDFC, posting within 90 working days." : "Codes are live and yours. The escrow paid the buyer and split the 1% fee."}
       </p>
       <div className="relative mx-auto mt-8 max-w-md text-left">
-        <div className="flex h-3 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="flex h-3 overflow-hidden rounded-full bg-fg/[0.06]">
           {bars.map((b, i) => (
             <motion.div key={b.k} className={cx("h-full", b.c)} initial={{ width: 0 }} animate={{ width: `${Math.max(1.4, (b.v / q.sellerLocks) * 100)}%` }} transition={{ delay: 0.3 + i * 0.15, duration: 0.8 }} />
           ))}
@@ -800,7 +835,7 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4 backdrop-blur-md" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+        <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-fg/30 p-4 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
           <motion.div
             role="dialog"
             aria-modal
@@ -810,18 +845,18 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
             animate={{ y: 0, scale: 1, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 26 }}
-            className="hairline relative w-full max-w-[460px] rounded-[28px] bg-ink-2 p-6"
+            className="hairline relative w-full max-w-[460px] rounded-[28px] bg-surface p-6"
           >
             <div className="flex items-center justify-between">
               <Pill tone="rose">Dispute</Pill>
-              <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-mute hover:bg-white/5" aria-label="Close">
+              <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-mute hover:bg-fg/5" aria-label="Close">
                 <X className="size-4" />
               </button>
             </div>
             <h3 className="mt-4 font-display text-2xl font-semibold tracking-tight">{brandName} voucher didn't work?</h3>
             <div className="mt-5 space-y-2">
               {steps.map((s, i) => (
-                <div key={s} className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition", i < n ? "ring-mint/20" : i === n ? "ring-iris/40" : "ring-white/[0.06]")}>
+                <div key={s} className={cx("flex items-center gap-3 rounded-xl px-4 py-3 text-[13.5px] ring-1 transition", i < n ? "ring-mint/20" : i === n ? "ring-iris/40" : "ring-fg/[0.06]")}>
                   <span className={cx("grid size-5 place-items-center rounded-full font-mono text-[10px]", i < n ? "bg-mint text-ink" : "text-iris")}>
                     {i < n ? <Check className="size-3" /> : i === n ? <LoaderCircle className="size-4 animate-spin" /> : i + 1}
                   </span>
@@ -831,10 +866,10 @@ function DisputeModal({ open, onClose, q, brandName }: { open: boolean; onClose:
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-[12px]">
               <div className="rounded-xl bg-mint/[0.05] p-3 ring-1 ring-mint/20">
-                <div className="font-medium text-mint">Spent before your first use</div>
+                <div className="font-medium text-mint-ink">Spent before your first use</div>
                 <div className="mt-1 text-mute">Refunded from the reserve</div>
               </div>
-              <div className="rounded-xl bg-white/[0.02] p-3 ring-1 ring-white/[0.07]">
+              <div className="rounded-xl bg-fg/[0.02] p-3 ring-1 ring-fg/[0.07]">
                 <div className="font-medium">Spent after delivery</div>
                 <div className="mt-1 text-mute">Trade stands</div>
               </div>

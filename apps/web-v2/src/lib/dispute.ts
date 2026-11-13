@@ -2,6 +2,7 @@
  * Disputes: API calls, the 1 USDC stake on Arc testnet, and screenshot helpers.
  * The JWT only ever goes in the Authorization header.
  */
+import { switchToArc } from "./arc";
 import { API_URL, ApiError, type ApiRequest } from "./api";
 
 /* ------------------------------------------------------------------ types */
@@ -140,13 +141,6 @@ export const ARC_CHAIN_HEX = "0x4cef52";
 export const ARC_USDC = "0x3600000000000000000000000000000000000000";
 const APPROVE_SELECTOR = "0x095ea7b3"; // approve(address,uint256)
 const DEPOSIT_SELECTOR = "0x1de26e16"; // deposit(bytes32,uint256)
-const ARC_CHAIN = {
-  chainId: ARC_CHAIN_HEX,
-  chainName: "Arc Testnet",
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  rpcUrls: ["https://rpc.testnet.arc.network"],
-};
-
 export type Rpc = (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
 
 const pad32 = (hex: string) => hex.replace(/^0x/i, "").padStart(64, "0");
@@ -157,17 +151,7 @@ function encodeDeposit(id: string, amount: bigint) {
   return DEPOSIT_SELECTOR + h.toLowerCase() + pad32(amount.toString(16));
 }
 
-async function ensureArc(rpc: Rpc) {
-  const cur = await rpc({ method: "eth_chainId" });
-  const n = typeof cur === "number" ? cur : typeof cur === "string" ? Number(cur) : NaN; // Number() reads "0x…" too
-  if (n === ARC_CHAIN_ID) return;
-  try {
-    await rpc({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_CHAIN_HEX }] });
-  } catch (e) {
-    if ((e as { code?: number }).code !== 4902) throw e;
-    await rpc({ method: "wallet_addEthereumChain", params: [ARC_CHAIN] });
-  }
-}
+const ensureArc = (rpc: Rpc) => switchToArc(rpc);
 
 async function waitForReceipt(rpc: Rpc, hash: string) {
   for (let i = 0; i < 60; i++) {

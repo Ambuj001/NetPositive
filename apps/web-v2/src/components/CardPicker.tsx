@@ -37,7 +37,7 @@ export function CardPicker({
 
   return (
     <div>
-      <label className="flex h-11 items-center gap-2.5 rounded-2xl bg-white/[0.04] px-3.5 ring-1 ring-white/10 transition focus-within:ring-amber/45">
+      <label className="flex h-11 items-center gap-2.5 rounded-2xl bg-fg/[0.04] px-3.5 ring-1 ring-fg/10 transition focus-within:ring-amber/45">
         <Search className="size-4 text-dim" />
         <input
           autoFocus={autoFocus}
@@ -64,15 +64,15 @@ export function CardPicker({
               onClick={() => toggle(c.id)}
               className={cx(
                 "flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition",
-                already ? "cursor-default bg-white/[0.015] opacity-55 ring-white/[0.05]" : on ? "bg-amber/[0.07] ring-amber/50" : "bg-white/[0.025] ring-white/[0.07] hover:bg-white/[0.05] hover:ring-white/15",
+                already ? "cursor-default bg-fg/[0.015] opacity-55 ring-fg/[0.05]" : on ? "bg-amber/[0.07] ring-amber/50" : "bg-fg/[0.025] ring-fg/[0.07] hover:bg-fg/[0.05] hover:ring-fg/15",
               )}
             >
-              <span className={cx("grid size-5 shrink-0 place-items-center rounded-md ring-1", on || already ? "bg-amber text-ink ring-amber" : "ring-white/25")}>{(on || already) && <Check className="size-3.5" strokeWidth={3} />}</span>
+              <span className={cx("grid size-5 shrink-0 place-items-center rounded-md ring-1", on || already ? "bg-amber text-ink ring-amber" : "ring-fg/25")}>{(on || already) && <Check className="size-3.5" strokeWidth={3} />}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] font-medium">{c.title}</span>
-                <span className={cx("block truncate text-[11.5px]", c.verified ? "text-mint" : "text-dim")}>{already ? "Already in My cards" : c.profile.last}</span>
+                <span className={cx("block truncate text-[11.5px]", c.verified ? "text-mint-ink" : "text-dim")}>{already ? "Already in My cards" : c.profile.last}</span>
               </span>
-              <span className="shrink-0 rounded-full bg-white/[0.06] px-2 py-0.5 font-mono text-[10px] tracking-wide text-mute">{c.issuer}</span>
+              <span className="shrink-0 rounded-full bg-fg/[0.06] px-2 py-0.5 font-mono text-[10px] tracking-wide text-mute">{c.issuer}</span>
             </button>
           );
         })}

@@ -1,8 +1,21 @@
 # NetPositive web v2
 
-Dark-theme frontend for NetPositive: crypto holders pay for shops with gift vouchers, card holders fill those vouchers on their best reward route and get paid in USDT from escrow.
+Light "Ledger" frontend for NetPositive: crypto holders pay for shops with gift vouchers, card holders fill those vouchers on their best reward route and get paid in USDC from escrow.
 
-This is a standalone package. It is not part of the root npm workspace, so it does not change `apps/web` or the existing CI.
+**Design system.** Paper-white surfaces, near-black type and one volt green (`#00C866`) that means "money moved in your favour". Display moments use a dot-matrix face (Doto) like a trading-floor ticker board; body text is Geist, numbers and code are Geist Mono. Tokens live in `src/index.css`; primitives (`Button`, `Card`, `SectionHead`, `PageHead`, `DotText`, `Sticker`, `Marquee`, `Mark`) in `src/components/ui.tsx`; 7×7 LED icons in `src/components/PixelIcon.tsx`.
+
+This is a standalone package. It is not part of the root npm workspace.
+
+## Run the whole product locally (no keys needed)
+
+```sh
+cd backend && npm ci && npm run dev:mem      # :8080, in-memory DB, mock escrow, World ID dev bypass, 8 demo orders
+cd apps/web-v2 && npm ci && npm run dev      # http://localhost:5173
+```
+
+Connect any EVM wallet, sign in (one free signature), and you're registered as a human (dev bypass). Real World ID: put
+`WORLD_ID_RP_ID` and `WORLD_ID_SIGNING_KEY` in the shell and run `WORLD_ID=real npm run dev:mem`; with `WORLD_ID_ENV=staging`
+scan the QR with the [World ID Simulator](https://simulator.worldcoin.org), not the World App (production needs `WORLD_ID_ENV=production`).
 
 ## Run
 
@@ -51,16 +64,16 @@ React 19, TypeScript, Vite, Tailwind CSS v4, Motion, React Router, Lucide icons.
 
 ## Integration boundary
 
-**Wallet connection is real.** `src/lib/wallet.ts` lists these wallets: Base, MetaMask, Coinbase Wallet, Rainbow, Rabby, Trust Wallet, Phantom, Brave Wallet and WalletConnect, plus any other extension found via EIP-6963.
+**Wallets.** `src/lib/wallet.ts` connects any EVM wallet:
 
-- Installed extensions open their own approval popup (`eth_requestAccounts`).
-- **Base** opens the Base Account passkey popup (`@base-org/account`), no extension needed.
-- **Coinbase Wallet** uses the extension if installed, otherwise the Coinbase popup (`@coinbase/wallet-sdk`).
-- **WalletConnect** shows a QR code for mobile wallets. It needs a free project ID from https://cloud.reown.com in `.env` as `VITE_WALLETCONNECT_PROJECT_ID` (see `.env.example`). Without it the option is shown as "Setup".
-- Wallets that aren't installed link to their download page.
+- **Detected extensions** via EIP-6963 (MetaMask, Rabby, Coinbase, OKX, Phantom, Zerion, Brave, Rainbow, Trust, and any other wallet that announces itself), plus older wallets that only inject `window.ethereum`.
+- **Base Account** (passkey popup) and **Coinbase Wallet** (app or popup) without an extension.
+- **WalletConnect** QR for mobile wallets; needs `VITE_WALLETCONNECT_PROJECT_ID` (free at https://cloud.reown.com). The session includes Arc Testnet.
+- The last wallet reconnects silently after a reload (`eth_accounts`, never a popup). Disconnect forgets it.
+- Escrow steps switch the wallet to Arc Testnet and add the network first if the wallet doesn't know it (`src/lib/arc.ts`, handles MetaMask, Rabby, OKX, Coinbase and WalletConnect error shapes).
 
-The app shows the approved address and network and follows account and network changes. It never signs messages or sends transactions.
+**World ID.** Browsing needs only a wallet. Proof of Human is asked once, right after connecting and again whenever someone posts or accepts an order without it. The app takes app id, action, environment and the dev-bypass flag from `GET /world-id/config`, so a frontend/backend `.env` mismatch can't break it. If the server has no RP keys, the app says exactly what to add.
 
-Everything after connection is a UI prototype: World ID, the USDT escrow balance, voucher verification and contract events are simulated in the browser with demo data (`src/lib/store.tsx`, `src/lib/data.ts`). No funds move.
+**Tested end to end** (Playwright, injected wallets with real secp256k1 signatures): connect with an EIP-6963 catalog wallet, an unknown EIP-6963 wallet and a legacy `window.ethereum` wallet; World ID; reload keeps the session; switch/add Arc; and a full two-wallet trade (post + lock → accept → Ready with vault key + EIP-712 permit → sealed code → reveal → settle).
 
 Reward maths lives in `src/lib/engine.ts` and reproduces the Product Walkthrough V3 example (₹10,000 Lifestyle voucher at ₹90/USDT: seller locks 112.22 USDT, buyer receives 111.11 USDT + 1,650 Infinia points via SmartBuy 5X). Card rates are illustrative and must be refreshed from issuer terms before real recommendations.

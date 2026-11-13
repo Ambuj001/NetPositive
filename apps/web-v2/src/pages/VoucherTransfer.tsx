@@ -76,7 +76,7 @@ export function VaultSetup() {
 
   return (
     <div className="rounded-[22px] bg-mint/[0.05] p-4 ring-1 ring-mint/25">
-      <div className="text-[14px] font-medium text-mint">Unlock your voucher vault</div>
+      <div className="text-[14px] font-medium text-mint-ink">Unlock your voucher vault</div>
       <p className="mt-1 text-[12.5px] leading-relaxed text-mute">
         The buyer seals the voucher code to your wallet before it is sent. Your wallet signs a message, and that signature becomes the key. It stays in this browser. The server only keeps the public key.
       </p>
@@ -84,9 +84,9 @@ export function VaultSetup() {
         <Button size="sm" onClick={() => void setup()} disabled={phase === "working" || signingIn} icon={phase === "working" || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
           {phase === "working" || signingIn ? "Check your wallet…" : token ? "Set up vault" : "Sign in and set up vault"}
         </Button>
-        {hint && <p className="min-w-0 flex-1 text-[12px] text-amber">{hint}</p>}
+        {hint && <p className="min-w-0 flex-1 text-[12px] text-amber-ink">{hint}</p>}
       </div>
-      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
     </div>
   );
 }
@@ -164,12 +164,12 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
 
   return (
     <div className="mt-3 rounded-2xl bg-amber/[0.05] p-3.5 ring-1 ring-amber/25">
-      <div className="text-[13px] font-medium text-amber">Seal the voucher code</div>
+      <div className="text-[13px] font-medium text-amber-ink">Seal the voucher code</div>
       <p className="mt-1 text-[12px] leading-relaxed text-mute">
         The code is encrypted on this device to the spender's vault key, then sent. The server stores the locked box and cannot read it.
       </p>
       {vaultMissing && (
-        <p className="mt-2 text-[12px] text-amber">The spender hasn't set up their vault yet. The code stays in this box until they do. Ask them to open this order.</p>
+        <p className="mt-2 text-[12px] text-amber-ink">The spender hasn't set up their vault yet. The code stays in this box until they do. Ask them to open this order.</p>
       )}
       <label className="mt-3 block">
         <span className="label">Voucher code</span>
@@ -184,7 +184,7 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
           spellCheck={false}
           placeholder="Paste the code from the voucher"
           aria-label="Voucher code"
-          className="mt-1.5 w-full resize-none rounded-xl bg-ink px-3 py-2 font-mono text-[13px] tracking-wide ring-1 ring-white/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-amber/40"
+          className="mt-1.5 w-full resize-none rounded-xl bg-canvas px-3 py-2 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-amber/40"
         />
       </label>
       <label className="mt-2 block">
@@ -198,10 +198,10 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
           spellCheck={false}
           placeholder="Optional"
           aria-label="Voucher PIN"
-          className="mt-1.5 h-10 w-full rounded-xl bg-ink px-3 font-mono text-[13px] tracking-wide ring-1 ring-white/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-amber/40"
+          className="mt-1.5 h-10 w-full rounded-xl bg-canvas px-3 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-amber/40"
         />
       </label>
-      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose">{err}</p>}
+      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
       <div className="mt-3">
         <Button size="sm" variant="amber" onClick={() => void send()} disabled={!codeOk || !pinOk || busy || worldBusy || signingIn} icon={busy || worldBusy || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
           {busy ? "Sealing and sending…" : worldBusy || signingIn ? "Check your wallet…" : "Seal and send"}

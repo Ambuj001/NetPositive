@@ -11,6 +11,7 @@ import cardRoutes from './routes/cards.js';
 import vaultRoutes from './routes/vault.js';
 import buyIntentRoutes from './routes/buyIntents.js';
 import internalRoutes from './routes/internal.js';
+import ratesRoutes from './routes/rates.js';
 
 export function createApp() {
   const app = express();
@@ -28,6 +29,7 @@ export function createApp() {
   app.use('/cards', cardRoutes);
   app.use('/vault', vaultRoutes);
   app.use('/internal', internalRoutes);
+  app.use('/rates', ratesRoutes);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found', 'Route not found')));
 

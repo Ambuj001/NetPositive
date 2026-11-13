@@ -1,72 +1,64 @@
 import { animate, motion, useInView, useMotionValue, useSpring, useTransform } from "motion/react";
 import { clsx } from "clsx";
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { findBrand, brand as getBrand } from "../lib/data";
 
 export const cx = clsx;
 
 /* ------------------------------------------------------------------ Logo */
-export function Logo({ className }: { className?: string }) {
+
+/** The mark: a black tile with a 5×5 LED grid; the lit cells draw the "+" of NetPositive. */
+export function Mark({ className, lit = "#00c866" }: { className?: string; lit?: string }) {
+  const on = new Set(["0-2", "1-2", "2-0", "2-1", "2-2", "2-3", "2-4", "3-2", "4-2"]);
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <rect width="32" height="32" rx="7" fill="#0c0d0f" />
+      {Array.from({ length: 25 }, (_, i) => {
+        const r = Math.floor(i / 5);
+        const c = i % 5;
+        const isOn = on.has(`${r}-${c}`);
+        return <circle key={i} cx={6.4 + c * 4.8} cy={6.4 + r * 4.8} r={isOn ? 1.85 : 1.1} fill={isOn ? lit : "#2c2e33"} />;
+      })}
+    </svg>
+  );
+}
+
+export function Logo({ className, compact }: { className?: string; compact?: boolean }) {
   return (
     <Link to="/" className={cx("group flex items-center gap-2.5", className)} aria-label="NetPositive home">
-      <span className="relative grid size-8 place-items-center rounded-[10px] bg-gradient-to-b from-white/12 to-white/[0.02] ring-1 ring-white/12">
-        {/* NetPositive mark: "N" with a plus, from the team's repo */}
-        <svg viewBox="0 0 40 32" className="h-[15px] w-[19px]" fill="none" aria-hidden>
-          <path d="M4 26V6h5l17 20h5V6" stroke="url(#np)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path
-            d="M23 6h13M31 1v10"
-            stroke="#f5b544"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-            className="origin-[31px_6px] transition-transform duration-500 group-hover:rotate-90"
-          />
-          <defs>
-            <linearGradient id="np" x1="0" x2="1">
-              <stop offset="0" stopColor="#3ddc97" />
-              <stop offset="1" stopColor="#b6f5d6" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </span>
-      <span className="font-display text-[17px] font-semibold tracking-tight">
-        Net<span className="text-mute">Positive</span>
-      </span>
+      <Mark className="size-8 transition-transform duration-500 group-hover:rotate-90" />
+      {!compact && <span className="text-[17px] font-semibold tracking-[-0.03em]">NetPositive</span>}
     </Link>
   );
 }
 
 /* ---------------------------------------------------------------- Button */
 type BtnProps = ComponentProps<"button"> & {
-  variant?: "primary" | "ghost" | "outline" | "amber";
+  variant?: "primary" | "volt" | "ghost" | "outline" | "amber";
   size?: "sm" | "md" | "lg";
   to?: string;
+  href?: string;
   icon?: ReactNode;
 };
 
-export function Button({ variant = "primary", size = "md", className, children, to, icon, ...rest }: BtnProps) {
+export function Button({ variant = "primary", size = "md", className, children, to, href, icon, ...rest }: BtnProps) {
   const cls = cx(
-    "group relative inline-flex select-none items-center justify-center gap-2 overflow-hidden rounded-full font-medium tracking-tight transition-all duration-300 disabled:pointer-events-none disabled:opacity-40",
-    size === "sm" && "h-9 px-4 text-[13px]",
-    size === "md" && "h-11 px-5 text-[14px]",
-    size === "lg" && "h-13 px-7 text-[15px]",
-    variant === "primary" &&
-      "bg-mint text-ink shadow-[0_0_0_1px_rgba(61,220,151,0.5),0_8px_30px_-6px_rgba(61,220,151,0.55),inset_0_1px_0_rgba(255,255,255,0.5)] hover:shadow-[0_0_0_1px_rgba(61,220,151,0.8),0_10px_44px_-6px_rgba(61,220,151,0.8),inset_0_1px_0_rgba(255,255,255,0.6)] hover:brightness-110",
-    variant === "amber" &&
-      "bg-amber text-ink shadow-[0_0_0_1px_rgba(245,181,68,0.5),0_8px_30px_-6px_rgba(245,181,68,0.5),inset_0_1px_0_rgba(255,255,255,0.5)] hover:brightness-110",
-    variant === "outline" && "bg-white/[0.03] text-fg ring-1 ring-white/12 hover:bg-white/[0.07] hover:ring-white/25",
-    variant === "ghost" && "text-mute hover:bg-white/5 hover:text-fg",
+    "group relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium tracking-[-0.01em] transition-[background-color,box-shadow,transform,color] duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+    size === "sm" && "h-9 px-4 text-[13.5px]",
+    size === "md" && "h-11 px-5 text-[14.5px]",
+    size === "lg" && "h-13 px-7 text-[15.5px]",
+    variant === "primary" && "bg-fg text-white hover:bg-[#25272c]",
+    variant === "volt" && "bg-mint text-ink shadow-[inset_0_-2px_0_rgba(0,0,0,0.12)] hover:bg-mint-2",
+    variant === "amber" && "bg-amber text-ink shadow-[inset_0_-2px_0_rgba(0,0,0,0.1)] hover:brightness-95",
+    variant === "outline" && "bg-surface text-fg ring-1 ring-line-2 hover:bg-sunken",
+    variant === "ghost" && "text-mute hover:bg-sunken hover:text-fg",
     className,
   );
   const inner = (
     <>
-      {(variant === "primary" || variant === "amber") && (
-        <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-      )}
-      <span className="relative flex items-center gap-2">
-        {children}
-        {icon}
-      </span>
+      {children}
+      {icon && <span className="transition-transform duration-200 group-hover:translate-x-0.5">{icon}</span>}
     </>
   );
   if (to)
@@ -75,6 +67,14 @@ export function Button({ variant = "primary", size = "md", className, children, 
         {inner}
       </Link>
     );
+  if (href) {
+    const external = /^https?:/.test(href);
+    return (
+      <a href={href} className={cls} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+        {inner}
+      </a>
+    );
+  }
   return (
     <button className={cls} {...rest}>
       {inner}
@@ -82,31 +82,10 @@ export function Button({ variant = "primary", size = "md", className, children, 
   );
 }
 
-/* ------------------------------------------------------- Spotlight card */
-export function Card({
-  className,
-  children,
-  glow = "rgba(61,220,151,0.10)",
-  ...rest
-}: ComponentProps<"div"> & { glow?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ x: -400, y: -400 });
-  const onMove = (e: MouseEvent<HTMLDivElement>) => {
-    const r = ref.current?.getBoundingClientRect();
-    if (r) setPos({ x: e.clientX - r.left, y: e.clientY - r.top });
-  };
+/* ------------------------------------------------------------------ Card */
+export function Card({ className, children, glow: _glow, ...rest }: ComponentProps<"div"> & { glow?: string }) {
   return (
-    <div
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={() => setPos({ x: -400, y: -400 })}
-      className={cx("hairline relative overflow-hidden rounded-3xl bg-ink-2/80", className)}
-      {...rest}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 transition-opacity duration-300"
-        style={{ background: `radial-gradient(420px circle at ${pos.x}px ${pos.y}px, ${glow}, transparent 60%)` }}
-      />
+    <div className={cx("relative overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(12,13,15,0.04)]", className)} {...rest}>
       <div className="relative h-full">{children}</div>
     </div>
   );
@@ -125,17 +104,17 @@ export function Pill({
   dot?: boolean;
 }) {
   const t = {
-    mint: "text-mint bg-mint/10 ring-mint/25",
-    amber: "text-amber bg-amber/10 ring-amber/25",
-    iris: "text-iris bg-iris/10 ring-iris/25",
-    rose: "text-rose bg-rose/10 ring-rose/25",
-    mute: "text-mute bg-white/[0.04] ring-white/10",
+    mint: "text-mint-ink bg-mint-soft ring-mint/30",
+    amber: "text-amber-ink bg-amber/12 ring-amber/35",
+    iris: "text-iris bg-iris/8 ring-iris/25",
+    rose: "text-rose-ink bg-rose/8 ring-rose/25",
+    mute: "text-mute bg-sunken ring-line",
   }[tone];
   return (
-    <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.12em] ring-1", t, className)}>
+    <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] ring-1", t, className)}>
       {dot && (
         <span className="relative flex size-1.5">
-          <span className="absolute inset-0 animate-ping rounded-full bg-current opacity-60" />
+          <span className="absolute inset-0 animate-ping rounded-full bg-current opacity-50" />
           <span className="relative size-1.5 rounded-full bg-current" />
         </span>
       )}
@@ -147,17 +126,17 @@ export function Pill({
 /* ------------------------------------------------------- Persona chip */
 export function Persona({ who }: { who: "seller" | "buyer" | "verifier" }) {
   const m = {
-    seller: { label: "Spender", cls: "text-mint ring-mint/40" },
-    buyer: { label: "Buyer", cls: "text-amber ring-amber/40" },
-    verifier: { label: "Verification layer", cls: "text-iris ring-iris/40" },
+    seller: { label: "Spender", cls: "text-mint-ink bg-mint-soft ring-mint/40" },
+    buyer: { label: "Buyer", cls: "text-amber-ink bg-amber/12 ring-amber/40" },
+    verifier: { label: "Verification layer", cls: "text-iris bg-iris/8 ring-iris/30" },
   }[who];
-  return <span className={cx("rounded-full px-2.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] ring-1", m.cls)}>{m.label}</span>;
+  return <span className={cx("rounded-full px-2.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] ring-1", m.cls)}>{m.label}</span>;
 }
 
 /* -------------------------------------------------------- Brand mark */
 export function BrandMark({ id, size = 40, className, name }: { id: string; size?: number; className?: string; name?: string }) {
   const known = findBrand(id);
-  const b = known ?? { ...getBrand(id), color: "#5a6170", glyph: (name ?? id).slice(0, 1).toUpperCase() };
+  const b = known ?? { ...getBrand(id), color: "#5f636b", glyph: (name ?? id).slice(0, 1).toUpperCase() };
   // Only brands we know get a logo; unknown ids would otherwise inherit the fallback brand's.
   const logo = known?.logo;
   const [broken, setBroken] = useState<string | null>(null);
@@ -165,7 +144,7 @@ export function BrandMark({ id, size = 40, className, name }: { id: string; size
   if (logo && broken !== logo) {
     return (
       <span
-        className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-white/10", className)}
+        className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-white ring-1 ring-line", className)}
         style={{ width: size, height: size, padding: known.logoPad ? Math.round(size * 0.14) : 0 }}
         aria-hidden
       >
@@ -186,17 +165,11 @@ export function BrandMark({ id, size = 40, className, name }: { id: string; size
 
   return (
     <span
-      className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-xl font-display font-bold text-white ring-1 ring-white/10", className)}
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.44,
-        background: `radial-gradient(120% 120% at 20% 0%, ${b.color}, ${b.color}55 55%, #0b0d12)`,
-      }}
+      className={cx("relative grid shrink-0 place-items-center overflow-hidden rounded-xl font-semibold text-white", className)}
+      style={{ width: size, height: size, fontSize: size * 0.44, background: b.color }}
       aria-hidden
     >
       {b.glyph}
-      <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />
     </span>
   );
 }
@@ -241,49 +214,34 @@ export function SectionHead({
   title,
   sub,
   center,
+  className,
 }: {
   eyebrow: string;
   title: ReactNode;
   sub?: ReactNode;
   center?: boolean;
+  className?: string;
 }) {
   return (
-    <div className={cx("max-w-2xl", center && "mx-auto text-center")}>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className={cx("label mb-4 flex items-center gap-2", center && "justify-center")}
-      >
-        <span className="h-px w-6 bg-gradient-to-r from-transparent to-mint" />
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className={cx("max-w-2xl", center && "mx-auto text-center", className)}
+    >
+      <div className={cx("eyebrow mb-3 flex items-center gap-2", center && "justify-center")}>
+        <span className="size-1.5 rounded-[2px] bg-mint" />
         {eyebrow}
-      </motion.div>
-      <motion.h2
-        initial={{ opacity: 0, y: 14 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.05, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="text-gradient font-display text-4xl font-semibold leading-[1.05] tracking-[-0.03em] md:text-5xl"
-      >
-        {title}
-      </motion.h2>
-      {sub && (
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.12, duration: 0.7 }}
-          className="mt-5 text-[16px] leading-relaxed text-mute"
-        >
-          {sub}
-        </motion.p>
-      )}
-    </div>
+      </div>
+      <h2 className="text-[34px] font-semibold leading-[1.06] tracking-[-0.035em] md:text-[44px]">{title}</h2>
+      {sub && <p className="mt-4 text-[16px] leading-relaxed text-mute">{sub}</p>}
+    </motion.div>
   );
 }
 
 /* ---------------------------------------------------- Tilt container */
-export function Tilt({ children, className, max = 8 }: { children: ReactNode; className?: string; max?: number }) {
+export function Tilt({ children, className, max = 6 }: { children: ReactNode; className?: string; max?: number }) {
   const x = useMotionValue(0.5);
   const y = useMotionValue(0.5);
   const rx = useSpring(useTransform(y, [0, 1], [max, -max]), { stiffness: 150, damping: 18 });
@@ -317,13 +275,95 @@ export function Row({ k, v, strong, className }: { k: ReactNode; v: ReactNode; s
   );
 }
 
-/* ----------------------------------------------------- Ambient glows */
+/* ------------------------------------------- Page backdrop (was glows) */
+/** Inside pages get a faint dot field at the top instead of the old coloured glows. */
 export function Aurora({ className }: { className?: string }) {
   return (
-    <div aria-hidden className={cx("pointer-events-none absolute inset-0 overflow-hidden", className)}>
-      <div className="absolute -top-[30%] left-1/2 h-[70vh] w-[90vw] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(61,220,151,0.22),transparent)] blur-2xl" />
-      <div className="absolute -top-[10%] left-[65%] h-[45vh] w-[40vw] rounded-full bg-[radial-gradient(closest-side,rgba(245,181,68,0.13),transparent)] blur-2xl" />
-      <div className="absolute top-[5%] left-[5%] h-[40vh] w-[35vw] rounded-full bg-[radial-gradient(closest-side,rgba(139,123,255,0.12),transparent)] blur-2xl" />
+    <div aria-hidden className={cx("pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden", className)}>
+      <div className="dot-bg absolute inset-0 [mask-image:linear-gradient(to_bottom,#000,transparent_85%)] opacity-60" />
+    </div>
+  );
+}
+
+/* ------------------------------------------------ Page heading block */
+export function PageHead({ eyebrow, title, sub, right }: { eyebrow: string; title: ReactNode; sub?: ReactNode; right?: ReactNode }) {
+  return (
+    <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <div className="max-w-2xl">
+        <div className="eyebrow mb-2 flex items-center gap-2">
+          <span className="size-1.5 rounded-[2px] bg-mint" />
+          {eyebrow}
+        </div>
+        <h1 className="text-[34px] font-semibold leading-[1.05] tracking-[-0.04em] md:text-[42px]">{title}</h1>
+        {sub && <p className="mt-3 text-[15.5px] leading-relaxed text-mute">{sub}</p>}
+      </div>
+      {right}
+    </div>
+  );
+}
+
+/* --------------------------------------------- Dot-matrix ticker text */
+/**
+ * Big dot-matrix lettering (Doto) with an optional "boot" animation where characters scramble into place,
+ * like a split-flap / LED board settling.
+ */
+export function DotText({ text, className, scramble = true }: { text: string; className?: string; scramble?: boolean }) {
+  const [shown, setShown] = useState(text);
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  useEffect(() => {
+    if (!scramble) {
+      setShown(text);
+      return;
+    }
+    if (!inView) return;
+    const glyphs = "0123456789+%$₹#";
+    let frame = 0;
+    const total = 18;
+    const id = window.setInterval(() => {
+      frame++;
+      setShown(
+        text
+          .split("")
+          .map((ch, i) => (ch === " " || frame > total * (i + 1) / text.length + 4 ? ch : glyphs[(frame + i * 7) % glyphs.length]))
+          .join(""),
+      );
+      if (frame > total + 6) {
+        window.clearInterval(id);
+        setShown(text);
+      }
+    }, 45);
+    return () => window.clearInterval(id);
+  }, [text, inView, scramble]);
+  return (
+    <span ref={ref} className={cx("font-dot font-black tracking-[0.02em]", className)} aria-label={text}>
+      <span aria-hidden>{shown}</span>
+    </span>
+  );
+}
+
+/* ----------------------------------------------------- Tilted sticker */
+export function Sticker({ children, className, tilt = -3 }: { children: ReactNode; className?: string; tilt?: number }) {
+  return (
+    <span
+      className={cx("inline-block bg-mint px-[0.28em] pb-[0.06em] font-semibold text-ink shadow-[0.06em_0.06em_0_#0c0d0f]", className)}
+      style={{ transform: `rotate(${tilt}deg)` }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------ Marquee */
+export function Marquee({ children, className, speed = 40 }: { children: ReactNode; className?: string; speed?: number }) {
+  return (
+    <div className={cx("relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)]", className)}>
+      <div className="flex w-max animate-marquee hover:[animation-play-state:paused]" style={{ animationDuration: `${speed}s` }}>
+        <div className="flex shrink-0 items-center">{children}</div>
+        <div className="flex shrink-0 items-center" aria-hidden>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

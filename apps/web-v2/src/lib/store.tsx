@@ -23,6 +23,12 @@ type Ctx = {
   choices: WalletChoice[];
   pending: string | null;
   walletError: string;
+  /** True while the last-used wallet is being silently reconnected after a reload. */
+  restoring: boolean;
+  /** True when the wallet is on Arc Testnet, where the escrow lives. */
+  onArc: boolean;
+  /** Ask the wallet to switch to (or add) Arc Testnet. */
+  switchToArc: () => Promise<void>;
   /** Demo USDC balance used by the simulated escrow (not read from chain). */
   balance: number;
   /** USDC (or native coin) actually held by the connected wallet. */
@@ -175,6 +181,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       choices: wallet.choices,
       pending: wallet.pending,
       walletError: wallet.error,
+      restoring: wallet.restoring,
+      onArc: wallet.onArc,
+      switchToArc: wallet.switchChain,
       balance,
       walletBalance: wallet.walletBalance,
       humanVerified: humanVerified || !!apiUser?.worldIdNullifier,

@@ -49,7 +49,7 @@ export function HeroRail({ className }: { className?: string }) {
           ]}
           footer={
             <>
-              <Store className="size-3.5 shrink-0 text-mint/80" />
+              <Store className="size-3.5 shrink-0 text-mint-ink/80" />
               {phase >= 3 ? "Got live Lifestyle codes, shops Saturday" : "Has USDC, wants a Lifestyle voucher"}
             </>
           }
@@ -60,15 +60,15 @@ export function HeroRail({ className }: { className?: string }) {
         {/* Escrow diamond */}
         <div className="relative mx-auto my-2 grid size-[168px] place-items-center md:my-0">
           <motion.div
-            animate={{ boxShadow: s.escrow > 0 ? "0 0 70px -10px rgba(61,220,151,0.55)" : "0 0 40px -16px rgba(255,255,255,0.15)" }}
+            animate={{ boxShadow: s.escrow > 0 ? "0 0 70px -10px rgba(61,220,151,0.55)" : "0 0 40px -16px rgba(12,13,15,0.15)" }}
             transition={{ duration: 0.8 }}
-            className="absolute inset-[22px] rotate-45 rounded-[26px] bg-gradient-to-br from-white/[0.09] to-white/[0.015] ring-1 ring-white/15 backdrop-blur-xl"
+            className="absolute inset-[22px] rotate-45 rounded-[26px] bg-gradient-to-br from-fg/[0.09] to-fg/[0.015] ring-1 ring-fg/15 backdrop-blur-xl"
           >
-            <div className="absolute inset-[7px] rounded-[20px] ring-1 ring-white/[0.06]" />
+            <div className="absolute inset-[7px] rounded-[20px] ring-1 ring-fg/[0.06]" />
             {s.escrow > 0 && <span className="absolute inset-0 animate-pulse-ring rounded-[26px] ring-1 ring-mint/50" />}
           </motion.div>
           <div className="relative flex flex-col items-center text-center">
-            <span className={cx("grid size-7 place-items-center rounded-full ring-1 transition-colors duration-500", s.escrow > 0 ? "bg-mint/15 text-mint ring-mint/40" : "bg-white/[0.06] text-mute ring-white/15")}>
+            <span className={cx("grid size-7 place-items-center rounded-full ring-1 transition-colors duration-500", s.escrow > 0 ? "bg-mint/15 text-mint-ink ring-mint/40" : "bg-fg/[0.06] text-mute ring-fg/15")}>
               {phase === 2 ? <ScanLine className="size-3.5 text-iris" /> : phase >= 3 ? <Check className="size-3.5" /> : <Lock className="size-3.5" />}
             </span>
             <span className="mt-2 font-mono text-[9.5px] tracking-[0.22em] text-mute uppercase">Escrow</span>
@@ -84,7 +84,7 @@ export function HeroRail({ className }: { className?: string }) {
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className={cx("font-mono text-[10px] tracking-[0.14em] uppercase", phase === 2 ? "text-iris" : phase >= 3 ? "text-mint" : "text-mute")}
+                className={cx("font-mono text-[10px] tracking-[0.14em] uppercase", phase === 2 ? "text-iris" : phase >= 3 ? "text-mint-ink" : "text-mute")}
               >
                 {s.status}
               </motion.span>
@@ -108,7 +108,7 @@ export function HeroRail({ className }: { className?: string }) {
           ]}
           footer={
             <>
-              <Sparkles className="size-3.5 shrink-0 text-amber/80" />
+              <Sparkles className="size-3.5 shrink-0 text-amber-ink/80" />
               {phase === 2 ? "Buying on SmartBuy 5X with Infinia…" : "Pays on HDFC Infinia, keeps 100% of rewards"}
             </>
           }
@@ -139,14 +139,14 @@ function PersonaCard({
   stats: { k: string; v: ReactNode }[];
   footer: ReactNode;
 }) {
-  const c = tone === "mint" ? { text: "text-mint", ring: "ring-mint/45", glow: "rgba(61,220,151,0.35)" } : { text: "text-amber", ring: "ring-amber/55", glow: "rgba(245,181,68,0.35)" };
+  const c = tone === "mint" ? { text: "text-mint-ink", ring: "ring-mint/45", glow: "rgba(61,220,151,0.35)" } : { text: "text-amber-ink", ring: "ring-amber/55", glow: "rgba(245,181,68,0.35)" };
   return (
     <motion.div
-      animate={{ y: active ? -4 : 0, boxShadow: active ? `0 24px 70px -18px ${c.glow}, 0 0 0 1px ${c.glow}` : "0 24px 60px -24px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0)" }}
+      animate={{ y: active ? -4 : 0, boxShadow: active ? `0 24px 70px -18px ${c.glow}, 0 0 0 1px ${c.glow}` : "0 24px 60px -24px rgba(12,13,15,0.14), 0 0 0 1px rgba(255,255,255,0)" }}
       transition={{ type: "spring", stiffness: 200, damping: 22 }}
       className={cx(
-        "relative w-full overflow-hidden rounded-[22px] bg-gradient-to-b from-white/[0.075] to-white/[0.02] p-4 text-left ring-1 backdrop-blur-xl transition-[--tw-ring-color] duration-500 md:max-w-[320px]",
-        active ? c.ring : "ring-white/10",
+        "relative w-full overflow-hidden rounded-[22px] bg-gradient-to-b from-fg/[0.075] to-fg/[0.02] p-4 text-left ring-1 backdrop-blur-xl transition-[--tw-ring-color] duration-500 md:max-w-[320px]",
+        active ? c.ring : "ring-fg/10",
         tone === "amber" && "md:justify-self-end",
       )}
     >
@@ -163,7 +163,7 @@ function PersonaCard({
       </div>
       <div className="relative mt-4 grid grid-cols-2 gap-2">
         {stats.map((st) => (
-          <div key={st.k} className="rounded-xl bg-white/[0.04] px-3 py-2.5 ring-1 ring-white/[0.06]">
+          <div key={st.k} className="rounded-xl bg-fg/[0.04] px-3 py-2.5 ring-1 ring-fg/[0.06]">
             <div className="text-[11px] text-mute">{st.k}</div>
             <div className="mt-0.5 text-[16px] font-semibold tracking-tight text-fg tabular">{st.v}</div>
           </div>
@@ -179,14 +179,14 @@ function Avatar({ letter, tone, verified }: { letter: string; tone: "mint" | "am
     <span className="relative shrink-0">
       <span
         className={cx(
-          "grid size-10 place-items-center rounded-full text-[14px] font-bold text-white ring-1 ring-white/20",
+          "grid size-10 place-items-center rounded-full text-[14px] font-bold text-white ring-1 ring-fg/20",
           tone === "mint" ? "bg-gradient-to-br from-[#2fd39a] to-[#0d6b4c]" : "bg-gradient-to-br from-[#d9925a] to-[#7a4424]",
         )}
       >
         {letter}
       </span>
       {verified && (
-        <span className="absolute -right-1 -bottom-1 grid size-[18px] place-items-center rounded-full bg-ink ring-1 ring-white/10" title="World ID verified">
+        <span className="absolute -right-1 -bottom-1 grid size-[18px] place-items-center rounded-full bg-canvas ring-1 ring-fg/10" title="World ID verified">
           <BadgeCheck className="size-3.5 text-iris" />
         </span>
       )}
@@ -213,7 +213,7 @@ function Rail({
   const towardRight = (side === "left" && flow === "in") || (side === "right" && flow === "out");
   const ties = (a: number) => `repeating-linear-gradient(90deg, rgba(${lit ? col : "255,255,255"},${a}) 0 1.5px, transparent 1.5px 9px)`;
   const tiesV = (a: number) => `repeating-linear-gradient(180deg, rgba(${lit ? col : "255,255,255"},${a}) 0 1.5px, transparent 1.5px 9px)`;
-  const rail = lit ? `rgba(${col},0.75)` : "rgba(255,255,255,0.16)";
+  const rail = lit ? `rgba(${col},0.75)` : "rgba(12,13,15,0.16)";
 
   return (
     <>

@@ -88,6 +88,30 @@ requests/{id}/events/{auto}           audit trail
 
 Deploy rules and indexes with `firebase deploy --only firestore` (see `firestore.rules` and `firestore.indexes.json`).
 
+
+## Live rates API (`/rates`)
+
+Live USD/INR and USDT/USDC–INR from foreign exchanges' P2P ads and Indian spot order books, priced for a trade size.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /rates?amountInr=10000` | Everything: USD/INR, P2P buy/sell and spot for USDT and USDC, premium over forex (bps) |
+| `GET /rates/forex` | USD/INR median of Coinbase (real time), ECB via Frankfurter (daily), ExchangeRate-API (daily); Pyth with `PYTH_API_KEY` |
+| `GET /rates/p2p?asset=USDT&side=buy\|sell&amountInr=` | Executable P2P price for that size from Binance, Bybit, KuCoin, with the top ads used and why others were rejected |
+| `GET /rates/orderbook?asset=USDT&amountInr=` | WazirX and CoinDCX books: best bid/ask, mid, spread, average fill price for that size, depth |
+| `GET /rates/quote?asset=&amountInr=&rewardBps=` | NetPositive band: seller floor/cap, buyer ceiling, USDC owed, both sides' gain vs P2P |
+| `GET /rates/attestation?asset=&amountInr=` | EIP-712 signed `PriceAttestation` (refuses stale data and crossed markets) |
+| `GET /rates/history?limit=` | Snapshots from the background refresher (`RATES_REFRESH_SECONDS`, default 60) |
+| `GET /rates/health` | Per source: last success, last error, latency, circuit breaker |
+
+How a price is made robust:
+- **Per P2P exchange:** only ads that accept the trade size, from traders with ≥ 90% completion and ≥ 20 orders (relaxed and flagged if fewer than 2 qualify); price = median of the best 3 (bait ads with ₹100 limits or tiny stock never count).
+- **Across sources:** median, minus any source more than 3% away (two sources that disagree: the more liquid one wins).
+- **Failures:** 6 s timeout + one retry per source; 3 straight failures open a 60 s circuit breaker; if every source fails, the last good value is served marked `stale` for up to 15 min, then 503 with the last known value.
+- **Caching:** 30 s for P2P and books, 60 s for forex; concurrent requests share one fetch.
+
+Check it live from your machine: `npm run rates:live -- 10000`. Response shapes were verified against the live APIs on 6 Nov 2026 (OKX P2P isn't reachable from India; Pyth's Hermes now needs a key).
+
 ## Not done yet
 
 - Gift-card API path (Pay2All / Qwikcilver) for instant fulfilment

@@ -28,13 +28,13 @@ import { inr } from "../lib/engine";
 import { useApp } from "../lib/store";
 
 const SHOT_WARNING = "Screenshots can show the voucher code. Only the two of you and the team can see them, but crop anything you don't need.";
-const field = "w-full rounded-2xl bg-white/[0.03] px-3.5 text-[14px] text-fg ring-1 ring-white/10 outline-none transition placeholder:text-dim focus:ring-mint/40";
+const field = "w-full rounded-2xl bg-fg/[0.03] px-3.5 text-[14px] text-fg ring-1 ring-fg/10 outline-none transition placeholder:text-dim focus:ring-mint/40";
 
 /** /dispute lists your orders that can be disputed or are disputed. /dispute/:id is one order. */
 export default function DisputePage() {
   const { id } = useParams();
   return (
-    <div className="relative pt-28 pb-16">
+    <div className="relative pt-10 md:pt-14 pb-16">
       <Aurora className="h-[45vh] opacity-40" />
       <div className="relative mx-auto max-w-2xl px-6">
         {id ? <OrderDispute id={id} /> : <DisputeList />}
@@ -65,7 +65,7 @@ function SignedIn({ children }: { children: (token: string) => ReactNode }) {
 
 function Notice({ children, tone = "rose" }: { children: ReactNode; tone?: "rose" | "mint" }) {
   return (
-    <div role="alert" className={cx("flex items-start gap-2 rounded-2xl px-3.5 py-3 text-[13px] ring-1", tone === "rose" ? "bg-rose/[0.07] text-rose ring-rose/25" : "bg-mint/[0.07] text-mint ring-mint/25")}>
+    <div role="alert" className={cx("flex items-start gap-2 rounded-2xl px-3.5 py-3 text-[13px] ring-1", tone === "rose" ? "bg-rose/[0.07] text-rose-ink ring-rose/25" : "bg-mint/[0.07] text-mint-ink ring-mint/25")}>
       <CircleAlert className="mt-0.5 size-4 shrink-0" /> <span className="min-w-0 break-words">{children}</span>
     </div>
   );
@@ -111,8 +111,8 @@ function Orders({ token }: { token: string }) {
   if (!rows) return <div className="flex items-center gap-2 text-[13px] text-mute"><LoaderCircle className="size-4 animate-spin" /> Loading your orders…</div>;
   if (!rows.length)
     return (
-      <div className="hairline rounded-[22px] bg-ink-2/70 p-6 text-[14px] text-mute backdrop-blur-xl">
-        Nothing to dispute right now. An order shows up here once its voucher code has been submitted. <Link to="/track" className="text-mint hover:underline">See your orders</Link>
+      <div className="hairline rounded-[22px] bg-surface/70 p-6 text-[14px] text-mute backdrop-blur-xl">
+        Nothing to dispute right now. An order shows up here once its voucher code has been submitted. <Link to="/track" className="text-mint-ink hover:underline">See your orders</Link>
       </div>
     );
   return (
@@ -121,7 +121,7 @@ function Orders({ token }: { token: string }) {
         const b = brand(brandIdFromApi(r.brand));
         const st = STATUS[r.status];
         return (
-          <Link key={r.id} to={`/dispute/${encodeURIComponent(r.id)}`} className="hairline flex items-center gap-3 rounded-[22px] bg-ink-2/70 p-4 backdrop-blur-xl transition hover:bg-ink-2">
+          <Link key={r.id} to={`/dispute/${encodeURIComponent(r.id)}`} className="hairline flex items-center gap-3 rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl transition hover:bg-surface">
             <BrandMark id={brandIdFromApi(r.brand)} size={40} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14.5px] font-medium">{b.name} {inr(r.amountInr)}</span>
@@ -183,7 +183,7 @@ function OrderDispute({ id }: { id: string }) {
             <Pill tone={hasDispute(req) ? "rose" : "mute"}>{STATUS[req.status].label}</Pill>
           </div>
 
-          <div className="hairline mt-6 rounded-[22px] bg-ink-2/70 p-5 backdrop-blur-xl">
+          <div className="hairline mt-6 rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
             <SignedIn>
               {(token) =>
                 screen?.kind === "raise" ? (
@@ -281,7 +281,7 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight"><ShieldAlert className="size-5 text-rose" /> Raise a dispute</h2>
+        <h2 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight"><ShieldAlert className="size-5 text-rose-ink" /> Raise a dispute</h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-mute">
           {stake ? `You stake ${stake}. ` : ""}If the team agrees with you, the stake comes back and the other person gets a strike. If not, the stake goes to the other person and your account is banned.
         </p>
@@ -290,8 +290,8 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
       <label className="block">
         <span className="mb-1.5 block text-[12.5px] text-mute">What's wrong?</span>
         <select value={category} onChange={(e) => setCategory(e.target.value as Category | "")} disabled={busy} className={cx(field, "h-12")}>
-          <option value="" className="bg-ink-2">Choose…</option>
-          {CATEGORIES.map((c) => <option key={c.value} value={c.value} className="bg-ink-2">{c.label}</option>)}
+          <option value="" className="bg-surface">Choose…</option>
+          {CATEGORIES.map((c) => <option key={c.value} value={c.value} className="bg-surface">{c.label}</option>)}
         </select>
       </label>
 
@@ -304,19 +304,19 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
         <div className="mb-1.5 text-[12.5px] text-mute">Screenshots (optional, up to {MAX_SHOTS})</div>
         <div className="flex flex-wrap items-center gap-2">
           {files.map((f, i) => (
-            <button key={i} type="button" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))} disabled={busy} className="rounded-full bg-white/[0.05] px-3 py-1.5 text-[12px] ring-1 ring-white/10 hover:bg-white/[0.09]" title="Remove">
+            <button key={i} type="button" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))} disabled={busy} className="rounded-full bg-fg/[0.05] px-3 py-1.5 text-[12px] ring-1 ring-fg/10 hover:bg-fg/[0.09]" title="Remove">
               {f.name.slice(0, 22)} ✕
             </button>
           ))}
           {files.length < MAX_SHOTS && (
-            <label className={cx("flex h-9 cursor-pointer items-center gap-2 rounded-full px-3.5 text-[12.5px] text-mute ring-1 ring-white/12 hover:text-fg", busy && "pointer-events-none opacity-40")}>
+            <label className={cx("flex h-9 cursor-pointer items-center gap-2 rounded-full px-3.5 text-[12.5px] text-mute ring-1 ring-fg/12 hover:text-fg", busy && "pointer-events-none opacity-40")}>
               <ImagePlus className="size-4" /> Add
               <input type="file" accept={SHOT_TYPES.join(",")} multiple className="sr-only" onChange={(e) => { void pick(e.target.files); e.target.value = ""; }} />
             </label>
           )}
         </div>
         <p className="mt-2 text-[11.5px] leading-relaxed text-dim">{SHOT_WARNING}</p>
-        {problems.map((p) => <p key={p} className="mt-1 text-[12px] text-amber">{p}</p>)}
+        {problems.map((p) => <p key={p} className="mt-1 text-[12px] text-amber-ink">{p}</p>)}
       </div>
 
       <label className="flex items-start gap-2.5 text-[12.5px] leading-relaxed text-mute">
@@ -371,13 +371,13 @@ function DisputeView({ req, token, onChanged }: { req: DisputeRequest; token: st
         {d?.category && <p className="mt-1 text-[13px] text-mute">{categoryLabel(d.category)}</p>}
       </div>
 
-      {(d?.reason || req.disputeReason) && <p className="whitespace-pre-wrap rounded-2xl bg-white/[0.03] p-3.5 text-[14px] leading-relaxed ring-1 ring-white/[0.07]">{d?.reason ?? req.disputeReason}</p>}
+      {(d?.reason || req.disputeReason) && <p className="whitespace-pre-wrap rounded-2xl bg-fg/[0.03] p-3.5 text-[14px] leading-relaxed ring-1 ring-fg/[0.07]">{d?.reason ?? req.disputeReason}</p>}
       <p className="text-[12.5px] text-mute">{stakeLine(req, fullAddress)}</p>
 
       {outcome ? (
         <Notice tone={outcome.good ? "mint" : "rose"}>{outcome.text}{req.resolution?.note ? ` Note from the team: ${req.resolution.note}` : ""}</Notice>
       ) : (
-        <p className="text-[13px] text-amber">Waiting for the team to decide. Nothing moves until they do.</p>
+        <p className="text-[13px] text-amber-ink">Waiting for the team to decide. Nothing moves until they do.</p>
       )}
 
       <div>
@@ -385,7 +385,7 @@ function DisputeView({ req, token, onChanged }: { req: DisputeRequest; token: st
           <span className="text-[12.5px] text-mute">Screenshots</span>
           {open && mine < MAX_SHOTS && (
             <>
-              <button type="button" onClick={() => input.current?.click()} disabled={busy} className="flex items-center gap-1.5 text-[12.5px] text-mint hover:underline disabled:opacity-40">
+              <button type="button" onClick={() => input.current?.click()} disabled={busy} className="flex items-center gap-1.5 text-[12.5px] text-mint-ink hover:underline disabled:opacity-40">
                 <ImagePlus className="size-3.5" /> Add screenshot
               </button>
               <input
@@ -415,7 +415,7 @@ function DisputeView({ req, token, onChanged }: { req: DisputeRequest; token: st
       {d?.response?.text ? (
         <div>
           <div className="mb-1.5 text-[12.5px] text-mute">{iRaised ? "Their reply" : "Your reply"}</div>
-          <p className="whitespace-pre-wrap rounded-2xl bg-white/[0.03] p-3.5 text-[14px] leading-relaxed ring-1 ring-white/[0.07]">{d.response.text}</p>
+          <p className="whitespace-pre-wrap rounded-2xl bg-fg/[0.03] p-3.5 text-[14px] leading-relaxed ring-1 ring-fg/[0.07]">{d.response.text}</p>
         </div>
       ) : (
         open &&
@@ -453,9 +453,9 @@ function Shot({ reqId, ev, token, mine }: { reqId: string; ev: Evidence; token: 
     };
   }, [reqId, ev.id, token]);
   return (
-    <a href={url || undefined} target="_blank" rel="noreferrer" className="group relative block aspect-square overflow-hidden rounded-xl bg-white/[0.04] ring-1 ring-white/10" title={ev.note ?? "Open"}>
+    <a href={url || undefined} target="_blank" rel="noreferrer" className="group relative block aspect-square overflow-hidden rounded-xl bg-fg/[0.04] ring-1 ring-fg/10" title={ev.note ?? "Open"}>
       {url ? <img src={url} alt="Screenshot" className="size-full object-cover transition group-hover:scale-105" /> : <span className="grid size-full place-items-center"><LoaderCircle className="size-4 animate-spin text-dim" /></span>}
-      <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] text-white/80">{mine ? "you" : "them"}</span>
+      <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] text-white">{mine ? "you" : "them"}</span>
     </a>
   );
 }

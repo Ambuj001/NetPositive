@@ -17,8 +17,8 @@ export function ExtFrame({
   className?: string;
 }) {
   return (
-    <div className={cx("hairline relative overflow-hidden rounded-[22px] bg-[#0c0e13] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]", className)}>
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+    <div className={cx("hairline relative overflow-hidden rounded-[22px] bg-[#0c0e13] shadow-[0_30px_80px_-20px_rgba(12,13,15,0.14)]", className)}>
+      <div className="flex items-center justify-between border-b border-fg/[0.06] px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="grid size-5 place-items-center rounded-md bg-mint/15">
             <span className="size-1.5 rounded-full bg-mint" />
@@ -51,7 +51,7 @@ export function ScreenDetect() {
         transition={{ delay: 0.15 }}
         className="relative mt-4 rounded-2xl bg-mint/[0.06] p-3.5 ring-1 ring-mint/40"
       >
-        <div className="label !text-mint">Best for you</div>
+        <div className="label !text-mint-ink">Best for you</div>
         <div className="mt-1.5 flex items-center justify-between text-[13.5px]">
           <span>NetPositive voucher</span>
           <span className="font-semibold">1% fee</span>
@@ -62,7 +62,7 @@ export function ScreenDetect() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="mt-2.5 rounded-2xl bg-white/[0.02] p-3.5 opacity-60 ring-1 ring-white/[0.07]"
+        className="mt-2.5 rounded-2xl bg-fg/[0.02] p-3.5 opacity-60 ring-1 ring-fg/[0.07]"
       >
         <div className="label">Not in your region</div>
         <div className="mt-1.5 flex items-center justify-between text-[13.5px]">
@@ -71,7 +71,7 @@ export function ScreenDetect() {
         </div>
         <div className="mt-1 text-[12px] text-dim">First US$5,000/month only. Needs US$500k staked.</div>
       </motion.div>
-      <div className="mt-4 grid h-10 place-items-center rounded-full bg-white text-[13px] font-medium text-ink">Post voucher request</div>
+      <div className="mt-4 grid h-10 place-items-center rounded-full bg-fg text-[13px] font-medium text-white">Post voucher request</div>
     </ExtFrame>
   );
 }
@@ -86,7 +86,7 @@ export function ScreenRequest() {
   return (
     <ExtFrame tab="Request">
       <div className="text-[14px] font-semibold">Your request</div>
-      <div className="mt-2 divide-y divide-white/[0.05] text-[13px]">
+      <div className="mt-2 divide-y divide-fg/[0.05] text-[13px]">
         {[
           ["Voucher", "Lifestyle · ₹10,000"],
           ["Rate", "₹90 / USDC"],
@@ -96,15 +96,15 @@ export function ScreenRequest() {
         ].map(([k, v], i) => (
           <div key={k} className="flex justify-between py-2">
             <span className="text-mute">{k}</span>
-            <span className={cx("tabular", i === 4 && "font-semibold text-mint")}>{v}</span>
+            <span className={cx("tabular", i === 4 && "font-semibold text-mint-ink")}>{v}</span>
           </div>
         ))}
       </div>
-      <div className={cx("mt-3 flex items-center gap-2.5 rounded-2xl p-3 ring-1 transition-all duration-700", locked ? "bg-mint/[0.08] ring-mint/40" : "bg-white/[0.02] ring-white/10")}>
-        <span className={cx("grid size-8 place-items-center rounded-full transition", locked ? "bg-mint text-ink" : "bg-white/5 text-mute")}>
+      <div className={cx("mt-3 flex items-center gap-2.5 rounded-2xl p-3 ring-1 transition-all duration-700", locked ? "bg-mint/[0.08] ring-mint/40" : "bg-fg/[0.02] ring-fg/10")}>
+        <span className={cx("grid size-8 place-items-center rounded-full transition", locked ? "bg-mint text-ink" : "bg-fg/5 text-mute")}>
           {locked ? <Lock className="size-4" /> : <LoaderCircle className="size-4 animate-spin" />}
         </span>
-        <div className="font-mono text-[10.5px] uppercase leading-snug tracking-[0.1em] text-mint">
+        <div className="font-mono text-[10.5px] uppercase leading-snug tracking-[0.1em] text-mint-ink">
           {locked ? "Locked in escrow · releases only after voucher check" : "Confirming in wallet…"}
         </div>
       </div>
@@ -125,9 +125,9 @@ export function ScreenRoutes() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.12 * i }}
-            className={cx("rounded-2xl p-3 ring-1", i === 0 ? "bg-amber/[0.07] ring-amber/50" : "bg-white/[0.02] ring-white/[0.07]")}
+            className={cx("rounded-2xl p-3 ring-1", i === 0 ? "bg-amber/[0.07] ring-amber/50" : "bg-fg/[0.02] ring-fg/[0.07]")}
           >
-            {i === 0 && <div className="label mb-1 !text-amber">Best from your cards</div>}
+            {i === 0 && <div className="label mb-1 !text-amber-ink">Best from your cards</div>}
             <div className="flex items-center justify-between text-[13px]">
               <span className={i ? "text-mute" : ""}>Infinia · {r.channel.name.replace(" 5X", "")}{i === 0 ? " 5X" : ""}</span>
               <span className="font-semibold tabular">{r.pctTravel}%</span>
@@ -165,8 +165,8 @@ export function ScreenGuide() {
       <div className="text-[14px] font-semibold">Buy it this way</div>
       <ol className="mt-3 space-y-2">
         {steps.map((s, i) => (
-          <li key={i} className={cx("flex gap-3 rounded-xl p-2.5 text-[12.5px] transition-all duration-500", i < n ? "bg-white/[0.03] text-mute" : i === n ? "bg-amber/[0.07] text-fg ring-1 ring-amber/30" : "text-dim")}>
-            <span className={cx("grid size-5 shrink-0 place-items-center rounded-full font-mono text-[10px] font-semibold", i < n ? "bg-mint text-ink" : "bg-white/[0.06] text-amber")}>
+          <li key={i} className={cx("flex gap-3 rounded-xl p-2.5 text-[12.5px] transition-all duration-500", i < n ? "bg-fg/[0.03] text-mute" : i === n ? "bg-amber/[0.07] text-fg ring-1 ring-amber/30" : "text-dim")}>
+            <span className={cx("grid size-5 shrink-0 place-items-center rounded-full font-mono text-[10px] font-semibold", i < n ? "bg-mint text-ink" : "bg-fg/[0.06] text-amber-ink")}>
               {i < n ? <Check className="size-3" /> : i + 1}
             </span>
             <span className="leading-snug">{s}</span>
@@ -196,7 +196,7 @@ export function ScreenVerify({ auto = true }: { auto?: boolean }) {
       <ul className="mt-3 space-y-2">
         {checks.map((c, i) => (
           <li key={c} className="flex items-center gap-2.5 text-[12.5px]">
-            <span className={cx("grid size-5 place-items-center rounded-full transition-all duration-300", i < n ? "bg-mint/15 text-mint" : "bg-white/[0.04] text-dim")}>
+            <span className={cx("grid size-5 place-items-center rounded-full transition-all duration-300", i < n ? "bg-mint/15 text-mint-ink" : "bg-fg/[0.04] text-dim")}>
               {i < n ? <Check className="size-3" /> : i === n ? <LoaderCircle className="size-3 animate-spin text-iris" /> : <span className="size-1 rounded-full bg-current" />}
             </span>
             <span className={i < n ? "text-fg/90" : "text-dim"}>{c}</span>
@@ -235,7 +235,7 @@ export function ScreenReveal() {
       <div className="text-[11.5px] text-mute">Codes visible to you only.</div>
       <div className="mt-3 space-y-2">
         {["LFS-7Q2K-91XA-3M8D", "LFS-4HWE-22PL-0Z6R"].map((c) => (
-          <div key={c} className="flex items-center justify-between rounded-xl bg-white/[0.03] px-3 py-2.5 ring-1 ring-white/[0.07]">
+          <div key={c} className="flex items-center justify-between rounded-xl bg-fg/[0.03] px-3 py-2.5 ring-1 ring-fg/[0.07]">
             <span className={cx("font-mono text-[12px] tracking-wider transition-all duration-700", show ? "text-fg blur-0" : "text-mute blur-[5px]")}>{c}</span>
             <Eye className="size-3.5 text-dim" />
           </div>
@@ -243,7 +243,7 @@ export function ScreenReveal() {
       </div>
       <div className="mt-2.5 flex items-center justify-between rounded-xl bg-mint/[0.06] px-3 py-2.5 ring-1 ring-mint/40 text-[12.5px]">
         <span className="text-mute">Re-checked just now</span>
-        <span className="font-semibold text-mint">₹10,000 live</span>
+        <span className="font-semibold text-mint-ink">₹10,000 live</span>
       </div>
       <div className="mt-3 grid h-10 place-items-center rounded-full bg-mint text-[13px] font-medium text-ink">I&apos;ve received them</div>
       <div className="mt-2.5 text-[11px] leading-relaxed text-dim">USDC goes to the buyer the moment you confirm, or automatically 30 min after the re-check passes.</div>

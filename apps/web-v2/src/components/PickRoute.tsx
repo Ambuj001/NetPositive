@@ -60,8 +60,8 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
 
       <div className="mt-6">
         {routes.length === 0 ? (
-          <div className="rounded-2xl bg-white/[0.03] p-4 text-[13.5px] text-mute ring-1 ring-white/[0.07]">
-            You have no saved cards yet. <Link to="/cards" className="text-amber hover:underline">Add a card</Link> to see how to buy this voucher.
+          <div className="rounded-2xl bg-fg/[0.03] p-4 text-[13.5px] text-mute ring-1 ring-fg/[0.07]">
+            You have no saved cards yet. <Link to="/cards" className="text-amber-ink hover:underline">Add a card</Link> to see how to buy this voucher.
           </div>
         ) : (
           <div className="space-y-2">
@@ -71,9 +71,9 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
                 type="button"
                 onClick={() => setPick(i)}
                 disabled={busy}
-                className={cx("flex w-full items-center gap-4 rounded-2xl p-4 text-left ring-1 transition", pick === i ? "bg-amber/[0.07] ring-amber/50" : "bg-white/[0.02] ring-white/[0.07] hover:ring-white/15")}
+                className={cx("flex w-full items-center gap-4 rounded-2xl p-4 text-left ring-1 transition", pick === i ? "bg-amber/[0.07] ring-amber/50" : "bg-fg/[0.02] ring-fg/[0.07] hover:ring-fg/15")}
               >
-                <span className={cx("grid size-5 place-items-center rounded-full ring-1", pick === i ? "bg-amber ring-amber" : "ring-white/20")}>{pick === i && <span className="size-2 rounded-full bg-ink" />}</span>
+                <span className={cx("grid size-5 place-items-center rounded-full ring-1", pick === i ? "bg-amber ring-amber" : "ring-fg/20")}>{pick === i && <span className="size-2 rounded-full bg-canvas" />}</span>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 text-[14px] font-medium">
                     {r.cardLabel} · {r.channel.name}
@@ -94,7 +94,7 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint" : "text-mute")}>
+        <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-mint-ink" : "text-mute")}>
           {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
           {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
         </div>
@@ -119,7 +119,7 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
         </Button>
       </div>
       {error && (
-        <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-rose">
+        <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-rose-ink">
           {error}
         </p>
       )}
