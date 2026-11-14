@@ -33,9 +33,13 @@ contract DeployEscrowV2 is Script {
         uint32 fulfillWindow = uint32(vm.envOr("FULFILL_WINDOW_SECS", uint256(2 hours)));
 
         if (block.chainid == ARC_MAINNET) {
-            // On mainnet the owner must be a contract (a multisig), and no role may share a key with it.
-            require(owner.code.length != 0, "OWNER_ADDR must be a multisig on mainnet");
+            // No role may share a key with the owner. The owner should be a multisig; a single wallet is accepted only
+            // when stated (OWNER_IS_WALLET=true), for a capped launch, and can hand over later with transferOwnership.
             require(arbiter != owner && guardian != owner, "roles must not reuse the owner");
+            require(
+                owner.code.length != 0 || vm.envOr("OWNER_IS_WALLET", false),
+                "OWNER_ADDR is a plain wallet: use a multisig, or set OWNER_IS_WALLET=true"
+            );
         }
 
         vm.startBroadcast();

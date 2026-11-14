@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deploy VoucherEscrowV2</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#14181f; --mute:#5b6472; --line:#dde1e7; --accent:#1d4ed8; --good:#0f7b3f; --bad:#b42318; --warn:#9a5b00; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1216; --card:#181c22; --ink:#eef1f5; --mute:#9aa4b2; --line:#2a303a; --accent:#7aa2ff; --good:#4ade80; --bad:#f87171; --warn:#fbbf24; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 16px; margin: 0 0 12px; }
+  p.sub { color: var(--mute); margin: 0 0 20px; }
+  section { background: var(--card); border:1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  label { display:block; font-size: 13px; color: var(--mute); margin: 10px 0 4px; }
+  input, select { width:100%; padding: 9px 10px; border:1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font: inherit; }
+  input.addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0 12px; }
+  button { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .row { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pill { display:inline-block; padding: 2px 10px; border-radius: 999px; border:1px solid var(--line); font-size: 13px; }
+  .good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); } .mute { color: var(--mute); }
+  ul { margin: 8px 0 0; padding-left: 20px; }
+  pre { background: var(--bg); border:1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px; margin: 8px 0 0; white-space: pre-wrap; word-break: break-all; }
+  .step { display:flex; gap:10px; align-items:flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
+  .step:first-of-type { border-top: 0; }
+  .step .n { width: 24px; height: 24px; border-radius: 50%; border:1px solid var(--line); display:grid; place-items:center; font-size: 12px; flex: none; }
+  .step.done .n { background: var(--good); border-color: var(--good); color:#fff; }
+  .note { font-size: 13px; color: var(--mute); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Deploy VoucherEscrowV2</h1>
+  <p class="sub">Your wallet signs two transactions: the deployment, then the call that opens the contract for USDC deposits. No key leaves your wallet. This page is served from your own machine.</p>
+
+  <section>
+    <h2>1. Wallet and network</h2>
+    <div class="row">
+      <select id="network" style="width:auto"><option value="mainnet">Arc mainnet (real USDC)</option><option value="testnet">Arc testnet</option></select>
+      <button id="connect">Connect wallet</button>
+      <span id="walletState" class="pill mute">not connected</span>
+    </div>
+    <p class="note" id="netNote"></p>
+  </section>
+
+  <section>
+    <h2>2. Who holds which role</h2>
+    <label>Owner: changes settings for future orders, cannot move any escrow</label><input class="addr" id="owner" placeholder="0x…">
+    <label>Arbiter: rules on disputed escrows only (must differ from the owner)</label><input class="addr" id="arbiter" placeholder="0x…">
+    <label>Guardian: can pause new deposits only (must differ from the owner)</label><input class="addr" id="guardian" placeholder="0x…">
+    <label>Treasury: receives the platform's share of fees</label><input class="addr" id="treasury" placeholder="0x…">
+    <label>Dispute reserve: receives the reserve share of fees</label><input class="addr" id="reserve" placeholder="0x…">
+  </section>
+
+  <section>
+    <h2>3. Settings</h2>
+    <div class="grid">
+      <div><label>Fee, % (on top, max 5)</label><input id="feePct" value="1"></div>
+      <div><label>Fee share to reserve, %</label><input id="reservePct" value="50"></div>
+      <div><label>Review window, hours</label><input id="reviewH" value="24"></div>
+      <div><label>Fulfil window, hours</label><input id="fulfillH" value="2"></div>
+      <div><label>Smallest order, USDC</label><input id="minUsdc" value="1"></div>
+      <div><label>Largest order, USDC</label><input id="maxUsdc" value="250"></div>
+      <div><label>Total locked cap, USDC</label><input id="capUsdc" value="5000"></div>
+      <div><label>Dispute stake, USDC</label><input id="bondUsdc" value="1"></div>
+    </div>
+    <p class="note">Roles and settings can be changed later by the owner; changes apply to new orders only. The code itself cannot be changed after deployment.</p>
+  </section>
+
+  <section>
+    <h2>4. Review and deploy</h2>
+    <div id="review" class="note">Fill in the roles to see the review.</div>
+    <div class="row" style="margin-top:12px">
+      <button id="deploy" disabled>Deploy contract</button>
+      <button id="enable" class="ghost" disabled>Enable USDC</button>
+      <button id="verify" class="ghost" disabled>Check on-chain</button>
+    </div>
+    <div id="steps" style="margin-top:12px"></div>
+  </section>
+
+  <section id="resultBox" hidden>
+    <h2>5. Result</h2>
+    <div id="result"></div>
+  </section>
+
+  <p class="note">Bytecode: <span id="codeInfo"></span></p>
+</main>
+<script type="module">
+/*__ENCODE__*/
+const BYTECODE = "/*__BYTECODE__*/";
+const CODE_HASH = "/*__CODEHASH__*/";
+const $ = (id) => document.getElementById(id);
+const eth = window.ethereum;
+let account = null, contract = localStorage.getItem('np.deploy.contract') || null, deployTx = null;
+const net = () => NETWORKS[$('network').value];
+$('codeInfo').textContent = `${(BYTECODE.length - 2) / 2} bytes, keccak256 ${CODE_HASH} (must match what serve.mjs printed in your terminal)`;
+
+const rpc = (method, params = []) => eth.request({ method, params });
+const short = (a) => a.slice(0, 8) + '…' + a.slice(-6);
+const log = [];
+function step(text, cls = '') { log.push({ text, cls }); $('steps').innerHTML = log.map((s, i) => `<div class="step ${s.cls}"><div class="n">${i + 1}</div><div>${s.text}</div></div>`).join(''); }
+
+function params() {
+  const num = (id) => Number($(id).value);
+  return {
+    owner: $('owner').value.trim(), arbiter: $('arbiter').value.trim(), guardian: $('guardian').value.trim(), treasury: $('treasury').value.trim(), reserve: $('reserve').value.trim(),
+    feeBps: Math.round(num('feePct') * 100), reserveShareBps: Math.round(num('reservePct') * 100),
+    reviewWindow: Math.round(num('reviewH') * 3600), fulfillWindow: Math.round(num('fulfillH') * 3600),
+    minUsdc: $('minUsdc').value.trim(), maxUsdc: $('maxUsdc').value.trim(), capUsdc: $('capUsdc').value.trim(), bondUsdc: $('bondUsdc').value.trim(),
+  };
+}
+
+async function refresh() {
+  const p = params();
+  const issues = problems(p);
+  let chainOk = false, chainText = '';
+  if (account) {
+    const id = Number(BigInt(await rpc('eth_chainId')));
+    chainOk = id === net().id;
+    chainText = chainOk ? `<span class="good">Wallet is on ${net().name} (chain ${id}).</span>` : `<span class="bad">Wallet is on chain ${id}, not ${net().name} (${net().id}).</span>`;
+    $('walletState').textContent = short(account); $('walletState').className = 'pill ' + (chainOk ? 'good' : 'bad');
+  }
+  const ownerIsDeployer = account && p.owner.toLowerCase() === account.toLowerCase();
+  const warn = [];
+  if ($('network').value === 'mainnet') warn.push('This is Arc mainnet: the contract will hold real USDC.');
+  if (account && p.owner && !ownerIsDeployer) warn.push('The owner is a different wallet from the one connected. "Enable USDC" must then be sent from the owner wallet.');
+  $('netNote').innerHTML = chainText;
+  $('review').innerHTML =
+    (issues.length ? `<div class="bad">Fix before deploying:<ul>${issues.map((i) => `<li>${i}</li>`).join('')}</ul></div>` :
+      `<div>Fee <b>${p.feeBps / 100}%</b> on top, ${p.reserveShareBps / 100}% of it to the reserve. Review window <b>${p.reviewWindow / 3600} h</b>, fulfil window <b>${p.fulfillWindow / 3600} h</b>. Orders <b>${p.minUsdc} to ${p.maxUsdc} USDC</b>, at most <b>${p.capUsdc} USDC</b> locked in total. Dispute stake <b>${p.bondUsdc} USDC</b>.</div>`) +
+    (warn.length ? `<ul class="warn">${warn.map((w) => `<li>${w}</li>`).join('')}</ul>` : '') +
+    (contract ? `<div style="margin-top:8px">Contract from this browser: <code>${contract}</code> <a href="#" id="forget">forget</a></div>` : '');
+  const f = $('forget'); if (f) f.onclick = (e) => { e.preventDefault(); contract = null; localStorage.removeItem('np.deploy.contract'); refresh(); };
+  const ready = account && chainOk && issues.length === 0;
+  $('deploy').disabled = !ready || !!contract;
+  $('enable').disabled = !ready || !contract;
+  $('verify').disabled = !account || !chainOk || !contract || issues.length > 0;
+}
+
+async function switchNetwork() {
+  const n = net();
+  try { await rpc('wallet_switchEthereumChain', [{ chainId: n.hex }]); }
+  catch (e) {
+    if (e && e.code === 4001) throw e;
+    await rpc('wallet_addEthereumChain', [{ chainId: n.hex, chainName: n.name, nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 }, rpcUrls: [n.rpc], blockExplorerUrls: [n.explorer] }]);
+  }
+}
+
+async function waitReceipt(hash) {
+  for (let i = 0; i < 120; i++) {
+    const r = await rpc('eth_getTransactionReceipt', [hash]).catch(() => null);
+    if (r) { if (r.status === '0x0') throw new Error('The transaction failed on-chain.'); return r; }
+    await new Promise((res) => setTimeout(res, 1500));
+  }
+  throw new Error('Still pending after 3 minutes. Check your wallet, then use "Check on-chain".');
+}
+
+$('connect').onclick = async () => {
+  if (!eth) { alert('No browser wallet found. Open this page in the browser where your wallet extension is installed.'); return; }
+  try {
+    [account] = await rpc('eth_requestAccounts');
+    await switchNetwork();
+    if (!$('owner').value) $('owner').value = account;
+    await refresh();
+  } catch (e) { $('netNote').innerHTML = `<span class="bad">${e.message || e}</span>`; }
+};
+eth?.on?.('accountsChanged', (a) => { account = a[0] || null; refresh(); });
+eth?.on?.('chainChanged', () => refresh());
+document.querySelectorAll('input, select').forEach((el) => el.addEventListener('input', refresh));
+
+$('deploy').onclick = async () => {
+  const p = params();
+  $('deploy').disabled = true;
+  try {
+    const data = creationData(BYTECODE, p);
+    step('Simulating the deployment before asking your wallet…');
+    await rpc('eth_estimateGas', [{ from: account, data }]);
+    step('Confirm the deployment in your wallet.');
+    deployTx = await rpc('eth_sendTransaction', [{ from: account, data }]);
+    step(`Sent: <code>${deployTx}</code>. Waiting for confirmation…`);
+    const r = await waitReceipt(deployTx);
+    contract = r.contractAddress; localStorage.setItem('np.deploy.contract', contract);
+    step(`Deployed at <code>${contract}</code>. The contract accepts no deposits yet. Next: Enable USDC.`, 'done');
+  } catch (e) { step(`<span class="bad">${e.message || e}</span>`); }
+  refresh();
+};
+
+$('enable').onclick = async () => {
+  const p = params();
+  $('enable').disabled = true;
+  try {
+    const data = setTokenData(p);
+    step('Simulating "enable USDC"…');
+    await rpc('eth_estimateGas', [{ from: account, to: contract, data }]);
+    step('Confirm "enable USDC" in your wallet (must be the owner wallet).');
+    const h = await rpc('eth_sendTransaction', [{ from: account, to: contract, data }]);
+    step(`Sent: <code>${h}</code>. Waiting for confirmation…`);
+    await waitReceipt(h);
+    step('USDC is enabled with the limits above.', 'done');
+    await check();
+  } catch (e) { step(`<span class="bad">${e.message || e}</span>`); }
+  refresh();
+};
+
+async function check() {
+  const p = params();
+  const call = (data) => rpc('eth_call', [{ to: contract, data }, 'latest']);
+  const onchain = {};
+  for (const [k, sel] of Object.entries(READS)) onchain[k] = await call(sel);
+  const bad = [...mismatches(p, onchain), ...tokenMismatches(p, await call(tokenConfigCall()))];
+  $('resultBox').hidden = false;
+  const n = net();
+  if (bad.length) { $('result').innerHTML = `<div class="bad">The contract does not match what is on this page:<ul>${bad.map((b) => `<li>${b}</li>`).join('')}</ul></div>`; return; }
+  step('Read back from the chain: roles, fee, windows and USDC limits all match.', 'done');
+  $('result').innerHTML = `<div class="good">Verified on ${n.name}: the contract holds exactly the roles and settings above.</div>
+<p><a href="${n.explorer}/address/${contract}" target="_blank" rel="noopener">Open in the explorer</a></p>
+<p class="note">Frontend (Vercel) environment:</p><pre>VITE_ARC_NETWORK=${$('network').value}
+VITE_ESCROW_CONTRACT=${contract}</pre>
+<p class="note">Backend environment:</p><pre>ESCROW_MODE=chain
+ARC_CHAIN_ID=${n.id}
+ARC_RPC_URL=${n.rpc}
+ESCROW_CONTRACT_ADDRESS=${contract}
+USDC_ADDRESS=${ARC_USDC}</pre>
+<p class="note">Send me the contract address and I will wire it into the app and record the deployment in the repo.</p>`;
+}
+$('verify').onclick = () => check().catch((e) => step(`<span class="bad">${e.message || e}</span>`));
+refresh();
+</script>
+</body>
+</html>
