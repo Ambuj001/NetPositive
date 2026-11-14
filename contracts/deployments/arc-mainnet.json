@@ -1,0 +1,36 @@
+{
+  "network": "Arc mainnet",
+  "chainId": 5042,
+  "rpc": "https://rpc.mainnet.arc.io",
+  "contract": "VoucherEscrowV2",
+  "address": "0x14ed5880d4c2cbf0459f5ab019651aaa0f168ea2",
+  "deployTx": "0xbc5aff9f90153f7dc0151dac21cd439d255b161197f81a86d6a5be2031dc850e",
+  "enableUsdcTx": "0x8aa1af1e543e8fd9fc93550473507a15ecc645d7b686c83fb6dfd470952288d8",
+  "block": 31224039,
+  "deployedAt": "2026-11-14T15:49:55.000Z",
+  "gasUsed": 3376223,
+  "sourceCommit": "343c24b",
+  "creationCodeKeccak256": "0xca6204248a4c8840497ec5367696e1c5bb2b0f145143673ae20fb01a7fd57d3c",
+  "compiler": { "solc": "0.8.24", "evmVersion": "paris", "optimizerRuns": 200 },
+  "roles": {
+    "owner": "0xb4A9260A1201642a3C952048BA7991ABE5cAbd7D",
+    "arbiter": "0x7072c0141E26b3a0516A78F943C10BdFe188EB4E",
+    "guardian": "0xfa818A745732a4806460E88628edaaAFa68eE84A",
+    "treasury": "0x7072c0141E26b3a0516A78F943C10BdFe188EB4E",
+    "reserve": "0x7072c0141E26b3a0516A78F943C10BdFe188EB4E"
+  },
+  "settings": {
+    "feeBps": 100,
+    "reserveShareBps": 5000,
+    "reviewWindowSeconds": 86400,
+    "fulfillWindowSeconds": 7200
+  },
+  "usdc": {
+    "address": "0x3600000000000000000000000000000000000000",
+    "minAmount": "1000000",
+    "maxAmount": "250000000",
+    "cap": "5000000000",
+    "disputeBond": "1000000"
+  },
+  "verified": "Runtime code read from the chain equals the local build of sourceCommit (immutables masked); roles and settings read back on 2026-11-14. Not yet source-verified on the explorer. Not audited."
+}

@@ -4,7 +4,7 @@ Things that are known, deliberately not done yet, and need a decision or more wo
 
 ## Escrow V2 for Arc mainnet  (branch `escrow-v2`, 14 Nov 2026)
 
-`contracts/src/VoucherEscrowV2.sol` replaces contract "A" below for the mainnet launch. It is **not deployed and not audited yet**.
+`contracts/src/VoucherEscrowV2.sol` replaces contract "A" below. **Deployed on Arc mainnet (chain 5042) on 14 Nov 2026 at `0x14ed5880d4c2cbf0459f5ab019651aaa0f168ea2`** (details and roles in `contracts/deployments/arc-mainnet.json`). Launch limits: 1 to 250 USDC per order, 5,000 USDC locked in total. The owner is a single wallet for now. It is **not audited** and not yet source-verified on the explorer.
 
 What changed, and what it settles from the sections below:
 

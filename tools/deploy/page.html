@@ -150,6 +150,23 @@ async function switchNetwork() {
   }
 }
 
+/**
+ * Gas limit and fees for a transaction, worked out here and handed to the wallet, so a wallet whose own fee
+ * estimator does not cover this network (or contract deployments) can still show the fee and let you confirm.
+ */
+async function withGas(tx) {
+  const hex = (n) => '0x' + n.toString(16);
+  const estimate = BigInt(await rpc('eth_estimateGas', [tx])); // also proves the transaction would not revert
+  const gas = (estimate * 12n) / 10n;
+  const block = await rpc('eth_getBlockByNumber', ['latest', false]);
+  const base = BigInt(block.baseFeePerGas ?? (await rpc('eth_gasPrice')));
+  const tip = BigInt(await rpc('eth_maxPriorityFeePerGas').catch(() => '0x3b9aca00'));
+  const maxFee = base * 2n + tip;
+  // Arc pays gas in USDC, counted with 18 decimals here.
+  const cost = Number((gas * (base + tip)) / 10n ** 12n) / 1e6;
+  return { tx: { ...tx, gas: hex(gas), maxFeePerGas: hex(maxFee), maxPriorityFeePerGas: hex(tip) }, cost };
+}
+
 async function waitReceipt(hash) {
   for (let i = 0; i < 120; i++) {
     const r = await rpc('eth_getTransactionReceipt', [hash]).catch(() => null);
@@ -178,9 +195,9 @@ $('deploy').onclick = async () => {
   try {
     const data = creationData(BYTECODE, p);
     step('Simulating the deployment before asking your wallet…');
-    await rpc('eth_estimateGas', [{ from: account, data }]);
-    step('Confirm the deployment in your wallet.');
-    deployTx = await rpc('eth_sendTransaction', [{ from: account, data }]);
+    const g = await withGas({ from: account, data });
+    step(`Simulation passed. Expected network fee: about ${g.cost.toFixed(3)} USDC. Confirm the deployment in your wallet.`);
+    deployTx = await rpc('eth_sendTransaction', [g.tx]);
     step(`Sent: <code>${deployTx}</code>. Waiting for confirmation…`);
     const r = await waitReceipt(deployTx);
     contract = r.contractAddress; localStorage.setItem('np.deploy.contract', contract);
@@ -195,9 +212,9 @@ $('enable').onclick = async () => {
   try {
     const data = setTokenData(p);
     step('Simulating "enable USDC"…');
-    await rpc('eth_estimateGas', [{ from: account, to: contract, data }]);
-    step('Confirm "enable USDC" in your wallet (must be the owner wallet).');
-    const h = await rpc('eth_sendTransaction', [{ from: account, to: contract, data }]);
+    const g = await withGas({ from: account, to: contract, data });
+    step(`Simulation passed. Expected network fee: about ${g.cost.toFixed(3)} USDC. Confirm "enable USDC" in your wallet (must be the owner wallet).`);
+    const h = await rpc('eth_sendTransaction', [g.tx]);
     step(`Sent: <code>${h}</code>. Waiting for confirmation…`);
     await waitReceipt(h);
     step('USDC is enabled with the limits above.', 'done');
