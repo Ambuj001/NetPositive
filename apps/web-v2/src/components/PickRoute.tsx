@@ -12,8 +12,9 @@ import { Button, Card, Pill, cx } from "./ui";
 
 /**
  * "Pick how to buy it": the buyer ranks their saved cards for this voucher, picks a route and accepts the order.
- * Accepting is the real thing: it needs a connected wallet, a sign-in and World ID, then calls the backend, which locks
- * the order to this buyer. The page then reloads into the buyer's view of the order.
+ * Accepting needs a connected wallet, a sign-in and World ID, then calls the backend, which reserves the order for this
+ * buyer. It does not bind them on-chain yet: that is the buyer's own `accept` transaction, after the spender's Ready
+ * (see AcceptOnchain). The page reloads into the buyer's view, which says not to buy the voucher before then.
  */
 export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onAccepted: (r: ApiRequest) => void; onRefresh: () => void }) {
   const { fullAddress, humanVerified, openWallet, token, signIn, toast, cards } = useApp();
@@ -40,7 +41,7 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
       }
       const { request } = await api.accept(req.id, auth);
       saveRoute(req.id, { cardId: chosen.cardId, cardLabel: chosen.cardLabel, channelId: chosen.channel.id, channelName: chosen.channel.name, issuer: cards.find((c) => c.id === chosen.cardId)?.issuer });
-      toast({ title: "Order accepted", body: `Buy via ${chosen.cardLabel} · ${chosen.channel.name}`, tone: "amber" });
+      toast({ title: "Order accepted", body: "Don't buy the voucher yet. Wait for the spender's Ready, then confirm the order from your wallet.", tone: "amber" });
       onAccepted(request);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't accept this order.");

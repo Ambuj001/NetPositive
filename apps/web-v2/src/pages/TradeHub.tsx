@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CustomOrder } from "../components/CustomOrder";
 import { Aurora, cx } from "../components/ui";
-import { isFinal } from "../lib/api";
 import { useOrderBook } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 import { BuyView } from "./Buy";
@@ -22,8 +21,7 @@ export default function TradeHub() {
   const [params, setParams] = useSearchParams();
   const mode: Mode = params.get("mode") === "sell" ? "sell" : "buy";
   const setMode = (m: Mode) => setParams(m === "sell" ? { mode: "sell" } : {}, { replace: true });
-  const { fullAddress, myOrders } = useApp();
-  const active = myOrders.filter((o) => !isFinal(o.status)).length;
+  const { fullAddress } = useApp();
 
   return (
     <div className="relative pt-10 md:pt-14 pb-12">
@@ -34,7 +32,7 @@ export default function TradeHub() {
           <div className="flex items-center gap-4">
             <span className="text-[13px] text-mute">India · INR</span>
             <Link to="/track" className="flex h-10 items-center gap-2.5 rounded-full bg-fg/[0.03] pr-1.5 pl-4 text-[13px] ring-1 ring-fg/10 transition hover:bg-fg/[0.06]">
-              My orders <span className="grid h-7 min-w-7 place-items-center rounded-full bg-fg/[0.07] px-2 font-mono text-[11px] text-mute">{active}</span>
+              My orders <ArrowUpRight className="mr-2 size-3.5 text-mute" />
             </Link>
           </div>
         </div>

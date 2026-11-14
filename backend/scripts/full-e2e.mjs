@@ -68,6 +68,9 @@ const dep = JSON.parse(fs.readFileSync(path.join(ptDir, 'deployments', 'arc-test
 const ESCROW = getAddress(dep.escrow), REGISTRY = getAddress(dep.keyRegistry.address), MAILBOX = getAddress(dep.codeMailbox.address);
 let operatorKey = null;
 if (REAL_CHAIN) {
+  // This script's on-chain steps were written for the V1 escrow (operator release, deposit(id, amount)). They have not been
+  // ported to VoucherEscrowV2. For V2 against a real contract use scripts/escrow-v2-local.mjs as the reference flow.
+  console.error('full-e2e real-chain mode targets the V1 escrow and is not ported to VoucherEscrowV2. Run without CONFIRM_CHAIN_TX for the mock dry run.'); process.exit(2);
   if (process.env.CONFIRM_CHAIN_TX.toLowerCase() !== ESCROW.toLowerCase()) { console.error('Refusing a REAL chain run: CONFIRM_CHAIN_TX must equal the escrow address.'); process.exit(2); }
   if (!process.env.OPERATOR_PK) { console.error('OPERATOR_PK is required for a real chain run.'); process.exit(2); }
   operatorKey = `0x${process.env.OPERATOR_PK.replace(/^0x/, '')}`;
@@ -91,7 +94,7 @@ Object.assign(process.env, {
 
 const { createApp } = await import('../src/app.js');
 const { col, voucherRef, eventsRef } = await import('../src/services/firestore.js');
-const { escrowIdFor, ESCROW_ABI } = await import('../src/services/escrow.js');
+const { ESCROW_ABI } = await import('../src/services/escrow.js');
 
 const consoleUrl = (p) => `https://console.firebase.google.com/project/${projectId}/firestore/databases/-default-/data/~2F${p.split('/').join('~2F')}`;
 

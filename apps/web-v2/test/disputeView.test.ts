@@ -26,15 +26,18 @@ test("a stranger cannot raise or read a dispute", () => {
   assert.equal(screenFor(req(), undefined, now).kind, "none");
 });
 
-test("both parties can raise while the code waits for review", () => {
+test("only the crypto spender can raise while the code waits for review; the buyer is told why", () => {
   assert.equal(screenFor(req(), SPENDER, now).kind, "raise");
-  assert.equal(screenFor(req(), BUYER, now).kind, "raise");
+  const buyer = screenFor(req(), BUYER, now);
+  assert.equal(buyer.kind, "none");
+  assert.match((buyer as { why: string }).why, /Only the spender can open a dispute/);
+  assert.match((buyer as { why: string }).why, /paid automatically when the review window ends/);
 });
 
-test("the crypto spender cannot raise after the review window, the crypto buyer still can", () => {
+test("nobody can raise after the review window", () => {
   const late = req({ reviewDeadline: past });
   assert.equal(screenFor(late, SPENDER, now).kind, "none");
-  assert.equal(screenFor(late, BUYER, now).kind, "raise");
+  assert.equal(screenFor(late, BUYER, now).kind, "none");
 });
 
 test("an open or decided dispute is shown to both parties, not the raise form", () => {
@@ -77,7 +80,12 @@ test("outcome reads right for the winner and the loser, and is empty while open"
   const wrong = req({ dispute: { by: SPENDER }, resolution: { verdict: "disputer_wrong" } });
   assert.deepEqual([outcomeLine(wrong, SPENDER)?.good, outcomeLine(wrong, BUYER)?.good], [false, true]);
   assert.match(outcomeLine(wrong, SPENDER)!.text, /banned/);
-  assert.match(outcomeLine(wrong, BUYER)!.text, /received the other person's stake/);
+  // No stake since escrow V2, so none is mentioned...
+  assert.doesNotMatch(outcomeLine(wrong, BUYER)!.text, /stake/);
+  assert.doesNotMatch(outcomeLine(right, SPENDER)!.text, /stake/);
+  // ...except on an older dispute that had one.
+  const staked = req({ dispute: { by: SPENDER, bond: { status: "forfeited" } }, resolution: { verdict: "disputer_wrong" } });
+  assert.match(outcomeLine(staked, BUYER)!.text, /received the other person's stake/);
 });
 
 test("an unknown verdict shows nothing rather than guessing", () => {

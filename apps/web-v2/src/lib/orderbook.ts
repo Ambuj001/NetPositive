@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, brandIdFromApi, type ApiRequest } from "./api";
 import type { Order } from "./data";
-import { FEE_RATE, round2 } from "./engine";
+import { DEMO_ORDERS } from "./demoOrders";
+import { round2 } from "./engine";
 import { initiatorOf } from "./suggestions";
 import { shortAddr } from "./wallet";
-import { useApp } from "./store";
 
-export type Source = "loading" | "live" | "demo";
+/** "demo" exists only under `vite dev`. In a production build an unreachable server is "offline" and the book is empty. */
+export type Source = "loading" | "live" | "demo" | "offline";
 
 /** Firestore request → order-book row. Rate is the INR per USDC implied by the request. */
 export function toOrder(r: ApiRequest): Order {
@@ -27,20 +28,26 @@ export function toOrder(r: ApiRequest): Order {
   };
 }
 
-/** Ledger taken from the stored request, not the demo ₹90 example. `amountUsdc` is the locked amount. */
+const base = (v: string | undefined) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) / 1e6 : null);
+
+/**
+ * Ledger taken from the stored request. `amountUsdc` is what the buyer receives; the fee and the total come from the
+ * server (`feeUsdcBaseUnits`, `totalUsdcBaseUnits`). Orders from before escrow V2 have no fee fields, so their fee
+ * shows as zero rather than a guess.
+ */
 export function ledgerFromRequest(r: ApiRequest) {
-  const sellerLocks = Number(r.amountUsdc) || 0;
-  const buyerReceives = round2(sellerLocks / (1 + FEE_RATE));
-  const fee = round2(Math.max(0, sellerLocks - buyerReceives));
-  const reserveShare = round2(fee / 2);
-  const platformShare = round2(fee - reserveShare);
+  const buyerReceives = base(r.amountUsdcBaseUnits) ?? (Number(r.amountUsdc) || 0);
+  const fee = base(r.feeUsdcBaseUnits) ?? 0;
+  const sellerLocks = base(r.totalUsdcBaseUnits) ?? round2(buyerReceives + fee);
   const rate = buyerReceives ? Math.round((r.amountInr / buyerReceives) * 100) / 100 : 0;
-  return { buyerReceives, fee, sellerLocks, reserveShare, platformShare, sellerEffective: rate, rate };
+  return { buyerReceives, fee, sellerLocks, sellerEffective: sellerLocks ? round2(r.amountInr / sellerLocks) : 0, rate };
 }
 
-/** Open requests from the backend (`GET /requests`), falling back to demo orders when it's offline. */
+/**
+ * Open requests from the backend (`GET /requests`). When the server can't be reached the book is empty and says so.
+ * Only under `vite dev` do labelled sample orders stand in, so the pages can be worked on without a backend.
+ */
 export function useOrderBook(pollMs = 15000) {
-  const { orders: demo } = useApp();
   const [live, setLive] = useState<Order[] | null>(null);
   const [source, setSource] = useState<Source>("loading");
 
@@ -51,7 +58,7 @@ export function useOrderBook(pollMs = 15000) {
       setSource("live");
     } catch {
       setLive(null);
-      setSource("demo");
+      setSource(import.meta.env.DEV ? "demo" : "offline");
     }
   }, []);
 
@@ -61,5 +68,6 @@ export function useOrderBook(pollMs = 15000) {
     return () => clearInterval(t);
   }, [load, pollMs]);
 
-  return { orders: source === "live" && live ? live : demo, source, reload: load };
+  const orders = source === "live" && live ? live : source === "demo" && import.meta.env.DEV ? DEMO_ORDERS : [];
+  return { orders, source, reload: load };
 }

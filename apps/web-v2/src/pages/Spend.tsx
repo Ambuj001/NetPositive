@@ -5,10 +5,12 @@ import { useNavigate } from "react-router-dom";
 import { BuyerList } from "../components/BuyRequest";
 import { BrandMark, Button, cx } from "../components/ui";
 import { api, type BuyIntent } from "../lib/api";
+import { ARC } from "../lib/chain";
 import type { Order } from "../lib/data";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
-import { useLockOrder, type LockPhase } from "../lib/lockOrder";
+import { MOCK_NOTE } from "../lib/escrowFlow";
+import { useLockOrder, type LockPhase, type LockResult, type ServerTerms } from "../lib/lockOrder";
 import { toOrder } from "../lib/orderbook";
 import { suggestionsFor } from "../lib/suggestions";
 import { useApp } from "../lib/store";
@@ -126,19 +128,22 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
 
   const confirm = async () => {
     if (!amount || !place || lock.phase) return;
-    const res = await lock.run({ brandApi: place.api, brandId: place.id, amountInr: amount, rate: RATE, usdcLock: qt.sellerLocks });
+    const res = await lock.run({ brandApi: place.api, amountInr: amount, usdcReceives: qt.buyerReceives, usdcTotal: qt.sellerLocks });
     if (!res) return;
-    if (res.kind === "live") return finish(res.id);
-    setReview(false);
-    setStep("posted");
-    push(bot(say(`The server isn't reachable, so this lock is only on this device. ${usdt(qt.sellerLocks)} USDC is set aside and ${res.order.id} is in your tracker.`)));
+    finish(res);
   };
 
-  const finish = (id: string) => {
+  const finish = ({ id, mock, total }: LockResult) => {
     setReview(false);
     setStep("posted");
-    push(bot(say(`Done. ${usdt(qt.sellerLocks)} USDC is locked and order ${id} is live. A gift-card buyer can buy the ${place?.label ?? "store"} voucher and send you the code. After you redeem it, the USDC releases to them.`), { kind: "posted", orderId: id }));
-    toast({ title: "Order is live", body: `${usdt(qt.sellerLocks)} USDC locked · ${id}`, tone: "mint" });
+    if (mock) {
+      // Development server with the mock escrow: the order exists, but no USDC moved. Say exactly that.
+      push(bot(say(`Demo server: order ${id} was recorded, but the escrow is simulated, so no USDC was locked.`), { kind: "posted", orderId: id }));
+      toast({ title: "Demo order recorded", body: MOCK_NOTE, tone: "amber" });
+    } else {
+      push(bot(say(`Done. ${total} USDC is locked in escrow and order ${id} is live. A gift-card buyer can buy the ${place?.label ?? "store"} voucher and send you the code. After you confirm it works, you release the USDC to them from your wallet.`), { kind: "posted", orderId: id }));
+      toast({ title: "Order is live", body: `${total} USDC locked · ${id}`, tone: "mint" });
+    }
     // Straight to this order's tracking page.
     nav(`/track?id=${encodeURIComponent(id)}`);
   };
@@ -290,6 +295,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
         fee={qt.fee}
         phase={lock.phase}
         error={lock.error}
+        server={lock.terms}
         publishOnly={!!lock.held}
         onClose={() => {
           if (lock.phase || lock.held) return;
@@ -370,8 +376,10 @@ function OrdersInChat({ orders, selectedId, place }: { orders: Order[]; selected
               </span>
               <span className="block font-mono text-[11px] text-dim">{o.id}</span>
             </span>
-            {on ? (
-              <Button size="sm" to={`/trade/${o.id}`}>
+            {o.demo ? (
+              <span className="rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25">demo</span>
+            ) : on ? (
+              <Button size="sm" to={`/track?id=${encodeURIComponent(o.id)}`}>
                 Open
               </Button>
             ) : (
@@ -399,6 +407,7 @@ export function ReviewModal({
   fee,
   phase,
   error,
+  server,
   publishOnly,
   rate = RATE,
   onClose,
@@ -413,6 +422,8 @@ export function ReviewModal({
   fee: number;
   phase: LockPhase | null;
   error: string;
+  /** The server's own amount, fee and total for this order, once it has answered. Shown before the wallet prompt. */
+  server?: ServerTerms | null;
   publishOnly: boolean;
   /** INR per USDC shown on the order. Defaults to the market rate. */
   rate?: number;
@@ -449,12 +460,17 @@ export function ReviewModal({
               </div>
             </div>
             <div className="mt-4 space-y-2 rounded-2xl bg-fg/[0.02] p-4 text-[13px] ring-1 ring-fg/[0.06]">
-              <Line k="You lock" v={`${usdt(lock)} USDC`} mint />
-              <Line k="Gift-card buyer receives" v={`${usdt(receives)} USDC`} />
-              <Line k="Fee" v={`${usdt(fee)} USDC`} />
+              <Line k={server ? "You lock (confirmed by the server)" : "You lock (estimate)"} v={`${server ? server.total : usdt(lock)} USDC`} mint />
+              <Line k="Gift-card buyer receives" v={`${server ? server.receives : usdt(receives)} USDC`} />
+              <Line k="Fee" v={`${server ? server.fee : usdt(fee)} USDC`} />
               <Line k="Rate" v={`₹${rate.toFixed(2)} / USDC`} />
             </div>
-            <p className="mt-3 text-[12px] leading-relaxed text-mute">USDC is locked before the order goes live. After you redeem the voucher, it releases to the person who bought the gift card.</p>
+            <p className="mt-3 text-[12px] leading-relaxed text-mute">
+              {server
+                ? `Your wallet will ask to approve and deposit exactly ${server.total} USDC on ${ARC.name}. If it shows a different amount, reject it.`
+                : "The server sets the final fee and total. They are shown here before your wallet asks for anything, and the order stops if the total differs from this estimate by more than a cent."}{" "}
+              After you confirm the voucher works, you release the USDC to the person who bought the gift card.
+            </p>
             {phase && (
               <div className="mt-4 space-y-2">
                 {LOCK_STEPS.map((s, i) => {
@@ -477,7 +493,7 @@ export function ReviewModal({
                 {publishOnly ? "Publish order" : "Lock USDC & post order"}
               </Button>
             )}
-            {phase && <p className="mt-3 text-center text-[12px] text-dim">Confirm each prompt in your wallet. On a mock server the lock is recorded without a chain transaction.</p>}
+            {phase && <p className="mt-3 text-center text-[12px] text-dim">Confirm each prompt in your wallet: one approval, then the deposit.</p>}
           </motion.div>
         </motion.div>
       )}

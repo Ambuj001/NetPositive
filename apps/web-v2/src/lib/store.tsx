@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ApiError, api, type ApiUser, type ReqStatus } from "./api";
-import { ORDERS, type Order } from "./data";
+import { ApiError, api, type ApiUser } from "./api";
 import type { Card as CardT } from "./engine";
 import { useSavedCards } from "./useSavedCards";
 import { clearSession, readSession, writeSession } from "./session";
@@ -8,9 +7,6 @@ import { clearVaultSession } from "./vault";
 import { chainName, preloadConnectors, shortAddr, useWallet, type ChainBalance, type WalletChoice } from "./wallet";
 
 type Toast = { id: number; title: string; body?: string; tone?: "mint" | "amber" | "iris" | "rose" };
-
-/** An order created in this browser session (shown on Track when the backend isn't connected). */
-export type LocalOrder = Order & { status: ReqStatus; role: "requester" | "fulfiller"; createdAt: string };
 
 type Ctx = {
   /** Shortened address of the connected wallet, or null. */
@@ -20,19 +16,17 @@ type Ctx = {
   walletName: string;
   walletIcon: string;
   walletId: string;
-  /** The connected wallet can't add Arc Testnet, so it can sign in but not use the escrow. */
+  /** The connected wallet can't add the Arc network, so it can sign in but not use the escrow. */
   walletLimited: boolean;
   choices: WalletChoice[];
   pending: string | null;
   walletError: string;
   /** True while the last-used wallet is being silently reconnected after a reload. */
   restoring: boolean;
-  /** True when the wallet is on Arc Testnet, where the escrow lives. */
+  /** True when the wallet is on the configured Arc network, where the escrow lives. */
   onArc: boolean;
-  /** Ask the wallet to switch to (or add) Arc Testnet. */
+  /** Ask the wallet to switch to (or add) the configured Arc network. */
   switchToArc: () => Promise<void>;
-  /** Demo USDC balance used by the simulated escrow (not read from chain). */
-  balance: number;
   /** USDC (or native coin) actually held by the connected wallet. */
   walletBalance: ChainBalance | null;
   /** True once the server has bound a World ID nullifier to this wallet. */
@@ -40,8 +34,6 @@ type Ctx = {
   /** JWT from POST /auth/verify, if this wallet has signed in. */
   token: string | null;
   walletOpen: boolean;
-  orders: Order[];
-  myOrders: LocalOrder[];
   toasts: Toast[];
   apiUser: ApiUser | null;
   signingIn: boolean;
@@ -54,8 +46,6 @@ type Ctx = {
   /** Connected wallet RPC, for the Arc USDC approve and escrow deposit. */
   walletRequest: (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
   applySession: (address: string, token: string, verified: boolean) => void;
-  postOrder: (o: Omit<Order, "id" | "postedMin" | "expiresMin" | "seller" | "sellerTrades" | "city">, lock: number) => Order;
-  /** Records that I'm filling this order (adds it to the local book if it came from the API). */
   /** Saved card reward profiles (issuer, variant, rates). Never card numbers. Saved per wallet in this browser. */
   cards: CardT[];
   setCards: (next: CardT[]) => void;
@@ -64,7 +54,6 @@ type Ctx = {
   /** True once they closed the "add your cards" pop-up (kept on the server, so it follows them). */
   cardsPromptDismissed: boolean;
   dismissCardsPrompt: () => void;
-  acceptOrder: (o: Order) => void;
   toast: (t: Omit<Toast, "id">) => void;
   dismiss: (id: number) => void;
 };
@@ -73,12 +62,9 @@ const AppCtx = createContext<Ctx | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const wallet = useWallet();
-  const [balance, setBalance] = useState(120);
   const [humanVerified, setHuman] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [walletOpen, setWalletOpen] = useState(false);
-  const [orders, setOrders] = useState<Order[]>(ORDERS);
-  const [myOrders, setMyOrders] = useState<LocalOrder[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [apiUser, setApiUser] = useState<ApiUser | null>(null);
   const [signingIn, setSigningIn] = useState(false);
@@ -187,13 +173,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       restoring: wallet.restoring,
       onArc: wallet.onArc,
       switchToArc: wallet.switchChain,
-      balance,
       walletBalance: wallet.walletBalance,
       humanVerified: humanVerified || !!apiUser?.worldIdNullifier,
       token,
       walletOpen,
-      orders,
-      myOrders,
       toasts,
       apiUser,
       signingIn,
@@ -216,20 +199,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signMessage: wallet.signMessage,
       walletRequest: wallet.request,
       applySession,
-      postOrder: (o, lock) => {
-        const id = `VR-${24818 + Math.floor(Math.random() * 80)}`;
-        const order: Order = { ...o, id, postedMin: 0, expiresMin: 30, seller: "you", sellerTrades: 14, city: "Bengaluru" };
-        setOrders((all) => [order, ...all]);
-        setMyOrders((all) => [{ ...order, status: "open", role: "requester", createdAt: new Date().toISOString() }, ...all]);
-        setBalance((b) => Math.round((b - lock) * 100) / 100);
-        return order;
-      },
-      acceptOrder: (o) => {
-        setOrders((all) => (all.some((x) => x.id === o.id) ? all : [o, ...all]));
-        setMyOrders((all) =>
-          all.some((x) => x.id === o.id) ? all : [{ ...o, status: "accepted", role: "fulfiller", createdAt: new Date().toISOString() }, ...all],
-        );
-      },
       cards,
       setCards,
       cardsLoaded,
@@ -238,7 +207,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toast,
       dismiss,
     }),
-    [wallet, balance, humanVerified, token, walletOpen, orders, myOrders, toasts, apiUser, signingIn, signIn, toast, dismiss, applySession, cards, setCards, cardsLoaded, cardsPromptDismissed, dismissCardsPrompt],
+    [wallet, humanVerified, token, walletOpen, toasts, apiUser, signingIn, signIn, toast, dismiss, applySession, cards, setCards, cardsLoaded, cardsPromptDismissed, dismissCardsPrompt],
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

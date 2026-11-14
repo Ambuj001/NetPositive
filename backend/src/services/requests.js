@@ -1,7 +1,7 @@
 import { parseUnits, verifyTypedData } from 'viem';
 import { config } from '../config.js';
 import { db, col, voucherRef, eventsRef, FieldValue, Timestamp, serialize } from './firestore.js';
-import { escrowIdFor, verifyDeposit, releaseEscrow, refundEscrow, readEscrowStatus, publicClient } from './escrow.js';
+import { escrowRefFor, escrowIdOf, quoteFee, verifyDeposit, readEscrow, settleOnChain, chainNow, isMock, publicClient } from './escrow.js';
 import { encrypt, decrypt } from '../lib/crypto.js';
 import { HttpError, notFound, forbidden, conflict, badRequest } from '../lib/errors.js';
 import { assertSealedAcceptable } from './vault.js';
@@ -9,6 +9,11 @@ import { READY_TYPES, READY_DEFAULT_SECONDS, READY_MAX_SECONDS, readyDomain, rea
 
 /**
  * Lifecycle
+ *
+ * Who moves the money (VoucherEscrowV2): the two parties, from their own wallets. This server records what they did
+ * after checking it on-chain, and sends only the calls anyone may send (timeouts) or the arbiter's ruling on a dispute.
+ *
+ *   spender wallet: deposit, cancel, release, dispute        buyer wallet: accept (with the spender's Ready), markDelivered
  *
  *   pending_funding ──fund──▶ open ──accept──▶ accepted ──submit-code──▶ code_submitted
  *        │                     ▲  │                │                         │   │   │
@@ -121,8 +126,12 @@ export async function listMine(address) {
 
 export async function createRequest(requester, { brand, amountInr, amountUsdc }) {
   const ref = col.requests.doc();
-  const amountUsdcBaseUnits = parseUnits(amountUsdc, config.USDC_DECIMALS).toString();
-  if (BigInt(amountUsdcBaseUnits) <= 0n) throw new HttpError(400, 'invalid_amount', 'amountUsdc must be > 0');
+  // amountUsdc is what the buyer receives. The escrow pulls the fee on top of it.
+  const amount = parseUnits(amountUsdc, config.USDC_DECIMALS);
+  if (amount <= 0n) throw new HttpError(400, 'invalid_amount', 'amountUsdc must be > 0');
+  const fee = await quoteFee(amount);
+  const amountUsdcBaseUnits = amount.toString();
+  const escrowRef = escrowRefFor(ref.id);
 
   const doc = {
     crypto_spender: requester,
@@ -131,7 +140,10 @@ export async function createRequest(requester, { brand, amountInr, amountUsdc })
     amountInr,
     amountUsdc,
     amountUsdcBaseUnits,
-    escrowId: escrowIdFor(ref.id),
+    feeUsdcBaseUnits: fee.toString(),
+    totalUsdcBaseUnits: (amount + fee).toString(),
+    escrowRef, // what the wallet passes to deposit()
+    escrowId: escrowIdOf(requester, escrowRef), // the on-chain id, used by every later call and read
     status: S.PENDING_FUNDING,
     escrowTxHash: null,
     releaseTxHash: null,
@@ -154,7 +166,7 @@ export async function fundRequest(id, requester, txHash) {
   assertStatus(current, S.PENDING_FUNDING);
 
   // Chain check happens outside the transaction; the transaction re-checks status.
-  await verifyDeposit({ requestId: id, depositor: requester, amountBaseUnits: current.amountUsdcBaseUnits, txHash });
+  await verifyDeposit({ id: current.escrowId, depositor: requester, amountBaseUnits: current.amountUsdcBaseUnits, txHash });
 
   return transition(id, requester, 'funded', (data) => {
     assertStatus(data, S.PENDING_FUNDING);
@@ -172,7 +184,7 @@ export async function cancelRequest(id, requester) {
       return { status: S.CANCELLED };
     });
   }
-  // Funded but nobody has accepted yet: refund on-chain.
+  // Funded but nobody has accepted yet. The spender sends cancel() from their wallet; this records it.
   return settle(id, requester, 'refund', [S.OPEN]);
 }
 
@@ -196,12 +208,20 @@ export async function getVoucher(id, viewer, { isAdmin = false } = {}) {
 export async function confirmRequest(id, requester) {
   const current = await getRequest(id);
   if (current.crypto_spender !== requester) throw forbidden('not_requester', 'Only the crypto spender can confirm');
-  return settle(id, requester, 'release', [S.CODE_SUBMITTED]);
+  // The spender sends release() from their wallet; this records it. Allowed as soon as a buyer is bound.
+  return settle(id, requester, 'release', isMock ? [S.CODE_SUBMITTED] : [S.ACCEPTED, S.CODE_SUBMITTED]);
 }
 
 // ---------- "Ready" permit (spender, after a buyer accepts) ----------
 
-const nowSeconds = () => Math.floor(Date.now() / 1000);
+/** A permit's expiry is checked by the contract against block time, so that is the clock used for it. */
+const nowSeconds = async () => (isMock ? Math.floor(Date.now() / 1000) : chainNow());
+
+/** The escrow's assignment counter. A Ready permit is only valid for the current one. */
+async function escrowEpoch(escrowId) {
+  const onchain = await readEscrow(escrowId);
+  return onchain ? onchain.epoch : 0;
+}
 
 /** The typed data the spender's wallet should sign. Only the spender, only while a buyer has accepted. */
 export async function prepareReady(id, spender) {
@@ -209,14 +229,15 @@ export async function prepareReady(id, spender) {
   if (current.crypto_spender !== spender) throw forbidden('not_requester', 'Only the crypto spender can say they are ready');
   assertStatus(current, S.ACCEPTED);
   if (!current.crypto_buyer) throw conflict('no_buyer', 'No buyer has accepted this order');
-  const validUntil = nowSeconds() + READY_DEFAULT_SECONDS;
-  return { validUntil, typedData: readyTypedData({ escrowId: current.escrowId, fulfiller: current.crypto_buyer, validUntil }) };
+  const validUntil = (await nowSeconds()) + READY_DEFAULT_SECONDS;
+  const epoch = await escrowEpoch(current.escrowId);
+  return { validUntil, typedData: readyTypedData({ escrowId: current.escrowId, fulfiller: current.crypto_buyer, epoch, validUntil }) };
 }
 
 /**
- * Store the spender's signed Ready permit so the buyer (and the mailbox contract) can use it.
+ * Store the spender's signed Ready permit so the buyer can send it to escrow.accept().
  * The signature is checked here against the exact escrow, buyer and expiry, so a permit for a different order or a
- * different buyer is refused. It does not gate submit-code: it is evidence the spender is ready, not a lock.
+ * different buyer is refused. On-chain it is what binds the buyer: until accept() confirms, the spender can still cancel.
  */
 export async function readyRequest(id, spender, { validUntil, signature }) {
   const current = await getRequest(id);
@@ -225,20 +246,21 @@ export async function readyRequest(id, spender, { validUntil, signature }) {
   const buyer = current.crypto_buyer;
   if (!buyer) throw conflict('no_buyer', 'No buyer has accepted this order');
 
-  const now = nowSeconds();
+  const now = await nowSeconds();
   if (validUntil <= now) throw badRequest('ready_expired', 'This Ready permit has already expired');
   if (validUntil > now + READY_MAX_SECONDS) throw badRequest('ready_too_long', `A Ready permit can last at most ${READY_MAX_SECONDS / 60} minutes`);
 
-  const args = { address: spender, domain: readyDomain(), types: READY_TYPES, primaryType: 'Ready', message: { escrowId: current.escrowId, fulfiller: buyer, validUntil: BigInt(validUntil) }, signature };
+  const epoch = await escrowEpoch(current.escrowId);
+  const args = { address: spender, domain: readyDomain(), types: READY_TYPES, primaryType: 'Assign', message: { id: current.escrowId, fulfiller: buyer, epoch, validUntil: BigInt(validUntil) }, signature };
   let valid = await verifyTypedData(args).catch(() => false);
   // Smart-contract wallets (ERC-1271) can only be checked on-chain.
-  if (!valid && config.ESCROW_MODE === 'chain') valid = await publicClient.verifyTypedData(args).catch(() => false);
+  if (!valid && !isMock) valid = await publicClient.verifyTypedData(args).catch(() => false);
   if (!valid) throw badRequest('bad_ready_signature', 'That signature is not the spender\'s Ready permit for this order and buyer');
 
   return transition(id, spender, 'ready', (data) => {
     assertStatus(data, S.ACCEPTED);
     if (buyerOf(data) !== buyer) throw conflict('buyer_changed', 'The buyer changed while you were signing; sign again');
-    return { ready: { validUntil, signature, signedAt: Timestamp.now() } };
+    return { ready: { validUntil, epoch, signature, signedAt: Timestamp.now() } };
   });
 }
 
@@ -261,10 +283,28 @@ export async function acceptRequest(id, fulfiller) {
 export async function submitCode(id, fulfiller, { code, pin, sealed }) {
   if (sealed !== undefined) await assertSealedAcceptable(id, sealed);
   else if (config.VOUCHER_MODE === 'sealed') throw badRequest('sealed_required', 'Codes must be sealed in your browser before submitting');
+
+  // The buyer must be bound on-chain and must have started the spender's review window (markDelivered) before the
+  // code leaves their hands. The chain's review deadline is the one that counts.
+  let reviewDeadline = null;
+  if (!isMock) {
+    const current = await getRequest(id);
+    assertStatus(current, S.ACCEPTED);
+    if (current.crypto_buyer !== fulfiller) throw forbidden('not_fulfiller', 'Only the crypto buyer can submit a code');
+    const onchain = await readEscrow(current.escrowId);
+    if (onchain.fulfiller !== fulfiller) {
+      throw new HttpError(409, 'not_assigned_onchain', 'Send accept() to the escrow with the spender\'s Ready permit first; until then you are not the buyer on-chain', { function: 'accept', escrowId: current.escrowId });
+    }
+    if (onchain.status !== 'delivered') {
+      throw new HttpError(409, 'not_delivered_onchain', 'Send markDelivered() to the escrow first; it starts the spender\'s review window', { function: 'markDelivered', escrowId: current.escrowId });
+    }
+    reviewDeadline = Timestamp.fromMillis(onchain.deadline * 1000);
+  }
+
   return transition(id, fulfiller, 'code_submitted', (data, tx) => {
     assertStatus(data, S.ACCEPTED);
     if (buyerOf(data) !== fulfiller) throw forbidden('not_fulfiller', 'Only the crypto buyer can submit a code');
-    if (data.fulfilDeadline && data.fulfilDeadline.toMillis() < Date.now()) {
+    if (isMock && data.fulfilDeadline && data.fulfilDeadline.toMillis() < Date.now()) {
       throw conflict('fulfil_window_expired', 'The fulfil window has expired');
     }
     tx.set(voucherRef(id), {
@@ -275,7 +315,7 @@ export async function submitCode(id, fulfiller, { code, pin, sealed }) {
     return {
       status: S.CODE_SUBMITTED,
       codeSubmittedAt: FieldValue.serverTimestamp(),
-      reviewDeadline: minutesFromNow(config.REVIEW_WINDOW_MINUTES),
+      reviewDeadline: reviewDeadline ?? minutesFromNow(config.REVIEW_WINDOW_MINUTES),
     };
   });
 }
@@ -285,9 +325,9 @@ export async function submitCode(id, fulfiller, { code, pin, sealed }) {
 // ---------- Settlement (on-chain) ----------
 
 /**
- * Two-phase settle: lock the doc in `releasing`/`refunding` (so concurrent callers and the
- * sweeper can't double-pay), make the chain call, then commit the final state. On failure
- * the lock is rolled back to the previous status.
+ * Two-phase settle: lock the doc in `releasing`/`refunding` (so concurrent callers and the sweeper don't race), ask
+ * the chain (see settleOnChain: it confirms what a party already did, or sends a timeout call or the arbiter's
+ * ruling), then commit the final state. On failure the lock is rolled back to the previous status.
  */
 export async function settle(id, actor, kind, allowedFrom) {
   const lock = kind === 'release' ? S.RELEASING : S.REFUNDING;
@@ -301,13 +341,15 @@ export async function settle(id, actor, kind, allowedFrom) {
 
   let txHash;
   try {
-    txHash = kind === 'release' ? await releaseEscrow(id, locked.crypto_buyer) : await refundEscrow(id);
+    txHash = await settleOnChain({ requestId: id, depositor: locked.crypto_spender, kind, to: locked.crypto_buyer });
   } catch (err) {
-    console.error(`[settle] ${kind} ${id} failed:`, err.message);
+    const expected = err instanceof HttpError; // e.g. the party still has to send their own transaction
+    if (!expected) console.error(`[settle] ${kind} ${id} failed:`, err.message);
     await transition(id, 'system', `${kind}_failed`, (data) => {
       assertStatus(data, lock);
-      return { status: data.settleFrom, lastError: err.message.slice(0, 500) };
+      return { status: data.settleFrom, lastError: expected ? null : err.message.slice(0, 500) };
     });
+    if (expected) throw err;
     throw new HttpError(502, `${kind}_failed`, `On-chain ${kind} failed; request returned to "${locked.settleFrom}"`);
   }
 
@@ -335,13 +377,15 @@ const STALE_LOCK_MS = 5 * 60_000;
 
 export async function sweep() {
   const now = Timestamp.now();
-  const result = { reopened: 0, autoReleased: 0, reconciled: 0, errors: 0 };
+  const result = { reopened: 0, autoReleased: 0, reconciled: 0, followedChain: 0, errors: 0 };
 
   // 1. Fulfiller accepted but never submitted a code → reopen and strike them.
   const expiredAccepts = await col.requests.where('status', '==', S.ACCEPTED).where('fulfilDeadline', '<', now).limit(100).get();
   for (const d of expiredAccepts.docs) {
     try {
       const before = buyerOf(d.data());
+      // Once the buyer is bound on-chain the order cannot go back to the book: the chain's own deadline decides (step 4).
+      if (!isMock && (await readEscrow(d.data().escrowId)).fulfiller) continue;
       await transition(d.id, 'system', 'fulfil_timeout', (data) => {
         assertStatus(data, S.ACCEPTED);
         if (data.fulfilDeadline.toMillis() >= Date.now()) throw conflict('not_expired');
@@ -361,7 +405,7 @@ export async function sweep() {
       await settle(d.id, 'system', 'release', [S.CODE_SUBMITTED]);
       result.autoReleased++;
     } catch (err) {
-      if (err.code !== 'invalid_status') { result.errors++; console.error('[sweep]', err.message); }
+      if (err.code !== 'invalid_status' && err.code !== 'wallet_action_required') { result.errors++; console.error('[sweep]', err.message); }
     }
   }
 
@@ -371,7 +415,7 @@ export async function sweep() {
     const stale = await col.requests.where('status', '==', lock).where('settleStartedAt', '<', staleBefore).limit(50).get();
     for (const d of stale.docs) {
       try {
-        const onchain = await readEscrowStatus(d.id);
+        const onchain = isMock ? 'unknown' : (await readEscrow(d.data().escrowId)).status;
         if (onchain === (kind === 'release' ? 'released' : 'refunded')) {
           await finalizeSettle(d.id, 'system', kind, lock, final, 'reconciled-from-chain');
         } else {
@@ -385,6 +429,32 @@ export async function sweep() {
       } catch (err) {
         result.errors++;
         console.error('[sweep]', err.message);
+      }
+    }
+  }
+
+  // 4. Follow the chain. The parties can act on the escrow without telling this server (release, cancel, concede), and
+  //    escrows time out on-chain. Record what already happened, and send the timeout call when one is due: the refund
+  //    of an expired order, or the buyer's payment once the review window has ended.
+  if (!isMock) {
+    const nowSec = await chainNow();
+    for (const status of [S.OPEN, S.ACCEPTED, S.CODE_SUBMITTED]) {
+      const live = await col.requests.where('status', '==', status).limit(100).get();
+      for (const d of live.docs) {
+        try {
+          const onchain = await readEscrow(d.data().escrowId);
+          let kind = null;
+          if (onchain.status === 'released') kind = 'release';
+          else if (onchain.status === 'refunded') kind = 'refund';
+          else if (onchain.status === 'funded' && nowSec >= onchain.deadline) kind = 'refund';
+          else if (onchain.status === 'delivered' && nowSec >= onchain.deadline) kind = 'release';
+          if (!kind) continue;
+          if (kind === 'release' && !buyerOf(d.data())) continue; // not a state this server can describe; leave it for a person
+          await settle(d.id, 'system', kind, [status]);
+          result.followedChain++;
+        } catch (err) {
+          if (err.code !== 'invalid_status') { result.errors++; console.error('[sweep]', err.message); }
+        }
       }
     }
   }

@@ -4,12 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Aurora, BrandMark, Button, cx } from "../components/ui";
 import { api, brandIdFromApi, isFinal, STATUS, STEPS, stepIndex, type ApiRequest, type ReqStatus } from "../lib/api";
+import { ARC } from "../lib/chain";
 import { brand } from "../lib/data";
-import { inr, quote, usdt } from "../lib/engine";
+import { inr, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
 import TrackDetail from "./TrackDetail";
 
-/** One row on the tracker, from the backend (Firestore `requests/{id}`) or this session. */
+/** One row on the tracker, from the backend (Firestore `requests/{id}`). */
 type Row = {
   id: string;
   brandId: string;
@@ -21,21 +22,20 @@ type Row = {
   deadline: string | null;
   deadlineLabel: string;
   tx: string | null;
-  live: boolean;
 };
 
 const fromApi = (r: ApiRequest, role: Row["role"]): Row => ({
   id: r.id,
   brandId: brandIdFromApi(r.brand),
   amountInr: r.amountInr,
-  amountUsdc: Number(r.amountUsdc) || 0,
+  // The spender sees what left their wallet (amount + fee); the buyer sees what they are paid.
+  amountUsdc: role === "requester" && r.totalUsdcBaseUnits && /^\d+$/.test(r.totalUsdcBaseUnits) ? Number(r.totalUsdcBaseUnits) / 1e6 : Number(r.amountUsdc) || 0,
   status: r.status,
   role,
   createdAt: r.createdAt,
   deadline: r.status === "accepted" ? r.fulfilDeadline : r.status === "code_submitted" ? r.reviewDeadline : null,
-  deadlineLabel: r.status === "accepted" ? "Buyer must submit code in" : "Auto-release in",
+  deadlineLabel: r.status === "accepted" ? "Buyer must submit code in" : "Review window ends in",
   tx: r.releaseTxHash ?? r.refundTxHash ?? r.escrowTxHash,
-  live: true,
 });
 
 type Tab = "requester" | "fulfiller";
@@ -49,7 +49,7 @@ export default function Track() {
 }
 
 function TrackList() {
-  const { token, signIn, signingIn, myOrders, address } = useApp();
+  const { token, signIn, signingIn, address } = useApp();
   const [tab, setTab] = useState<Tab>("requester");
   const [live, setLive] = useState<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] } | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "offline" | "error">("idle");
@@ -77,27 +77,14 @@ function TrackList() {
   }, [load, token]);
 
   const rows: Row[] = useMemo(() => {
-    if (live) return tab === "requester" ? live.asCryptoSpender.map((r) => fromApi(r, "requester")) : live.asCryptoBuyer.map((r) => fromApi(r, "fulfiller"));
-    return myOrders
-      .filter((o) => o.role === tab)
-      .map((o) => ({
-        id: o.id,
-        brandId: o.brandId,
-        amountInr: o.amount,
-        amountUsdc: tab === "requester" ? quote(o.amount, o.rate).sellerLocks : quote(o.amount, o.rate).buyerReceives,
-        status: o.status,
-        role: o.role,
-        createdAt: o.createdAt,
-        deadline: null,
-        deadlineLabel: "",
-        tx: null,
-        live: false,
-      }));
-  }, [live, myOrders, tab]);
+    // Orders come from the server only. Nothing is kept or invented on this device.
+    if (!live) return [];
+    return tab === "requester" ? live.asCryptoSpender.map((r) => fromApi(r, "requester")) : live.asCryptoBuyer.map((r) => fromApi(r, "fulfiller"));
+  }, [live, tab]);
 
   const counts = {
-    requester: live ? live.asCryptoSpender.length : myOrders.filter((o) => o.role === "requester").length,
-    fulfiller: live ? live.asCryptoBuyer.length : myOrders.filter((o) => o.role === "fulfiller").length,
+    requester: live ? live.asCryptoSpender.length : 0,
+    fulfiller: live ? live.asCryptoBuyer.length : 0,
   };
   const active = rows.filter((r) => !isFinal(r.status)).length;
 
@@ -126,11 +113,11 @@ function TrackList() {
 
         {(state === "offline" || state === "error") && (
           <div className="mt-5 rounded-2xl bg-amber/[0.06] px-4 py-3 text-[13px] text-amber-ink ring-1 ring-amber/25">
-            {state === "offline" ? "The NetPositive backend isn't reachable, so only orders from this session are shown." : err}
+            {state === "offline" ? "The NetPositive backend isn't reachable, so your orders can't be shown right now. Nothing is lost: they are stored on the server and the escrow." : err}
           </div>
         )}
         {!token && (
-          <p className="mt-4 text-[12.5px] text-dim">Showing orders from this session. Sign in with your wallet to load every order saved on NetPositive.</p>
+          <p className="mt-4 text-[12.5px] text-dim">Sign in with your wallet to load your orders. To look at one order without signing in, open its link or use its ID.</p>
         )}
 
         <div className="mt-6 flex gap-6 border-b border-fg/[0.07] text-[13.5px]">
@@ -173,7 +160,8 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
   const off = r.status === "cancelled" || r.status === "refunded" || r.status === "refunding";
   const [busy, setBusy] = useState(false);
   const tone = { mint: "text-brand-ink bg-brand/10 ring-brand/25", amber: "text-amber-ink bg-amber/10 ring-amber/25", iris: "text-iris bg-iris/10 ring-iris/25", rose: "text-rose-ink bg-rose/10 ring-rose/25", mute: "text-mute bg-fg/[0.04] ring-fg/10" }[s.tone];
-  const canCancel = r.live && r.role === "requester" && (r.status === "pending_funding" || r.status === "open") && token;
+  // An order with no deposit can be cancelled right here. A funded one needs a wallet transaction, so that lives on its page.
+  const canCancel = r.role === "requester" && r.status === "pending_funding" && token;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
@@ -185,7 +173,6 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
               {b.name} {inr(r.amountInr)}
             </span>
             <span className={cx("rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider uppercase ring-1", tone)}>{s.label}</span>
-            {!r.live && <span className="rounded-full px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-dim uppercase ring-1 ring-fg/10">this session</span>}
           </div>
           <div className="mt-0.5 truncate font-mono text-[11px] text-dim">
             {r.id}
@@ -228,15 +215,13 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
         </div>
         <div className="flex items-center gap-2">
           {r.tx && !r.tx.startsWith("reconciled") && (
-            <a href={`https://testnet.arcscan.app/tx/${r.tx}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-mono text-[11px] text-dim hover:text-fg">
+            <a href={`${ARC.explorer}/tx/${r.tx}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-mono text-[11px] text-dim hover:text-fg">
               {r.tx.slice(0, 8)}… <ArrowUpRight className="size-3" />
             </a>
           )}
-          {r.live && (
-            <Link to={`/track?id=${encodeURIComponent(r.id)}`} className="flex h-8 items-center gap-1.5 rounded-full bg-fg/[0.05] px-3 text-[12px] ring-1 ring-fg/10 hover:bg-fg/10">
-              Details <ArrowRight className="size-3" />
-            </Link>
-          )}
+          <Link to={`/track?id=${encodeURIComponent(r.id)}`} className="flex h-8 items-center gap-1.5 rounded-full bg-fg/[0.05] px-3 text-[12px] ring-1 ring-fg/10 hover:bg-fg/10">
+            {r.role === "requester" && r.status === "open" ? "Details · cancel" : "Details"} <ArrowRight className="size-3" />
+          </Link>
           {canCancel && (
             <button
               disabled={busy}
@@ -251,13 +236,8 @@ function OrderCard({ r, delay, token, onChanged }: { r: Row; delay: number; toke
               }}
               className="flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] text-mute ring-1 ring-fg/10 hover:text-rose-ink hover:ring-rose/30 disabled:opacity-50"
             >
-              {busy ? <LoaderCircle className="size-3 animate-spin" /> : <X className="size-3" />} {r.status === "open" ? "Cancel & refund" : "Cancel"}
+              {busy ? <LoaderCircle className="size-3 animate-spin" /> : <X className="size-3" />} Cancel
             </button>
-          )}
-          {!r.live && (
-            <Link to={`/trade/${r.id}`} className="flex h-8 items-center gap-1.5 rounded-full bg-fg/[0.05] px-3 text-[12px] ring-1 ring-fg/10 hover:bg-fg/10">
-              Open trade <ArrowRight className="size-3" />
-            </Link>
           )}
         </div>
       </div>

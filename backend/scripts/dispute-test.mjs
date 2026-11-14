@@ -28,7 +28,7 @@ process.env.ADMIN_ADDRESSES = admin.address;
 
 const { createApp } = await import('../src/app.js');
 const { col, Timestamp } = await import('../src/services/firestore.js');
-const { mockCalls, mockFaults, escrowIdFor } = await import('../src/services/escrow.js');
+const { mockCalls, mockFaults, escrowRefFor } = await import('../src/services/escrow.js');
 
 const server = createApp().listen(0);
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -288,13 +288,13 @@ for (const [who, label, other] of [['r', 'requester (crypto seller)', 'f'], ['f'
     assert.equal(r.status, 200, r.text);
     const calls = mockCalls.slice(before);
     const req = (await call('GET', `/requests/${id}`)).body.request;
-    if (who === 'r') { assert.equal(req.status, 'refunded'); assert.ok(calls.some((c) => c.functionName === 'refund' && c.args[0] === escrowIdFor(id))); }
-    else { assert.equal(req.status, 'released'); assert.ok(calls.some((c) => c.functionName === 'release' && c.args[0] === escrowIdFor(id) && c.args[1] === getAddress(a.f.address))); }
+    if (who === 'r') { assert.equal(req.status, 'refunded'); assert.ok(calls.some((c) => c.functionName === 'refund' && c.args[0] === escrowRefFor(id))); }
+    else { assert.equal(req.status, 'released'); assert.ok(calls.some((c) => c.functionName === 'release' && c.args[0] === escrowRefFor(id) && c.args[1] === getAddress(a.f.address))); }
     if (BOND) {
       assert.equal(req.dispute.bond.status, 'returned');
       assert.ok(calls.some((c) => c.functionName === 'refund' && c.args[0] === bondOf(req)), 'stake not refunded');
       assert.ok(!calls.some((c) => c.functionName === 'release' && c.args[0] === bondOf(req)), 'stake must not be released to anyone');
-    } else assert.ok(calls.every((c) => c.args[0] === escrowIdFor(id)), 'no bond calls expected');
+    } else assert.ok(calls.every((c) => c.args[0] === escrowRefFor(id)), 'no bond calls expected');
     assert.equal(await strikes(a[other]), sBefore + 1);
     assert.ok(!(await user(a[who])).banned && !(await user(a[other])).banned);
     assert.equal(req.resolution.verdict, 'disputer_right');
@@ -305,8 +305,8 @@ for (const [who, label, other] of [['r', 'requester (crypto seller)', 'f'], ['f'
     const r = await resolve(a, id, { verdict: 'disputer_wrong', note: 'the code is valid' });
     assert.equal(r.status, 200, r.text);
     const calls = mockCalls.slice(before); const req = (await call('GET', `/requests/${id}`)).body.request;
-    if (who === 'r') { assert.equal(req.status, 'released'); assert.ok(calls.some((c) => c.functionName === 'release' && c.args[0] === escrowIdFor(id) && c.args[1] === getAddress(a.f.address))); }
-    else { assert.equal(req.status, 'refunded'); assert.ok(calls.some((c) => c.functionName === 'refund' && c.args[0] === escrowIdFor(id))); }
+    if (who === 'r') { assert.equal(req.status, 'released'); assert.ok(calls.some((c) => c.functionName === 'release' && c.args[0] === escrowRefFor(id) && c.args[1] === getAddress(a.f.address))); }
+    else { assert.equal(req.status, 'refunded'); assert.ok(calls.some((c) => c.functionName === 'refund' && c.args[0] === escrowRefFor(id))); }
     if (BOND) {
       assert.equal(req.dispute.bond.status, 'forfeited');
       const pay = calls.find((c) => c.functionName === 'release' && c.args[0] === bondOf(req));
@@ -336,7 +336,7 @@ await check('resolving something that is not disputed is refused (409); resolvin
   assert.ok(rs.some((r) => r.status === 200));
   const second = await resolve(a, d.id, { verdict: 'disputer_right' });
   assert.equal(second.status, 409);
-  const paid = mockCalls.slice(before).filter((c) => c.args[0] === escrowIdFor(d.id) || c.args[0] === bondOf((rs.find((r) => r.status === 200)).body.request));
+  const paid = mockCalls.slice(before).filter((c) => c.args[0] === escrowRefFor(d.id) || c.args[0] === bondOf((rs.find((r) => r.status === 200)).body.request));
   assert.equal(paid.length, BOND ? 2 : 1, `payouts: ${paid.map((p) => p.functionName).join()}`); // main refund + stake refund, once each
 });
 await check('legacy {outcome} still works and is turned into a verdict (requester + refund = disputer right)', async () => {
@@ -362,7 +362,7 @@ if (BOND) {
     assert.equal(ok.status, 200, ok.text);
     const calls = mockCalls.slice(before);
     assert.equal(calls.filter((c) => c.args[0] === bondId).length, 1);
-    assert.equal(calls.filter((c) => c.args[0] === escrowIdFor(id)).length, 1);
+    assert.equal(calls.filter((c) => c.args[0] === escrowRefFor(id)).length, 1);
     assert.equal(await strikes(a.f), sBefore + 1);
   });
   await check('trade settlement fails after the stake moved: retry does NOT pay the stake again and does not double-punish', async () => {

@@ -44,13 +44,13 @@ npm run build      # output in apps/web-v2/dist
 | Route | What it shows |
 | --- | --- |
 | `/trade` | The main page, two tabs (`?mode=sell` for the second). **Buy**: order book, assistant bar and buy panel. **Pay with crypto**: the assistant chat finds a store and posts a request, and the side panel builds a custom order (store, amount, rate). Both lock USDC through the same wallet, World ID and server steps (`src/lib/lockOrder.ts`). `/home`, `/buy` and `/spend` redirect here |
-| `/track` | Your orders, with Ready, Settle and Dispute actions |
-| `/dispute` | Your orders that can be disputed or are disputed. `/dispute/:id` is one order: raise a dispute (category, what happened, up to 4 screenshots, stake USDC), read it, add screenshots, reply once, see the team's decision. Talks to the backend dispute module (`docs/disputes.md`) |
+| `/track` | Your orders. `/track?id=<order>` is one order from your side, and it runs the whole trade against the VoucherEscrowV2 contract: the spender signs Ready, releases, cancels or disputes; the buyer confirms on-chain (`accept`), then marks delivered and sends the sealed code. Each of those is a transaction from that person's own wallet (`src/lib/escrow.ts`, `src/lib/escrowFlow.ts`); the server only checks the chain afterwards |
+| `/dispute` | Your orders that can be disputed or are disputed. `/dispute/:id` is one order: the spender raises a dispute (a wallet transaction that freezes the escrow, then category, what happened, up to 4 screenshots; no stake), both sides read it, add screenshots, reply once, see the team's decision. Talks to the backend dispute module (`docs/disputes.md`) |
 | `/` | Landing: seller ⇄ escrow ⇄ buyer hero, animated trade flow, six-step walkthrough, route calculator, trust model, comparison |
-| `/sell` | Seller: pick voucher brand, amount and rate, lock USDT in escrow |
+| `/sell` | Redirects to `/trade?mode=sell` (the old page faked a lock and was removed) |
 | `/market` | Buyer: order book ranked by the buyer's real price per USDT after card rewards |
 | `/cards` | Buyer's card portfolio (issuer, variant, caps; no card numbers) |
-| `/trade/:id` | Live trade room with "View as Seller / View as Buyer", autoplay demo, verification, release and dispute |
+| `/trade/:id` | Redirects to `/track?id=:id` (the old walkthrough "trade room" simulated verification and release and was removed) |
 
 ## AI assistant (`/home`)
 
@@ -78,19 +78,21 @@ React 19, TypeScript, Vite, Tailwind CSS v4, Motion, React Router, Lucide icons.
 
 - **Detected extensions** via EIP-6963 (MetaMask, Rabby, Coinbase, OKX, Phantom, Zerion, Brave, Rainbow, Trust, and any other wallet that announces itself), plus older wallets that only inject `window.ethereum`.
 - **Base Account** (passkey popup) and **Coinbase Wallet** (app or popup) without an extension.
-- **WalletConnect** QR for mobile wallets; needs `VITE_WALLETCONNECT_PROJECT_ID` (free at https://cloud.reown.com). The session includes Arc Testnet.
+- **WalletConnect** QR for mobile wallets; needs `VITE_WALLETCONNECT_PROJECT_ID` (free at https://cloud.reown.com). The session includes the configured Arc network.
 - The last wallet reconnects silently after a reload (`eth_accounts`, never a popup). Disconnect forgets it.
-- Escrow steps switch the wallet to Arc Testnet and add the network first if the wallet doesn't know it (`src/lib/arc.ts`, handles MetaMask, Rabby, OKX, Coinbase and WalletConnect error shapes).
+- Escrow steps switch the wallet to the configured Arc network (`VITE_ARC_NETWORK`, see `src/lib/chain.ts`) and add it first if the wallet doesn't know it (`src/lib/arc.ts`, handles MetaMask, Rabby, OKX, Coinbase and WalletConnect error shapes).
 
 **World ID.** Browsing needs only a wallet. Proof of Human is asked once, right after connecting and again whenever someone posts or accepts an order without it. The app takes app id, action, environment and the dev-bypass flag from `GET /world-id/config`, so a frontend/backend `.env` mismatch can't break it. If the server has no RP keys, the app says exactly what to add.
 
+**Network and escrow config.** One module, `src/lib/chain.ts`, driven by build-time env: `VITE_ARC_NETWORK=mainnet|testnet` (default testnet), `VITE_ESCROW_CONTRACT` (the VoucherEscrowV2 address this build trusts; required in a production build) and optional `VITE_ARC_RPC_URL`. If the wallet, the backend's `/health.chainId` or the backend's contract address disagrees with the build, the app says so and stops. A backend running the mock escrow is only accepted under `npm run dev`; a production build reports "escrow is not configured" instead. Nothing in a production build claims funds are locked, delivered or released unless the server or the chain said so; sample orders exist only under `npm run dev` and are labelled as demo data. `vercel.json` rewrites every path to `index.html` so deep links work.
+
 **On-chain features.**
 
-- *Check the escrow yourself* (`src/lib/onchain.ts`, `components/OnchainProof.tsx`): the trade room and the order page read the order's deposit straight from the VoucherEscrow contract through a public Arc node and compare it with what the server says. A missing deposit, a wrong amount or a different depositor shows "Don't proceed". Set `VITE_ARC_RPC_URL` to use another node.
+- *Check the escrow yourself* (`src/lib/onchain.ts`, `components/OnchainProof.tsx`): the order page reads the order's escrow record (`getEscrow`: state, amount, buyer bound on-chain, phase deadline) straight from the VoucherEscrowV2 contract through a public Arc node and compare it with what the server says. A missing deposit, a wrong amount or a different depositor shows "Don't proceed". Set `VITE_ARC_RPC_URL` to use another node.
 - *Sign-In with Ethereum* (EIP-4361) for the sign-in signature.
 - *Safer wallet steps* (`src/lib/arc.ts`): before any prompt the app checks the USDC balance on Arc (and points to the faucet), reuses an approval left from an earlier attempt, and switches to Arc before signing the Ready permit (wallets refuse typed data for another chain). Wallets that can't add networks (Phantom) are labelled in the picker and get a plain explanation.
 - *Show USDC in wallet* (EIP-747 `wallet_watchAsset`) in the account sheet.
 
-**Tested end to end** (Playwright, injected wallets with real secp256k1 signatures): connect with an EIP-6963 catalog wallet, an unknown EIP-6963 wallet and a legacy `window.ethereum` wallet; World ID; reload keeps the session; switch/add Arc; and a full two-wallet trade (post + lock → accept → Ready with vault key + EIP-712 permit → sealed code → reveal → settle). `e2e/errors.mjs` covers what people see when things fail: a stale session, a server error before the World App step, unusable server settings, and a wallet that can't add Arc.
+**End-to-end scripts** (`e2e/`, Playwright, injected wallets with real secp256k1 signatures). These were written for the previous escrow, where the server moved the funds. They have not been updated or re-run for escrow V2 (the buyer's on-chain confirm, mark-delivered, wallet-sent release/cancel/dispute, and the removal of `/sell` and the `/trade/:id` walkthrough), so treat them as out of date until they are. What they covered: connect with an EIP-6963 catalog wallet, an unknown EIP-6963 wallet and a legacy `window.ethereum` wallet; World ID; reload keeps the session; switch/add Arc; and a full two-wallet trade (post + lock → accept → Ready with vault key + EIP-712 permit → sealed code → reveal → settle). `e2e/errors.mjs` covers what people see when things fail: a stale session, a server error before the World App step, unusable server settings, and a wallet that can't add Arc.
 
 Reward maths lives in `src/lib/engine.ts` and reproduces the Product Walkthrough V3 example (₹10,000 Lifestyle voucher at ₹90/USDT: seller locks 112.22 USDT, buyer receives 111.11 USDT + 1,650 Infinia points via SmartBuy 5X). Card rates are illustrative and must be refreshed from issuer terms before real recommendations.

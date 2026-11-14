@@ -39,7 +39,7 @@ export function matchOrders(orders: Order[], spend: number, maxRate?: number) {
 /** The buy side: order book, assistant bar and the buy panel. Shown in the Buy tab of the Trade page. */
 export function BuyView() {
   const { orders, source, reload } = useOrderBook();
-  const { fullAddress } = useApp();
+  const { fullAddress, toast } = useApp();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"market" | "limit">("market");
@@ -65,7 +65,8 @@ export function BuyView() {
 
   const isMine = (o: Order) => sameAddr(o.spender, fullAddress);
   // Every order opens on Track. For your own it is your order; for someone else's you choose how to buy it and accept.
-  const go = (o: Order) => nav(`/track?id=${encodeURIComponent(o.id)}`);
+  // Sample rows (development only, no backend) lead nowhere: there is no order behind them.
+  const go = (o: Order) => (o.demo ? toast({ title: "Demo order", body: "This is sample data shown because no backend is running. There is nothing to open.", tone: "amber" }) : nav(`/track?id=${encodeURIComponent(o.id)}`));
 
   return (
     <div className="relative">
@@ -161,7 +162,7 @@ export function BuyView() {
                   </AnimatePresence>
                 </tbody>
               </table>
-              {rows.length === 0 && <div className="py-10 text-center text-[13px] text-mute">{open.length ? "No orders match your search." : "No open orders right now."}</div>}
+              {rows.length === 0 && <div className="py-10 text-center text-[13px] text-mute">{open.length ? "No orders match your search." : source === "offline" ? "The order book can't be reached right now." : source === "loading" ? "Loading orders…" : "No open orders right now."}</div>}
             </div>
             <p className="mt-4 text-[11.5px] text-dim">Whole vouchers. No partial fills.</p>
           </section>
@@ -308,10 +309,20 @@ function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void })
     return (
       <button
         onClick={onRetry}
-        title="Backend not reachable. Showing demo orders. Click to retry."
+        title="Backend not reachable. These are made-up sample orders, shown in development only. Click to retry."
         className="flex items-center gap-1.5 rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25"
       >
-        demo <RefreshCw className="size-2.5" />
+        demo data · not real <RefreshCw className="size-2.5" />
+      </button>
+    );
+  if (source === "offline")
+    return (
+      <button
+        onClick={onRetry}
+        title="The order book server didn't answer. Click to retry."
+        className="flex items-center gap-1.5 rounded-full bg-rose/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-rose-ink uppercase ring-1 ring-rose/25"
+      >
+        unreachable <RefreshCw className="size-2.5" />
       </button>
     );
   return null;

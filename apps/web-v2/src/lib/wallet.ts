@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ARC, chainIdNumber, switchToArc } from "./arc";
+import { ARC_CHAIN_IDS, CHAINS as ARC_NETWORKS } from "./chain";
 export { ARC, switchToArc };
 
 /** Minimal EIP-1193 provider surface. */
@@ -35,7 +36,8 @@ const CHAINS: Record<string, string> = {
   "0xa4b1": "Arbitrum",
   "0x89": "Polygon",
   "0x38": "BNB Chain",
-  "0x4cef52": "Arc Testnet",
+  [ARC_NETWORKS.mainnet.hex]: ARC_NETWORKS.mainnet.name,
+  [ARC_NETWORKS.testnet.hex]: ARC_NETWORKS.testnet.name,
 };
 export const chainName = (id: string) => (id ? CHAINS[id.toLowerCase()] ?? `Chain ${parseInt(id, 16)}` : "");
 export const shortAddr = (a: string) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
@@ -43,8 +45,6 @@ const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[a-f
 
 /** Balance shown on the connected-wallet chip. */
 export type ChainBalance = { amount: number; symbol: string };
-
-const ARC_CHAIN_ID = 5042002;
 
 /** ERC-20 USDC. Arc's gas token is native USDC, so it is read with eth_getBalance instead. */
 const USDC_BY_CHAIN: Record<number, { address: string; decimals: number }> = {
@@ -66,7 +66,8 @@ const NATIVE_BY_CHAIN: Record<number, { symbol: string; decimals: number }> = {
   42161: { symbol: "ETH", decimals: 18 },
   137: { symbol: "POL", decimals: 18 },
   56: { symbol: "BNB", decimals: 18 },
-  [ARC_CHAIN_ID]: { symbol: "USDC", decimals: 18 },
+  [ARC_NETWORKS.mainnet.id]: { symbol: "USDC", decimals: 18 },
+  [ARC_NETWORKS.testnet.id]: { symbol: "USDC", decimals: 18 },
 };
 
 function parseHex(raw: unknown) {
@@ -84,7 +85,7 @@ function fromUnits(raw: bigint, decimals: number) {
 /** USDC in the connected wallet, or the chain's native coin when this network has no USDC contract. */
 export async function readWalletBalance(provider: Provider, holder: string, chainId: string): Promise<ChainBalance> {
   const id = chainIdNumber(chainId);
-  if (id === ARC_CHAIN_ID) {
+  if (ARC_CHAIN_IDS.includes(id)) {
     const raw = parseHex(await provider.request({ method: "eth_getBalance", params: [holder, "latest"] }));
     return { amount: fromUnits(raw, 18), symbol: "USDC" };
   }
@@ -162,7 +163,7 @@ export type WalletChoice = {
   /** Installed extension provider, when present. */
   announced?: Announced;
   fallback: Fallback;
-  /** Can sign in, but can't add Arc Testnet. */
+  /** Can sign in, but can't add the Arc network. */
   limited?: boolean;
 };
 
@@ -317,7 +318,7 @@ export function useWallet() {
       const hit = announced.find((a) => a.info.rdns && c.rdns.includes(a.info.rdns));
       if (hit) {
         used.add(hit.info.uuid);
-        return { id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: c.limited ? "Sign-in only · can't use Arc Testnet" : "Detected in this browser", announced: hit, fallback: c.fallback, install: c.install, limited: c.limited };
+        return { id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: c.limited ? `Sign-in only · can't use ${ARC.name}` : "Detected in this browser", announced: hit, fallback: c.fallback, install: c.install, limited: c.limited };
       }
       const base = { id: c.id, name: c.name, fallback: c.fallback, install: c.install };
       if (c.fallback === "base-sdk") return { ...base, status: "popup", hint: "Passkey smart wallet · no extension" };
@@ -559,7 +560,7 @@ export function useWallet() {
     walletId: session?.id ?? "",
     walletName: session?.name ?? "",
     walletIcon: session?.icon ?? "",
-    /** This wallet can't add Arc Testnet (see CATALOG.limited). */
+    /** This wallet can't add the Arc network (see CATALOG.limited). */
     walletLimited: !!CATALOG.find((c) => c.id === session?.id)?.limited,
     walletBalance,
     pending,

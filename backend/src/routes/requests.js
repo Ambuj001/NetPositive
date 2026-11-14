@@ -39,13 +39,19 @@ router.get('/:id', async (req, res) => {
 // ---------- Requester ----------
 
 /**
- * POST /requests  { brand, amountInr, amountUsdc }
- * Returns the request with `escrowId` + `amountUsdcBaseUnits`; the frontend then calls
- * USDC.approve(escrow, amount) and escrow.deposit(escrowId, amount) from the user's wallet.
+ * POST /requests  { brand, amountInr, amountUsdc }   amountUsdc = what the buyer receives; the fee is added on top.
+ * Returns the request with `escrowRef`, `escrowId`, `amountUsdcBaseUnits`, `feeUsdcBaseUnits`, `totalUsdcBaseUnits`.
+ * The frontend then calls USDC.approve(escrow, total) and
+ * escrow.deposit(escrowRef, token, amount, ttlSeconds, total) from the user's wallet.
  */
 router.post('/', requireAuth, requireHuman, validate(createSchema), async (req, res) => {
   const request = await svc.createRequest(req.user.address, req.body);
-  res.status(201).json({ request, escrowContract: config.ESCROW_CONTRACT_ADDRESS || null });
+  const contract = config.ESCROW_MODE === 'chain' ? config.ESCROW_CONTRACT_ADDRESS : null;
+  res.status(201).json({
+    request,
+    escrowContract: contract,
+    escrow: contract ? { version: 2, contract, token: config.USDC_ADDRESS, chainId: config.ARC_CHAIN_ID, ttlSeconds: config.ESCROW_ORDER_TTL_SECONDS } : null,
+  });
 });
 
 /** POST /requests/:id/fund { txHash } → verifies deposit on Arc, status → open */
@@ -53,7 +59,7 @@ router.post('/:id/fund', requireAuth, requireHuman, validate(z.object({ txHash }
   res.json({ request: await svc.fundRequest(req.params.id, req.user.address, req.body.txHash) });
 });
 
-/** POST /requests/:id/cancel → unfunded: cancelled; funded & unaccepted: refunded on-chain */
+/** POST /requests/:id/cancel → unfunded: cancelled; funded & unaccepted: records the spender's on-chain cancel() (409 wallet_action_required until it is sent) */
 router.post('/:id/cancel', requireAuth, async (req, res) => {
   res.json({ request: await svc.cancelRequest(req.params.id, req.user.address) });
 });
@@ -81,7 +87,7 @@ router.post(
   },
 );
 
-/** POST /requests/:id/confirm → code works; release USDC to the crypto buyer */
+/** POST /requests/:id/confirm → code works; records the spender's on-chain release() (409 wallet_action_required until it is sent) */
 router.post('/:id/confirm', requireAuth, async (req, res) => {
   res.json({ request: await svc.confirmRequest(req.params.id, req.user.address) });
 });

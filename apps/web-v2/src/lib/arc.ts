@@ -1,13 +1,10 @@
 /**
- * Arc Testnet: where the escrow lives. Pure helpers (no React, no env) so node tests can import them.
+ * Arc: where the escrow lives. Which Arc network (mainnet or testnet) comes from `chain.ts`.
+ * Pure helpers (no React) so node tests can import them.
  */
-export const ARC = {
-  id: 5042002,
-  hex: "0x4cef52",
-  name: "Arc Testnet",
-  rpc: "https://rpc.testnet.arc.network",
-  explorer: "https://testnet.arcscan.app",
-};
+// Explicit .ts so node (which runs the tests without a bundler) can resolve it.
+import { ARC, ARC_USDC } from "./chain.ts";
+export { ARC, ARC_USDC };
 
 type Request = (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
 
@@ -18,12 +15,10 @@ export function chainIdNumber(id: unknown) {
   return Number.isFinite(n) ? n : 0;
 }
 
-export const ARC_USDC = "0x3600000000000000000000000000000000000000";
-export const ARC_FAUCET = "https://faucet.circle.com";
 
 /** A wallet step failed for a reason the person can act on. `message` is written for them. */
 export class WalletStepError extends Error {
-  kind: "unsupported_network" | "insufficient_usdc" | "rejected";
+  kind: "unsupported_network" | "wrong_network" | "insufficient_usdc" | "rejected";
   constructor(kind: WalletStepError["kind"], message: string) {
     super(message);
     this.kind = kind;
@@ -49,7 +44,7 @@ function cannotAddChains(error: unknown) {
 const unsupported = (wallet?: string) =>
   new WalletStepError(
     "unsupported_network",
-    `${wallet || "This wallet"} can't use Arc Testnet: it only works on the networks it ships with. Signing in and World ID work, but locking USDC, Ready and stakes need a wallet that can add a network. Connect MetaMask, Rabby, Coinbase Wallet or OKX Wallet for those.`,
+    `${wallet || "This wallet"} can't use ${ARC.name}: it only works on the networks it ships with. Signing in and World ID work, but locking USDC, Ready and the escrow steps need a wallet that can add a network. Connect MetaMask, Rabby, Coinbase Wallet or OKX Wallet for those.`,
   );
 
 /**
@@ -64,7 +59,7 @@ export async function switchToArc(request: Request, wallet?: string) {
     await request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC.hex }] });
     if (chainIdNumber(await request({ method: "eth_chainId" }).catch(() => null)) === ARC.id) return;
   } catch (error) {
-    if (isReject(error)) throw new WalletStepError("rejected", "You declined the network switch. Arc Testnet is where the escrow lives, so this step needs it.");
+    if (isReject(error)) throw new WalletStepError("rejected", `You declined the network switch. ${ARC.name} is where the escrow lives, so this step needs it.`);
     if (!unknownChain(error) && codeOf(error) !== -32603 && !cannotAddChains(error)) throw error;
   }
   try {
@@ -73,7 +68,7 @@ export async function switchToArc(request: Request, wallet?: string) {
       params: [{ chainId: ARC.hex, chainName: ARC.name, nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 }, rpcUrls: [ARC.rpc], blockExplorerUrls: [ARC.explorer] }],
     });
   } catch (error) {
-    if (isReject(error)) throw new WalletStepError("rejected", "You declined adding Arc Testnet. This step needs it.");
+    if (isReject(error)) throw new WalletStepError("rejected", `You declined adding ${ARC.name}. This step needs it.`);
     throw unsupported(wallet);
   }
   // Some wallets add without switching.
@@ -81,11 +76,22 @@ export async function switchToArc(request: Request, wallet?: string) {
     try {
       await request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC.hex }] });
     } catch (error) {
-      if (isReject(error)) throw new WalletStepError("rejected", "You declined the network switch. This step needs Arc Testnet.");
+      if (isReject(error)) throw new WalletStepError("rejected", `You declined the network switch. This step needs ${ARC.name}.`);
       throw unsupported(wallet);
     }
   }
   if (chainIdNumber(await request({ method: "eth_chainId" }).catch(() => null)) !== ARC.id) throw unsupported(wallet);
+}
+
+/**
+ * Last check before a transaction is sent: the wallet must really be on the configured Arc network.
+ * `switchToArc` already tries to get it there; this says so plainly if it still isn't.
+ */
+export async function assertOnArc(request: Request) {
+  const now = chainIdNumber(await request({ method: "eth_chainId" }).catch(() => null));
+  if (now !== ARC.id) {
+    throw new WalletStepError("wrong_network", `Your wallet is on chain ${now || "unknown"}, but this step runs on ${ARC.name} (chain ${ARC.id}). Switch networks in your wallet, then try again.`);
+  }
 }
 
 /* ------------------------------------------------- USDC reads on Arc */
@@ -115,11 +121,9 @@ export async function assertUsdc(request: Request, holder: string, amount: bigin
   } catch {
     return; // The wallet's RPC wouldn't answer a read. Let the transaction itself decide.
   }
-  const gas = 20_000n; // 0.02 USDC covers approve + deposit on Arc Testnet with room to spare
+  const gas = 20_000n; // 0.02 USDC covers approve + deposit on Arc with room to spare
   if (have < amount + gas) {
-    throw new WalletStepError(
-      "insufficient_usdc",
-      `This wallet has ${usdcText(have)} USDC on Arc Testnet. This step needs ${usdcText(amount)} plus a few cents for gas. Get test USDC from ${ARC_FAUCET} (choose Arc Testnet), then try again.`,
-    );
+    const hint = ARC.faucet ? `Get test USDC from ${ARC.faucet} (choose ${ARC.name}), then try again.` : `Add USDC to this wallet on ${ARC.name}, then try again.`;
+    throw new WalletStepError("insufficient_usdc", `This wallet has ${usdcText(have)} USDC on ${ARC.name}. This step needs ${usdcText(amount)} plus a few cents for gas. ${hint}`);
   }
 }

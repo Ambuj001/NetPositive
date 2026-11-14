@@ -2,17 +2,20 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Eye, EyeOff, LoaderCircle, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, cx } from "../components/ui";
-import { ApiError, api, type ApiRequest } from "../lib/api";
+import { api, type ApiRequest, type DisputeCategory } from "../lib/api";
 import { inr, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
 import { readSealedVoucher, registerVault, unlockVault } from "../lib/vault";
-import { switchToArc } from "../lib/arc";
+import { ARC, switchToArc } from "../lib/arc";
+import { MOCK_NOTE, escrowTarget, sendEscrowStep, stepError } from "../lib/escrowFlow";
 
 /**
- * The spender's three actions on the tracker, shown inside the lifecycle step they belong to:
- *   Ready   (after a buyer accepts)   a free signature telling the buyer "I'm ready for the voucher code"
- *   Settle  (after the code is in)    confirm the voucher works; the escrow releases the USDC to the buyer on Arc
- *   Dispute (after the code is in)    the voucher doesn't work; an admin decides
+ * Wallet actions on the tracker, shown inside the lifecycle step they belong to. In escrow V2 each person sends
+ * their own transaction and the server only checks the chain afterwards.
+ *   Ready    spender, after a buyer accepts    a free signature (the escrow's Assign permit) naming the buyer
+ *   Confirm  buyer, after Ready                `accept` with that permit: binds the buyer on-chain. Buy the voucher only after this.
+ *   Settle   spender, after the code is in     `release`: pays the buyer
+ *   Dispute  spender, after the code is in     `dispute`: freezes the escrow until the arbiter rules
  */
 
 type WalletRequest = (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
@@ -29,10 +32,17 @@ export type Notice = { tone: "mint" | "rose" | "amber"; text: string; tx?: strin
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
-function messageOf(e: unknown, fallback: string) {
-  if ((e as { code?: number })?.code === 4001) return "You declined the request in your wallet.";
-  if (e instanceof ApiError) return e.message;
-  return e instanceof Error && e.message ? e.message : fallback;
+/** Wallet, chain, config and server errors as one readable line (see `stepError`). */
+const messageOf = stepError;
+
+/** The Ready permit must be for this network and this escrow. Anything else is refused before the wallet is asked to sign. */
+function permitProblem(typedData: unknown, contract: string | null): string | null {
+  const domain = (typedData as { domain?: { chainId?: unknown; verifyingContract?: unknown } } | null)?.domain;
+  const chainId = Number(domain?.chainId);
+  if (Number.isFinite(chainId) && chainId !== ARC.id) return `The server sent a Ready permit for chain ${chainId}, but this app is set up for ${ARC.name} (chain ${ARC.id}). Nothing was signed.`;
+  const to = typeof domain?.verifyingContract === "string" ? domain.verifyingContract.toLowerCase() : null;
+  if (contract && to && to !== contract.toLowerCase()) return `The server sent a Ready permit for a different contract (${to}) than this app's escrow. Nothing was signed.`;
+  return null;
 }
 
 /* ------------------------------------------------------------------- Ready */
@@ -50,7 +60,10 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
       if (!t) throw new Error("Sign in with your wallet first.");
       // "Ready" means "I can receive the code": publish this wallet's vault key first if it isn't published yet.
       await registerVault(viewer, t, signMessage);
+      const target = await escrowTarget();
       const { validUntil, typedData } = await api.readyPermit(req.id, t);
+      const wrong = permitProblem(typedData, target.mode === "chain" ? target.contract : null);
+      if (wrong) throw new Error(wrong);
       // The permit is typed data for a contract on Arc. Most wallets refuse to sign typed data for a chain other than
       // the one they are on ("chainId must match the active chain"), so move to Arc first.
       await switchToArc(walletRequest, walletName);
@@ -62,7 +75,7 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
       }
       if (typeof signature !== "string") throw new Error("The wallet didn't return a signature.");
       const { request } = await api.ready(req.id, { validUntil, signature }, t);
-      onUpdated(request, { tone: "mint", text: "Ready sent. The buyer can now hand over the voucher code." });
+      onUpdated(request, { tone: "mint", text: "Ready sent. The buyer can now confirm the order from their wallet, buy the voucher and hand over the code." });
     } catch (e) {
       setErr(messageOf(e, "Couldn't send Ready"));
     } finally {
@@ -77,7 +90,7 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
           {busy || signingIn ? "Check your wallet…" : expired ? "Ready again" : "Ready"}
         </Button>
         <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-mute">
-          A free signature, no gas. It tells <span className="font-mono">{req.crypto_buyer ? short(req.crypto_buyer) : "the buyer"}</span> you're ready to receive the voucher code, for the next 10 minutes.
+          A free signature, no gas. It lets <span className="font-mono">{req.crypto_buyer ? short(req.crypto_buyer) : "the buyer"}</span>, and only them, bind to your order on-chain. It is valid for a few minutes; if it expires before they use it, sign again.
           {!token && " The first time, your wallet asks twice: once to sign in, once for the permit."}
         </p>
       </div>
@@ -86,9 +99,76 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
   );
 }
 
+/* ------------------------------------------------------- Buyer: confirm on-chain */
+
+/**
+ * The buyer's `accept` transaction, sent with the spender's Ready permit. It binds this wallet to the order in the
+ * escrow. Shown while the escrow has no buyer bound. The voucher must not be bought before this confirms.
+ */
+export function AcceptOnchain({ req, onDone }: { req: ApiRequest; onDone: () => void }) {
+  const { fullAddress, walletRequest, walletName } = useApp();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const permit = req.ready ?? null;
+  const expired = !!permit && permit.validUntil * 1000 <= now;
+  const warn = "Don't buy the voucher yet.";
+
+  async function go() {
+    if (busy || !permit) return;
+    setBusy(true);
+    setErr("");
+    try {
+      await sendEscrowStep(walletRequest, "accept", { req, from: fullAddress, wallet: walletName, permit });
+      onDone();
+    } catch (e) {
+      setErr(messageOf(e, "Couldn't confirm the order on-chain"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!permit || expired) {
+    return (
+      <div className="mt-3 rounded-2xl bg-amber/[0.06] p-3.5 text-[12.5px] leading-relaxed text-amber-ink ring-1 ring-amber/25">
+        <strong className="font-medium">{warn}</strong> {permit ? "The spender's Ready permit expired before it was used. Ask them to press Ready again." : "The spender hasn't pressed Ready. Until they do and you confirm the order from your wallet, the USDC is not bound to you."}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-2xl bg-amber/[0.06] p-3.5 ring-1 ring-amber/25">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button size="sm" variant="amber" onClick={() => void go()} disabled={busy} icon={busy ? <LoaderCircle className="size-3.5 animate-spin" /> : <ShieldCheck className="size-3.5" />}>
+          {busy ? "Check your wallet…" : "Confirm the order on-chain"}
+        </Button>
+        <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-mute">
+          One transaction from your wallet on {ARC.name} (a few cents of gas). It binds the locked USDC to you, so the spender can no longer cancel.
+        </p>
+      </div>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-amber-ink">
+        <strong className="font-medium">{warn}</strong> Wait until this transaction has gone through and this page says you're confirmed.
+      </p>
+      {busy && <p className="mt-2 text-[12px] text-mute">Waiting for the transaction to confirm. Keep this page open.</p>}
+      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------ Settle / Dispute */
 
-const REASONS = ["The code was already redeemed", "The code is invalid", "Wrong brand or amount", "The balance is lower than ordered"];
+/** Quick reasons on the tracker, with the category the backend files each under. Anything typed by hand is "other". */
+const REASONS: { text: string; category: DisputeCategory }[] = [
+  { text: "The code was already redeemed", category: "already_redeemed" },
+  { text: "The code is invalid", category: "invalid_code" },
+  { text: "Wrong brand or amount", category: "wrong_brand" },
+  { text: "The balance is lower than ordered", category: "wrong_amount" },
+];
 
 export function SettleActions({ req, token, signIn, signingIn, onUpdated }: Common) {
   const [confirming, setConfirming] = useState(false);
@@ -177,6 +257,7 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
 }
 
 function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; token: string; onCancel: () => void; onUpdated: Common["onUpdated"] }) {
+  const { fullAddress, walletRequest, walletName } = useApp();
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -187,8 +268,13 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
     setBusy(true);
     setErr("");
     try {
-      const { request } = await api.dispute(req.id, reason.trim(), token);
-      onUpdated(request, { tone: "rose", text: "Dispute raised. The USDC stays in escrow until an admin rules on it." });
+      const text = reason.trim();
+      const category = REASONS.find((r) => r.text === text)?.category ?? "other";
+      // The spender's wallet freezes the escrow first; the server then records why. Pressing again after a failure is
+      // safe: the escrow is read first and an already-open dispute is not sent twice.
+      const { mock } = await sendEscrowStep(walletRequest, "dispute", { req, from: fullAddress, wallet: walletName });
+      const { request } = await api.dispute(req.id, { category, reason: text }, token);
+      onUpdated(request, { tone: "rose", text: mock ? `Dispute recorded. ${MOCK_NOTE}` : "Dispute raised. The USDC stays frozen in escrow until the arbiter rules on it." });
     } catch (e) {
       setErr(messageOf(e, "Couldn't raise the dispute"));
     } finally {
@@ -201,8 +287,8 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
       <div className="text-[12.5px] font-medium text-rose-ink">What's wrong with the voucher?</div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {REASONS.map((r) => (
-          <button key={r} type="button" onClick={() => setReason(r)} className={cx("rounded-full px-2.5 py-1 text-[11.5px] ring-1 transition", reason === r ? "bg-rose/15 text-rose-ink ring-rose/40" : "text-mute ring-fg/10 hover:text-fg")}>
-            {r}
+          <button key={r.text} type="button" onClick={() => setReason(r.text)} className={cx("rounded-full px-2.5 py-1 text-[11.5px] ring-1 transition", reason === r.text ? "bg-rose/15 text-rose-ink ring-rose/40" : "text-mute ring-fg/10 hover:text-fg")}>
+            {r.text}
           </button>
         ))}
       </div>
@@ -217,11 +303,11 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
           className="w-full resize-none rounded-lg bg-canvas px-3 py-2 text-[13px] ring-1 ring-fg/10 outline-none placeholder:text-dim focus:ring-rose/40"
         />
       </label>
-      <p className="mt-1 text-[11.5px] text-mute">Your USDC stays locked while an admin reviews it. Raise a dispute before the review deadline.</p>
+      <p className="mt-1 text-[11.5px] text-mute">Your wallet sends one transaction that freezes the escrow; no stake is needed. Raise it before the review window ends. To add screenshots, use the dispute page afterwards.</p>
       {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
       <div className="mt-2.5 flex items-center gap-2">
         <Button size="sm" variant="amber" onClick={submit} disabled={!ok || busy} icon={busy ? <LoaderCircle className="size-3.5 animate-spin" /> : undefined}>
-          {busy ? "Sending…" : "Raise dispute"}
+          {busy ? "Check your wallet…" : "Raise dispute"}
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>
           Cancel
@@ -234,6 +320,7 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
 /* --------------------------------------------------------- Settle confirmation */
 
 function ConfirmSettle({ req, token, open, onClose, onUpdated }: { req: ApiRequest; token: string; open: boolean; onClose: () => void; onUpdated: Common["onUpdated"] }) {
+  const { fullAddress, walletRequest, walletName } = useApp();
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -253,9 +340,12 @@ function ConfirmSettle({ req, token, open, onClose, onUpdated }: { req: ApiReque
     setBusy(true);
     setErr("");
     try {
+      // The spender's own wallet tells the escrow to pay the buyer; the server then checks the chain and records it.
+      // If the release already went through (an earlier try, a closed tab), it is not sent again.
+      const { tx, mock } = await sendEscrowStep(walletRequest, "release", { req, from: fullAddress, wallet: walletName });
       const { request } = await api.confirm(req.id, token);
       onClose();
-      onUpdated(request, { tone: "mint", text: `Settled. ${amount} was released to the buyer.`, tx: request.releaseTxHash });
+      onUpdated(request, mock ? { tone: "amber", text: `Settled on the demo server. ${MOCK_NOTE}` } : { tone: "mint", text: `Settled. ${amount} was released to the buyer.`, tx: tx ?? request.releaseTxHash });
     } catch (e) {
       setErr(messageOf(e, "The release failed"));
     } finally {
@@ -269,7 +359,7 @@ function ConfirmSettle({ req, token, open, onClose, onUpdated }: { req: ApiReque
         Release {amount} to the buyer?
       </h2>
       <p className="mt-1.5 text-[13px] leading-relaxed text-mute">
-        This pays the buyer for the {inr(req.amountInr)} voucher. The escrow contract sends the locked USDC on Arc, and <strong className="font-medium text-fg">it can't be undone</strong>.
+        This pays the buyer for the {inr(req.amountInr)} voucher. Your wallet asks you to confirm one transaction on {ARC.name}; the escrow contract then sends the locked USDC to the buyer, and <strong className="font-medium text-fg">it can't be undone</strong>.
       </p>
 
       <dl className="mt-4 divide-y divide-fg/[0.06] rounded-xl bg-fg/[0.03] px-3.5 text-[13px] ring-1 ring-fg/[0.07]">
@@ -285,7 +375,7 @@ function ConfirmSettle({ req, token, open, onClose, onUpdated }: { req: ApiReque
       <p className="mt-2 text-[12px] text-mute">If it doesn't work, close this and raise a dispute instead.</p>
 
       {err && <p role="alert" className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-[12.5px] text-rose-ink ring-1 ring-rose/25">{err}</p>}
-      {busy && <p className="mt-3 text-[12.5px] text-amber-ink">Releasing on Arc. This can take up to a minute. Keep this page open.</p>}
+      {busy && <p className="mt-3 text-[12.5px] text-amber-ink">Confirm in your wallet, then wait for {ARC.name}. This can take up to a minute. Keep this page open.</p>}
 
       <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onClose} disabled={busy}>

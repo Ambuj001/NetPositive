@@ -17,7 +17,7 @@ const SORTS: { id: Sort; label: string }[] = [
 
 export default function Market() {
   const { orders, source, reload } = useOrderBook();
-  const { cards, acceptOrder } = useApp();
+  const { cards, toast } = useApp();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
@@ -48,9 +48,10 @@ export default function Market() {
     );
   }, [orders, cards, q, cat, sort]);
 
+  // Opens the order's own page, where a buyer picks a route and accepts. Sample rows (development only) lead nowhere.
   const open = (o: Order) => {
-    acceptOrder(o);
-    nav(`/trade/${o.id}`);
+    if (o.demo) return toast({ title: "Demo order", body: "This is sample data shown because no backend is running. There is nothing to open.", tone: "amber" });
+    nav(`/track?id=${encodeURIComponent(o.id)}`);
   };
 
   return (
@@ -153,7 +154,7 @@ export default function Market() {
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <div className="py-14 text-center text-[13.5px] text-mute">{source === "loading" ? "Loading orders…" : "No vouchers match your search."}</div>}
+          {rows.length === 0 && <div className="py-14 text-center text-[13.5px] text-mute">{source === "loading" ? "Loading orders…" : source === "offline" ? "The order book can't be reached right now, so there is nothing to show." : "No vouchers match your search."}</div>}
         </div>
       </div>
     </div>
@@ -171,10 +172,20 @@ function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void })
     return (
       <button
         onClick={onRetry}
-        title="Backend not reachable. Showing sample orders. Click to retry."
+        title="Backend not reachable. These are made-up sample orders, shown in development only. Click to retry."
         className="flex w-fit items-center gap-1.5 rounded-full bg-amber/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25 transition hover:bg-amber/15"
       >
-        Sample order book <RefreshCw className="size-3" />
+        Demo data · not real orders <RefreshCw className="size-3" />
+      </button>
+    );
+  if (source === "offline")
+    return (
+      <button
+        onClick={onRetry}
+        title="The order book server didn't answer. Click to retry."
+        className="flex w-fit items-center gap-1.5 rounded-full bg-rose/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-rose-ink uppercase ring-1 ring-rose/25 transition hover:bg-rose/15"
+      >
+        Order book unreachable <RefreshCw className="size-3" />
       </button>
     );
   return null;

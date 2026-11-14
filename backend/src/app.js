@@ -20,7 +20,7 @@ export function createApp() {
   app.use(cors({ origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : false }));
   app.use(express.json({ limit: '256kb' }));
 
-  app.get('/health', (_req, res) => res.json({ ok: true, escrowMode: config.ESCROW_MODE, worldIdMock: config.WORLD_ID_MOCK, worldIdBypass: config.WORLD_ID_DEV_BYPASS, worldIdReady: worldIdReady(), chainId: config.ARC_CHAIN_ID, escrowContract: config.ESCROW_MODE === 'chain' ? config.ESCROW_CONTRACT_ADDRESS : null }));
+  app.get('/health', (_req, res) => res.json({ ok: true, escrowMode: config.ESCROW_MODE, escrowVersion: 2, worldIdMock: config.WORLD_ID_MOCK, worldIdBypass: config.WORLD_ID_DEV_BYPASS, worldIdReady: worldIdReady(), chainId: config.ARC_CHAIN_ID, escrowContract: config.ESCROW_MODE === 'chain' ? config.ESCROW_CONTRACT_ADDRESS : null }));
 
   app.use('/auth', authRoutes);
   app.use('/world-id', worldIdRoutes);

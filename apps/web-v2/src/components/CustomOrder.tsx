@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { AMOUNTS, PLACES, RATE, ReviewModal, amountLabel } from "../pages/Spend";
 import { useMarketRate } from "../lib/rates";
 import { inr, quote, usdt } from "../lib/engine";
+import { MOCK_NOTE } from "../lib/escrowFlow";
 import { useLockOrder } from "../lib/lockOrder";
 import { useApp } from "../lib/store";
 import { RecommendedBuyers } from "./BuyRequest";
@@ -30,7 +31,6 @@ export function CustomOrder() {
   const [limit, setLimit] = useState(market.rate);
   const [review, setReview] = useState(false);
   const [calcOpen, setCalcOpen] = useState(true);
-  const [savedLocally, setSavedLocally] = useState<string | null>(null);
 
   const place = PLACES.find((p) => p.id === placeId) ?? PLACES[0];
   const rate = type === "limit" ? limit : market.rate;
@@ -43,22 +43,18 @@ export function CustomOrder() {
   /** Open the review for the store and amount entered. Used by the button and by picking a recommended buyer. */
   const startReview = () => {
     if (!address) return openWallet();
-    setSavedLocally(null);
     lock.reset();
     setReview(true);
   };
 
   const confirm = async () => {
     if (!ready || lock.phase) return;
-    const res = await lock.run({ brandApi: place.api, brandId: place.id, amountInr: amount, rate, usdcLock: q.sellerLocks });
+    const res = await lock.run({ brandApi: place.api, amountInr: amount, usdcReceives: q.buyerReceives, usdcTotal: q.sellerLocks });
     if (!res) return;
     setReview(false);
-    if (res.kind === "live") {
-      toast({ title: "Order is live", body: `${usdt(q.sellerLocks)} USDC locked · ${res.id}`, tone: "mint" });
-      nav(`/track?id=${encodeURIComponent(res.id)}`);
-    } else {
-      setSavedLocally(res.order.id);
-    }
+    // A development server with the mock escrow records the order without moving USDC. Say so instead of "locked".
+    toast(res.mock ? { title: "Demo order recorded", body: MOCK_NOTE, tone: "amber" } : { title: "Order is live", body: `${res.total} USDC locked · ${res.id}`, tone: "mint" });
+    nav(`/track?id=${encodeURIComponent(res.id)}`);
   };
 
   return (
@@ -110,11 +106,6 @@ export function CustomOrder() {
         {address ? "Review order" : "Connect to review"}
       </Button>
       <p className="mt-3 text-center text-[11.5px] text-dim">{hint}</p>
-      {savedLocally && (
-        <p className="mt-3 rounded-xl bg-amber/10 px-3 py-2 text-center text-[12px] text-amber-ink ring-1 ring-amber/25">
-          Saved on this device as {savedLocally}. The server didn't answer, so nothing was locked. <Link to="/track" className="underline">See Track</Link>
-        </p>
-      )}
       <CardsLink />
 
       <ReviewModal
@@ -128,6 +119,7 @@ export function CustomOrder() {
         rate={rate}
         phase={lock.phase}
         error={lock.error}
+        server={lock.terms}
         publishOnly={!!lock.held}
         onClose={() => {
           if (lock.phase || lock.held) return;

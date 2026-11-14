@@ -42,8 +42,16 @@ export type ApiRequest = {
   crypto_buyer: string | null;
   brand: string;
   amountInr: number;
+  /** What the buyer receives, without the fee. */
   amountUsdc: string;
   amountUsdcBaseUnits: string;
+  /** Fee locked on top of the amount. Missing on orders created before escrow V2. */
+  feeUsdcBaseUnits?: string;
+  /** Amount + fee: what the spender's wallet approves and what leaves it. */
+  totalUsdcBaseUnits?: string;
+  /** Reference passed to the escrow's `deposit`. */
+  escrowRef?: string;
+  /** The escrow's on-chain id (derived from the depositor and the reference). Used by every other call and read. */
   escrowId: string;
   status: ReqStatus;
   escrowTxHash: string | null;
@@ -61,8 +69,8 @@ export type ApiRequest = {
   /** Wallet that opened the dispute. */
   disputedBy?: string | null;
   disputedAt?: string | null;
-  /** The spender's signed "Ready" permit for the CodeMailbox (EIP-712). Null until they press Ready. */
-  ready?: { validUntil: number; signature: string; signedAt: string } | null;
+  /** The spender's signed "Ready" permit: the escrow's EIP-712 Assign for this buyer. Null until they press Ready. */
+  ready?: { validUntil: number; epoch?: number; signature: string; signedAt: string } | null;
   /** Set when an admin has ruled on a dispute. */
   resolution?: { outcome: "release" | "refund"; note: string | null; by: string; at: string } | null;
   lastError?: string | null;
@@ -107,6 +115,14 @@ export class ApiError extends Error {
   }
 }
 
+/** How the server's escrow is set up. Null when it runs the local mock escrow. */
+export type EscrowInfo = { version: number; contract: string; token: string; chainId: number; ttlSeconds: number };
+
+export type Health = { ok: boolean; escrowMode: string; worldIdMock: boolean; chainId?: number; escrowContract?: string | null; escrowVersion?: number };
+
+/** Dispute reasons the backend accepts as `category`. */
+export type DisputeCategory = "invalid_code" | "already_redeemed" | "wrong_amount" | "wrong_brand" | "expired" | "code_changed" | "code_is_valid" | "other";
+
 type ApiOpts = { method?: string; body?: unknown; token?: string | null };
 
 async function call<T>(path: string, opts: ApiOpts = {}): Promise<T> {
@@ -133,18 +149,23 @@ async function call<T>(path: string, opts: ApiOpts = {}): Promise<T> {
 
 type ApiClient = {
   <T>(path: string, opts?: ApiOpts): Promise<T>;
-  health: () => Promise<{ ok: boolean; escrowMode: string; worldIdMock: boolean; chainId?: number; escrowContract?: string | null }>;
+  health: () => Promise<Health>;
+  /** `/health`, asked once and remembered (asked again after a failure). */
+  serverInfo: () => Promise<Health>;
   nonce: (address: string) => Promise<{ message: string }>;
   verify: (address: string, signature: string) => Promise<{ token: string; user: ApiUser }>;
   me: (token: string) => Promise<{ user: ApiUser }>;
   listOpen: (limit?: number, brand?: string) => Promise<{ requests: ApiRequest[] }>;
   listMine: (token: string) => Promise<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] }>;
   get: (id: string) => Promise<{ request: ApiRequest }>;
-  /** `pending_funding` request plus the escrow contract the wallet must deposit into. Null contract means mock escrow. */
+  /**
+   * `pending_funding` request plus the escrow the wallet must deposit into. `amountUsdc` is what the buyer receives;
+   * the server answers with the fee and the total. A null contract means the server runs the mock escrow.
+   */
   create: (
     body: { brand: string; amountInr: number; amountUsdc: string },
     token: string,
-  ) => Promise<{ request: ApiRequest; escrowContract: string | null }>;
+  ) => Promise<{ request: ApiRequest; escrowContract: string | null; escrow?: EscrowInfo | null }>;
   fund: (id: string, txHash: string, token: string) => Promise<{ request: ApiRequest }>;
   /** The signed-in wallet's saved card reward profiles (never card numbers), and whether they closed the "add your cards" pop-up. */
   cardsList: (token: string) => Promise<{ cards: Card[]; promptDismissed: boolean }>;
@@ -158,9 +179,10 @@ type ApiClient = {
   /** The EIP-712 "Ready" typed data for the spender's wallet to sign (gasless). */
   readyPermit: (id: string, token: string) => Promise<{ validUntil: number; typedData: unknown }>;
   ready: (id: string, body: { validUntil: number; signature: string }, token: string) => Promise<{ request: ApiRequest }>;
-  /** Settle: the spender confirms the voucher works and the escrow releases the USDC to the buyer on-chain. */
+  /** Settle: call after the spender's wallet has sent `release` to the escrow. The server checks the chain and records it. */
   confirm: (id: string, token: string) => Promise<{ request: ApiRequest }>;
-  dispute: (id: string, reason: string, token: string) => Promise<{ request: ApiRequest }>;
+  /** Call after the spender's wallet has sent `dispute` to the escrow. */
+  dispute: (id: string, body: { category: DisputeCategory; reason: string }, token: string) => Promise<{ request: ApiRequest }>;
   /** Buy requests that fit an amount. With a brand: same voucher or no voucher. Without: amount only. */
   matchBuyIntents: (amountInr: number, brand?: string) => Promise<{ intents: BuyIntent[] }>;
   myBuyIntent: (token: string) => Promise<{ intent: BuyIntent | null }>;
@@ -200,9 +222,18 @@ export type VoucherPayload = {
   sealed?: unknown;
 };
 
+let healthOnce: Promise<Health> | null = null;
+
 /** Callable for World ID routes, with named methods for the order book and sign-in. */
 export const api: ApiClient = Object.assign(call, {
-  health: () => call<{ ok: boolean; escrowMode: string; worldIdMock: boolean; chainId?: number; escrowContract?: string | null }>("/health"),
+  health: () => call<Health>("/health"),
+  serverInfo: () => {
+    healthOnce ??= call<Health>("/health").catch((e: unknown) => {
+      healthOnce = null;
+      throw e;
+    });
+    return healthOnce;
+  },
   nonce: (address: string) => call<{ message: string }>("/auth/nonce", { body: { address } }),
   verify: (address: string, signature: string) => call<{ token: string; user: ApiUser }>("/auth/verify", { body: { address, signature } }),
   me: (token: string) => call<{ user: ApiUser }>("/auth/me", { token }),
@@ -214,7 +245,7 @@ export const api: ApiClient = Object.assign(call, {
   listMine: (token: string) => call<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] }>("/requests/mine", { token }),
   get: (id: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}`),
   create: (body: { brand: string; amountInr: number; amountUsdc: string }, token: string) =>
-    call<{ request: ApiRequest; escrowContract: string | null }>("/requests", { body, token }),
+    call<{ request: ApiRequest; escrowContract: string | null; escrow?: EscrowInfo | null }>("/requests", { body, token }),
   fund: (id: string, txHash: string, token: string) =>
     call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/fund`, { method: "POST", body: { txHash }, token }),
   cardsList: (token: string) => call<{ cards: Card[]; promptDismissed: boolean }>("/cards", { token }),
@@ -227,8 +258,8 @@ export const api: ApiClient = Object.assign(call, {
   ready: (id: string, body: { validUntil: number; signature: string }, token: string) =>
     call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/ready`, { method: "POST", body, token }),
   confirm: (id: string, token: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/confirm`, { method: "POST", body: {}, token }),
-  dispute: (id: string, reason: string, token: string) =>
-    call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/dispute`, { method: "POST", body: { reason }, token }),
+  dispute: (id: string, body: { category: DisputeCategory; reason: string }, token: string) =>
+    call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}/dispute`, { method: "POST", body, token }),
   voucher: (id: string, token: string) => call<{ voucher: VoucherPayload }>(`/requests/${encodeURIComponent(id)}/voucher`, { token }),
   vaultConfig: () => call<VaultConfig>("/vault/config"),
   putVaultKey: (body: { publicKey: string; signature: string }, token: string) =>
@@ -253,13 +284,13 @@ export const STATUS: Record<ReqStatus, { label: string; tone: "mint" | "amber" |
   pending_funding: { label: "Awaiting deposit", tone: "amber", note: "Deposit USDC into escrow to publish the request." },
   open: { label: "Open", tone: "mint", note: "Live in the order book. Waiting for a verified buyer." },
   accepted: { label: "Accepted", tone: "amber", note: "A buyer is purchasing the voucher." },
-  code_submitted: { label: "Code submitted", tone: "iris", note: "Check the voucher and confirm, or it auto-releases." },
-  disputed: { label: "Disputed", tone: "rose", note: "Under review by an admin." },
+  code_submitted: { label: "Code submitted", tone: "iris", note: "Check the voucher and confirm, or it is paid to the buyer when the review window ends." },
+  disputed: { label: "Disputed", tone: "rose", note: "Under review by the arbiter." },
   releasing: { label: "Releasing", tone: "iris", note: "Sending USDC to the buyer on-chain." },
   released: { label: "Completed", tone: "mint", note: "USDC released. Trade settled." },
   refunding: { label: "Refunding", tone: "iris", note: "Returning USDC to the spender on-chain." },
   refunded: { label: "Refunded", tone: "mute", note: "USDC returned to the spender." },
-  cancelled: { label: "Cancelled", tone: "mute", note: "Cancelled before funding." },
+  cancelled: { label: "Cancelled", tone: "mute", note: "Cancelled by the spender." },
 };
 
 /** Happy-path steps used by the tracker. */
@@ -279,3 +310,20 @@ export function stepIndex(s: ReqStatus) {
 }
 
 export const isFinal = (s: ReqStatus) => s === "released" || s === "refunded" || s === "cancelled";
+
+/**
+ * Text for the 409s the server sends when it looked at the chain and the wallet's step isn't there yet.
+ * Returns null for any other error, so callers can fall back to their own wording.
+ */
+export function onchainStepText(e: unknown): string | null {
+  if (!(e instanceof ApiError)) return null;
+  if (e.code === "wallet_action_required") {
+    const fn = (e.details as { function?: unknown } | undefined)?.function;
+    const which = typeof fn === "string" && fn ? `the "${fn}" transaction` : "the wallet transaction for this step";
+    return `The escrow on Arc doesn't show ${which} yet. Confirm it in your wallet, wait for it to go through, then press the button again.`;
+  }
+  if (e.code === "not_assigned_onchain") return "The escrow on Arc doesn't show this wallet as the buyer yet. Confirm the order from your wallet first, and don't buy the voucher before that goes through.";
+  if (e.code === "buyer_dispute_unavailable") return "Only the spender can open a dispute. As the buyer you are paid automatically when the review window ends, unless the spender disputes first.";
+  if (e.code === "not_delivered_onchain") return "The escrow on Arc doesn't show the voucher as delivered yet. Confirm the delivery transaction in your wallet, wait for it to go through, then send the code again.";
+  return null;
+}

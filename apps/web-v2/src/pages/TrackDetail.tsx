@@ -7,11 +7,15 @@ import { OnchainProof } from "../components/OnchainProof";
 import { PickRoute } from "../components/PickRoute";
 import { Aurora, BrandMark, Button, Pill, Row, cx } from "../components/ui";
 import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest, type ReqStatus } from "../lib/api";
+import { ARC } from "../lib/chain";
 import { brand } from "../lib/data";
 import { inr, usdt } from "../lib/engine";
 import { buildStages, impliedRate, isSettled, nextStep, roleOf, sameAddr, type Role, type Stage, type StageKey, type Tone } from "../lib/lifecycle";
 import { useApp } from "../lib/store";
-import { ReadyAction, SettleActions, type Notice } from "./TrackActions";
+import { MOCK_NOTE, sendEscrowStep, stepError } from "../lib/escrowFlow";
+import { ledgerFromRequest } from "../lib/orderbook";
+import { useEscrow, type ChainView } from "../lib/useEscrow";
+import { AcceptOnchain, ReadyAction, SettleActions, type Notice } from "./TrackActions";
 import { SubmitCode, VaultSetup } from "./VoucherTransfer";
 
 /**
@@ -31,7 +35,7 @@ const TONE_TEXT: Record<Tone, string> = { mint: "text-brand-ink", amber: "text-a
 const TONE_DOT: Record<Tone, string> = { mint: "bg-brand", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose", mute: "bg-fg/30" };
 
 const POLL_MS = 8000;
-const EXPLORER = "https://testnet.arcscan.app";
+const EXPLORER = ARC.explorer;
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : null);
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -195,16 +199,26 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
   const b = brand(brandIdFromApi(req.brand));
   const s = STATUS[req.status];
   const stages = buildStages(req, role, b.name);
-  const next = nextStep(req, role, b.name);
   const live = !isSettled(req.status);
   const usdcAmount = Number(req.amountUsdc) || 0;
 
-  // Buttons live inside the lifecycle step they belong to, and only for the spender.
-  const common = { req, token, signIn, signingIn, onUpdated: (r: ApiRequest, n: Notice) => { onApplied(r); setNotice(n); } };
+  // The escrow itself, read from Arc in this browser. While a buyer has accepted but may not be bound on-chain yet,
+  // keep re-reading: that binding is what decides whether it is safe for them to buy the voucher.
+  const { view: chain, refresh: refreshChain } = useEscrow(req.escrowId, { watch: `${req.status}|${req.updatedAt ?? ""}`, pollMs: req.status === "accepted" ? POLL_MS : 0 });
+  const mock = chain.kind === "mock";
+  const assigned = mock ? undefined : chain.kind === "ok" ? !!chain.escrow.fulfiller && sameAddr(chain.escrow.fulfiller, req.crypto_buyer) : null;
+  const next = nextStep(req, role, b.name, Date.now(), { assigned });
+
+  // Buttons live inside the lifecycle step they belong to.
+  const common = { req, token, signIn, signingIn, onUpdated: (r: ApiRequest, n: Notice) => { onApplied(r); setNotice(n); void refreshChain(true); } };
   const actions: Partial<Record<StageKey, ReactNode>> = {};
   if (role === "spender" && next.cta === "ready") actions.ready = <ReadyAction {...common} viewer={viewer} walletRequest={walletRequest} expired={!!req.ready} />;
   if (role === "spender" && next.cta === "settle") actions.outcome = <SettleActions {...common} />;
-  if (role === "buyer" && req.status === "accepted") actions.code = <SubmitCode req={req} onUpdated={common.onUpdated} />;
+  if (role === "buyer" && req.status === "accepted") {
+    // Two wallet steps for the buyer: bind to the order on-chain (after the spender's Ready), then deliver the code.
+    if (assigned === false) actions.ready = <AcceptOnchain req={req} onDone={() => void refreshChain(true)} />;
+    if (assigned === true || mock) actions.code = <SubmitCode req={req} onUpdated={common.onUpdated} />;
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -236,13 +250,20 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-5">
           {notice && <NoticeBar notice={notice} onClose={() => setNotice(null)} />}
+          {role !== "observer" && live && (chain.kind === "bad" || chain.kind === "error") && (
+            // The escrow couldn't be checked from this browser. Say so plainly instead of guessing what is safe.
+            <div role="alert" className={cx("rounded-2xl px-4 py-3 text-[13px] leading-relaxed ring-1", chain.kind === "bad" ? TONE.rose : TONE.amber)}>
+              <strong className="font-medium">{chain.kind === "bad" ? "The escrow can't be verified." : "The escrow couldn't be read just now."}</strong> {chain.text} {role === "buyer" ? "Don't buy the voucher until this page can read the escrow." : "Wallet steps on this order stay blocked until this is fixed."}{" "}
+              <button type="button" onClick={() => void refreshChain()} className="underline underline-offset-2">Check again</button>
+            </div>
+          )}
           {role === "spender" && (req.status === "pending_funding" || req.status === "open" || req.status === "accepted") && <VaultSetup />}
           {role === "observer" && req.status === "open" ? (
             // Someone who could fill this order: choose how to buy it, then accept.
             <PickRoute req={req} onAccepted={onApplied} onRefresh={onRefresh} />
           ) : (
             <>
-              <NextCard req={req} next={next} id={req.id} role={role} status={req.status} token={token} signIn={signIn} signingIn={signingIn} onChanged={onRefresh} />
+              <NextCard req={req} next={next} chain={chain} id={req.id} role={role} status={req.status} token={token} signIn={signIn} signingIn={signingIn} onChanged={() => { onRefresh(); void refreshChain(true); }} />
               <Timeline stages={stages} viewer={viewer} actions={actions} />
             </>
           )}
@@ -251,7 +272,7 @@ function Detail({ req, role, viewer, stale, updatedAt, refreshing, onRefresh, to
           {/* Someone looking at an open order is a possible buyer, so show the trade from the buyer's side. */}
           <Money req={req} role={role === "observer" && req.status === "open" ? "buyer" : role} brandName={b.name} />
           <Parties req={req} viewer={viewer} />
-          <Technical req={req} />
+          <Technical req={req} chain={chain} onRecheck={() => void refreshChain()} />
         </div>
       </div>
 
@@ -274,12 +295,12 @@ function RoleBanner({ role, viewer, req, openWallet }: { role: Role; viewer: str
     spender: {
       tone: "mint",
       title: "You are the crypto spender",
-      body: `You locked USDC to get this ${brand(brandIdFromApi(req.brand)).name} voucher. The buyer pays for the voucher and is paid in USDC once you confirm.`,
+      body: `You locked USDC to get this ${brand(brandIdFromApi(req.brand)).name} voucher. The buyer pays for the voucher and is paid in USDC once you release it.`,
     },
     buyer: {
       tone: "iris",
       title: "You are the crypto buyer",
-      body: "You buy the voucher with your card and hand over its code. You are paid in USDC once the spender confirms.",
+      body: "You buy the voucher with your card and hand over its code. You are paid in USDC once the spender releases it, or after the review window if they don't dispute.",
     },
     observer: {
       tone: "mute",
@@ -306,21 +327,31 @@ function RoleBanner({ role, viewer, req, openWallet }: { role: Role; viewer: str
 
 /* --------------------------------------------------------------- next step */
 
-function NextCard({ req, next, id, role, status, token, signIn, signingIn, onChanged }: { req: ApiRequest; next: ReturnType<typeof nextStep>; id: string; role: Role; status: ReqStatus; token: string | null; signIn: () => Promise<string | null>; signingIn: boolean; onChanged: () => void }) {
+function NextCard({ req, next, chain, id, role, status, token, signIn, signingIn, onChanged }: { req: ApiRequest; next: ReturnType<typeof nextStep>; chain: ChainView; id: string; role: Role; status: ReqStatus; token: string | null; signIn: () => Promise<string | null>; signingIn: boolean; onChanged: () => void }) {
+  const { fullAddress, walletRequest, walletName, toast } = useApp();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  /**
+   * Cancel. If the escrow holds a deposit for this order, the spender's wallet sends `cancel` first and the USDC
+   * comes straight back to it; the server is told afterwards. An order with no deposit needs no transaction.
+   */
   async function cancel() {
     if (!token) return;
     setBusy(true);
     setErr("");
     try {
+      // Nothing was deposited (the public read says so): no wallet step at all.
+      const empty = status === "pending_funding" && chain.kind === "ok" && chain.escrow.status === 0;
+      const { tx, mock } = empty ? { tx: null, mock: false } : await sendEscrowStep(walletRequest, "cancel", { req, from: fullAddress, wallet: walletName });
       await api.cancel(id, token);
       setConfirming(false);
+      if (mock) toast({ title: "Order cancelled", body: MOCK_NOTE, tone: "amber" });
+      else if (tx) toast({ title: "Order cancelled", body: "The escrow returned your USDC to your wallet.", tone: "mint" });
       onChanged();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Couldn't cancel");
+      setErr(stepError(e, "Couldn't cancel"));
     } finally {
       setBusy(false);
     }
@@ -335,13 +366,14 @@ function NextCard({ req, next, id, role, status, token, signIn, signingIn, onCha
       {next.cta !== "none" && next.cta !== "ready" && next.cta !== "settle" && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {next.cta === "trade" && status === "accepted" && role === "buyer" ? (
-            // Shown only once the spender is ready: buy the voucher on the bank's page.
+            // Shown only once this buyer is bound to the order on-chain: buy the voucher on the bank's page.
             <BuyOnPortal req={req} />
-          ) : next.cta === "trade" ? (
-            <Button size="sm" to={`/trade/${id}`} icon={<ArrowUpRight className="size-3.5" />}>
-              Open trade room
-            </Button>
           ) : null}
+          {next.cta === "dispute" && (
+            <Button size="sm" to={`/dispute/${encodeURIComponent(id)}`} icon={<ArrowUpRight className="size-3.5" />}>
+              Open the dispute
+            </Button>
+          )}
           {next.cta === "fill" && (
             <Button size="sm" to="/buy" icon={<ArrowUpRight className="size-3.5" />}>
               Fill this order on Buy
@@ -355,7 +387,7 @@ function NextCard({ req, next, id, role, status, token, signIn, signingIn, onCha
             ) : confirming ? (
               <>
                 <Button size="sm" variant="amber" onClick={cancel} disabled={busy} icon={busy ? <LoaderCircle className="size-3.5 animate-spin" /> : <X className="size-3.5" />}>
-                  {status === "open" ? "Yes, cancel and refund me" : "Yes, cancel"}
+                  {busy ? "Check your wallet…" : status === "open" ? "Yes, cancel and refund me" : "Yes, cancel"}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
                   Keep the order
@@ -368,7 +400,8 @@ function NextCard({ req, next, id, role, status, token, signIn, signingIn, onCha
             ))}
         </div>
       )}
-      {err && <p className="mt-3 text-[12.5px] text-rose-ink">{err}</p>}
+      {next.cta === "cancel" && status === "open" && confirming && <p className="mt-3 text-[12.5px] text-mute">Your wallet will ask you to confirm one transaction. The escrow then returns the USDC, fee included, to your wallet.</p>}
+      {err && <p role="alert" className="mt-3 text-[12.5px] text-rose-ink">{err}</p>}
     </div>
   );
 }
@@ -490,7 +523,11 @@ const FUNDS: Record<Role, Partial<Record<ReqStatus, string>>> = {
 function Money({ req, role, brandName }: { req: ApiRequest; role: Role; brandName: string }) {
   const rate = impliedRate(req);
   const voucher = `${inr(req.amountInr)} ${brandName} voucher`;
-  const amt = `${usdt(Number(req.amountUsdc) || 0)} USDC`;
+  // `amountUsdc` is what the buyer is paid. The spender locked that plus the fee.
+  const ledger = ledgerFromRequest(req);
+  const amt = `${usdt(ledger.buyerReceives)} USDC`;
+  const total = `${usdt(ledger.sellerLocks)} USDC`;
+  const fee = ledger.fee > 0 ? `${usdt(ledger.fee)} USDC` : null;
   return (
     <div className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <div className="label">{role === "observer" ? "The trade" : "Your side of the trade"}</div>
@@ -503,12 +540,15 @@ function Money({ req, role, brandName }: { req: ApiRequest; role: Role; brandNam
         ) : role === "spender" ? (
           <>
             <Row k="You get" v={voucher} />
-            <Row k="You locked" v={amt} strong />
+            <Row k={req.status === "pending_funding" ? "You will lock" : "You locked"} v={total} strong />
+            <Row k="Buyer is paid" v={amt} />
+            {fee && <Row k="Fee" v={fee} />}
           </>
         ) : (
           <>
             <Row k="Voucher" v={voucher} />
-            <Row k="USDC in escrow" v={amt} strong />
+            <Row k="Buyer is paid" v={amt} strong />
+            {fee && <Row k="Fee on top, paid by the spender" v={fee} />}
           </>
         )}
         {rate && <Row k="Implied rate" v={`${inr(rate, 2)} / USDC`} />}
@@ -548,7 +588,7 @@ function Parties({ req, viewer }: { req: ApiRequest; viewer: string }) {
   );
 }
 
-function Technical({ req }: { req: ApiRequest }) {
+function Technical({ req, chain, onRecheck }: { req: ApiRequest; chain: ChainView; onRecheck: () => void }) {
   const txs = [
     ["Deposit", req.escrowTxHash],
     ["Release", req.releaseTxHash],
@@ -556,12 +596,13 @@ function Technical({ req }: { req: ApiRequest }) {
   ].filter((t): t is [string, string] => !!t[1] && !t[1].startsWith("reconciled"));
   return (
     <>
-    <OnchainProof req={req} />
+    <OnchainProof req={req} view={chain} onRefresh={onRecheck} />
     <details className="hairline group rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <summary className="label cursor-pointer list-none select-none">Technical details</summary>
       <div className="mt-3 space-y-2 text-[12px]">
         <Kv k="Order ID" v={req.id} />
         <Kv k="Escrow ID" v={req.escrowId} />
+        <Kv k="Network" v={`${ARC.name} (chain ${ARC.id})`} />
         <Kv k="Status code" v={req.status} />
         <Kv k="Created" v={when(req.createdAt) ?? "—"} />
         <Kv k="Last change" v={when(req.updatedAt) ?? "—"} />

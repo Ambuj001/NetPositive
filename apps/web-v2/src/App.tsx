@@ -9,12 +9,11 @@ import TradeHub from "./pages/TradeHub";
 import Track from "./pages/Track";
 import Landing from "./pages/Landing";
 import Market from "./pages/Market";
-import Sell from "./pages/Sell";
-import Trade from "./pages/Trade";
 
-function TradeRoute() {
-  const { id } = useParams();
-  return <Trade key={id} />;
+/** `/trade/:id` was the old walkthrough "trade room". Every order now lives on its tracker page, which runs the real flow. */
+function TradeRedirect() {
+  const { id = "" } = useParams();
+  return <Navigate to={`/track?id=${encodeURIComponent(id)}`} replace />;
 }
 
 export default function App() {
@@ -33,12 +32,12 @@ export default function App() {
               <Route path="spend" element={<Navigate to="/trade?mode=sell" replace />} />
               <Route path="track" element={<Track />} />
               <Route path="market" element={<Market />} />
-              <Route path="sell" element={<Sell />} />
+              <Route path="sell" element={<Navigate to="/trade?mode=sell" replace />} />
               <Route path="cards" element={<Cards />} />
               <Route path="dispute" element={<DisputePage />} />
               <Route path="dispute/:id" element={<DisputePage />} />
               <Route path="disputes" element={<Navigate to="/dispute" replace />} />
-              <Route path="trade/:id" element={<TradeRoute />} />
+              <Route path="trade/:id" element={<TradeRedirect />} />
               <Route path="*" element={<Landing />} />
             </Route>
           </Routes>

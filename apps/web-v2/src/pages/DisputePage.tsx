@@ -11,13 +11,9 @@ import {
   REASON_MIN,
   SHOT_TYPES,
   categoryLabel,
-  clearBond,
   disputeApi,
   disputeError,
   prepareShot,
-  saveBond,
-  savedBond,
-  stakeBond,
   type Bond,
   type Category,
   type DisputeRequest,
@@ -25,6 +21,7 @@ import {
 } from "../lib/dispute";
 import { disputerOf, hasDispute, outcomeLine, roleIn, screenFor, stakeLine } from "../lib/disputeView";
 import { inr } from "../lib/engine";
+import { MOCK_NOTE, sendEscrowStep } from "../lib/escrowFlow";
 import { useApp } from "../lib/store";
 
 const SHOT_WARNING = "Screenshots can show the voucher code. Only the two of you and the team can see them, but crop anything you don't need.";
@@ -78,7 +75,7 @@ function DisputeList() {
     <>
       <div className="label">Disputes</div>
       <h1 className="text-gradient mt-2 font-display text-4xl font-semibold tracking-[-0.03em]">Disputes</h1>
-      <p className="mt-2 text-[14px] text-mute">Something wrong with a voucher code? Stake USDC, explain what happened, add screenshots, and the team decides.</p>
+      <p className="mt-2 text-[14px] text-mute">Something wrong with a voucher code? If you locked the USDC, you can freeze the escrow from your wallet, explain what happened and add screenshots. The arbiter then decides. No stake is needed.</p>
       <div className="mt-6">
         <SignedIn>{(token) => <Orders token={token} />}</SignedIn>
       </div>
@@ -87,6 +84,7 @@ function DisputeList() {
 }
 
 function Orders({ token }: { token: string }) {
+  const { fullAddress } = useApp();
   const [rows, setRows] = useState<ApiRequest[] | null>(null);
   const [error, setError] = useState("");
 
@@ -127,7 +125,7 @@ function Orders({ token }: { token: string }) {
               <span className="block truncate text-[14.5px] font-medium">{b.name} {inr(r.amountInr)}</span>
               <span className="block truncate font-mono text-[11px] text-dim">{r.id}</span>
             </span>
-            <Pill tone={hasDispute(r as DisputeRequest) ? "rose" : (st.tone as "mint")}>{hasDispute(r as DisputeRequest) ? "Disputed" : "Can dispute"}</Pill>
+            <Pill tone={hasDispute(r as DisputeRequest) ? "rose" : (st.tone as "mint")}>{hasDispute(r as DisputeRequest) ? "Disputed" : roleIn(r as DisputeRequest, fullAddress) === "spender" ? "Can dispute" : "In review"}</Pill>
             <ArrowUpRight className="size-4 text-dim" />
           </Link>
         );
@@ -204,23 +202,22 @@ function OrderDispute({ id }: { id: string }) {
 
 /* ------------------------------------------------------------- raise form */
 
-type Step = "idle" | "stake" | "submit" | "upload";
-const STAKE_TEXT = { switch: "Switch your wallet to Arc Testnet…", approve: "Step 1 of 2 · approve USDC in your wallet…", deposit: "Step 2 of 2 · confirm the stake in your wallet…" } as const;
+type Step = "idle" | "chain" | "submit" | "upload";
+/** Shown if a server still asks for a stake. Escrow V2 has no way to hold one, so the app stops instead of guessing. */
+const STAKE_UNSUPPORTED = "This server asks for a dispute stake. Stakes were removed with the current escrow and this app can't pay one, so the dispute can't be opened from here. Nothing was sent.";
 
 function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string; onDone: () => Promise<void> }) {
-  const { fullAddress, walletRequest } = useApp();
+  const { fullAddress, walletRequest, walletName } = useApp();
   const [terms, setTerms] = useState<Bond | null>(null);
   const [category, setCategory] = useState<Category | "">("");
   const [reason, setReason] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [agree, setAgree] = useState(false);
   const [step, setStep] = useState<Step>("idle");
-  const [stakeStep, setStakeStep] = useState<keyof typeof STAKE_TEXT>("switch");
   const [error, setError] = useState("");
   const [problems, setProblems] = useState<string[]>([]);
   const busy = step !== "idle";
-  const paid = savedBond(req.id);
-  const stake = terms?.required ? `${terms.amountUsdc} USDC` : null;
+  const stakeAsked = !!terms?.required;
 
   useEffect(() => {
     let live = true;
@@ -252,17 +249,16 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
   }
 
   async function submit() {
-    if (!category || !terms || busy) return;
+    if (!category || !terms || stakeAsked || busy) return;
     setError("");
     try {
-      let txHash = terms.required ? savedBond(req.id) ?? undefined : undefined;
-      if (terms.required && !txHash) {
-        setStep("stake");
-        txHash = await stakeBond(walletRequest, fullAddress, terms, { onStep: (s) => setStakeStep(s), onDepositHash: (h) => saveBond(req.id, h) });
-      }
+      // The spender's wallet freezes the escrow; the server then records the reason. If the server call fails after
+      // the transaction went through, pressing again skips the transaction (the escrow is read first).
+      setStep("chain");
+      const { mock } = await sendEscrowStep(walletRequest, "dispute", { req, from: fullAddress, wallet: walletName });
       setStep("submit");
-      await disputeApi.open(req.id, token, { category, reason: reason.trim(), ...(txHash ? { bondTxHash: txHash } : {}) });
-      clearBond(req.id);
+      await disputeApi.open(req.id, token, { category, reason: reason.trim() });
+      if (mock) setProblems([MOCK_NOTE]);
       setStep("upload");
       let failed = 0;
       for (const f of files) await disputeApi.uploadEvidence(req.id, token, f).catch(() => void failed++);
@@ -275,17 +271,18 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
     }
   }
 
-  const ready = !!category && reason.trim().length >= REASON_MIN && agree && !!terms;
-  const label = step === "stake" ? STAKE_TEXT[stakeStep] : step === "submit" ? "Submitting your dispute…" : step === "upload" ? "Uploading screenshots…" : paid ? "Raise dispute (stake already paid)" : stake ? `Stake ${stake} and raise dispute` : "Raise dispute";
+  const ready = !!category && reason.trim().length >= REASON_MIN && agree && !!terms && !stakeAsked;
+  const label = step === "chain" ? "Confirm the dispute in your wallet…" : step === "submit" ? "Submitting your dispute…" : step === "upload" ? "Uploading screenshots…" : "Raise dispute";
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight"><ShieldAlert className="size-5 text-rose-ink" /> Raise a dispute</h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-mute">
-          {stake ? `You stake ${stake}. ` : ""}If the team agrees with you, the stake comes back and the other person gets a strike. If not, the stake goes to the other person and your account is banned.
+          Your wallet sends one transaction that freezes the escrow, so nothing is paid out while it is open. The arbiter then decides how the escrow is split. If they agree with you, the other person gets a strike. If the dispute is found to be false, your account is banned. No stake is needed.
         </p>
       </div>
+      {stakeAsked && <Notice>{STAKE_UNSUPPORTED}</Notice>}
 
       <label className="block">
         <span className="mb-1.5 block text-[12.5px] text-mute">What's wrong?</span>
@@ -321,7 +318,7 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
 
       <label className="flex items-start gap-2.5 text-[12.5px] leading-relaxed text-mute">
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} disabled={busy} className="mt-0.5 size-4 accent-[#0000ff]" />
-        <span>I understand I lose my stake and my account is banned if the team finds my dispute false.</span>
+        <span>I understand my account is banned if the team finds my dispute false.</span>
       </label>
 
       {error && <Notice>{error}</Notice>}

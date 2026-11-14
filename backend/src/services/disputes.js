@@ -3,14 +3,18 @@ import { parseUnits, getAddress } from 'viem';
 import { config } from '../config.js';
 import { db, col, FieldValue, Timestamp, serialize } from './firestore.js';
 import { S, assertStatus, transition, settle, getRequest, bumpReputation, spenderOf, buyerOf } from './requests.js';
-import { bondIdFor, verifyDepositById, readStatusById, releaseById, refundById } from './escrow.js';
+import { bondIdFor, verifyBondDeposit, readBondStatus, releaseBond, refundBond, readEscrow, isMock } from './escrow.js';
 import { HttpError, notFound, forbidden, conflict, badRequest } from '../lib/errors.js';
 
 /**
  * Disputes.
  *
- *   Either party can raise one while the request is `code_submitted` (the requester only inside the review window).
- *   The person raising it stakes DISPUTE_BOND_USDC in the same escrow contract (its own escrow id).
+ *   On-chain (VoucherEscrowV2) only the spender can dispute: they send dispute() from their wallet after delivery, which
+ *   freezes the escrow until the arbiter rules, and then raise it here with the reason. The buyer does not need one: they
+ *   are paid when the review window ends unless the spender disputes. There is no stake on-chain.
+ *
+ *   Local mock only: either party can raise one while the request is `code_submitted`, and the person raising it can be
+ *   asked to stake DISPUTE_BOND_USDC (kept so the stake flow stays tested until an on-chain bond exists).
  *   They add a reason, a category and up to a few screenshots (stored in Firestore). The other party may answer once.
  *   An admin then decides:
  *     disputer RIGHT : stake goes back to the disputer, the other party gets a strike, the trade is settled in the disputer's favour
@@ -55,6 +59,13 @@ const ms = (v) => (v?.toMillis ? v.toMillis() : Date.parse(v));
 function assertCanDispute(data, actor) {
   assertStatus(data, S.CODE_SUBMITTED);
   assertParty(data, actor);
+  if (!isMock) {
+    // The contract decides the timing: the spender can dispute until the escrow is claimed.
+    if (actor !== spenderOf(data)) {
+      throw forbidden('buyer_dispute_unavailable', 'Only the spender can open a dispute. As the buyer you are paid when the review window ends, unless the spender disputes.');
+    }
+    return;
+  }
   if (actor === spenderOf(data) && ms(data.reviewDeadline) < Date.now()) {
     throw conflict('review_window_expired', 'Review window has expired; funds are being auto-released');
   }
@@ -102,8 +113,15 @@ export async function openDispute(id, actor, { category, reason, bondTxHash }) {
     const priv = await bondPrivateRef(id, actor).get();
     if (!priv.exists) throw badRequest('bond_not_prepared', 'Call POST /requests/:id/dispute/bond first');
     const escrowId = bondIdFor(id, actor, priv.data().nonce);
-    await verifyDepositById({ id: escrowId, depositor: actor, amountBaseUnits: bondBaseUnits().toString(), txHash: bondTxHash });
+    await verifyBondDeposit();
     bond = { status: 'held', escrowId, amountBaseUnits: bondBaseUnits().toString(), txHash: bondTxHash };
+  }
+
+  if (!isMock) {
+    const onchain = await readEscrow(current.escrowId);
+    if (onchain.status !== 'disputed') {
+      throw new HttpError(409, 'wallet_action_required', 'Send dispute() to the escrow from the spender wallet first; it freezes the funds until the dispute is decided', { function: 'dispute', escrowId: current.escrowId });
+    }
   }
 
   const updated = await transition(id, actor, 'disputed', (data) => {
@@ -209,9 +227,9 @@ export async function resolveDispute(id, admin, { verdict, note }) {
   if (bond?.status === 'held') {
     let payoutTx = 'already-paid-on-chain';
     try {
-      const onchain = await readStatusById(bond.escrowId);
+      const onchain = await readBondStatus(bond.escrowId);
       const done = onchain === (right ? 'refunded' : 'released');
-      if (!done) payoutTx = right ? await refundById(bond.escrowId) : await releaseById(bond.escrowId, getAddress(opposition));
+      if (!done) payoutTx = right ? await refundBond(bond.escrowId) : await releaseBond(bond.escrowId, getAddress(opposition));
     } catch (err) {
       console.error(`[dispute] bond payout ${id} failed:`, err.message);
       throw new HttpError(502, 'bond_payout_failed', 'Moving the stake failed; the dispute stays open, try resolving again');

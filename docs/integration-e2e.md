@@ -21,7 +21,7 @@ npm run smoke:mem        # existing backend lifecycle, in-memory Firestore
 npm run vault:test       # sealed-box library
 npm run vault:e2e        # vault through the backend, both modes
 npm run sim              # chatbot -> request -> escrow(mock) -> accept -> code -> confirm, plaintext AND vault paths
-npm run chain:e2e        # dry run (mock escrow); a real Arc run needs OPERATOR_PK + CONFIRM_CHAIN_TX
+npm run chain:v2:local   # backend in chain mode against VoucherEscrowV2 on a local anvil chain (needs Foundry)
 cd backend/extension && npm test
 cd contracts/private-transfer && npm test
 ```

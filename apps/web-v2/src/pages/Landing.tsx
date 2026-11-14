@@ -5,6 +5,7 @@ import { LedBoard } from "../brand/LedBoard";
 import { PlusField } from "../brand/PlusField";
 import { PixelIcon, type PixelName } from "../components/PixelIcon";
 import { BrandMark, Button, Marquee, SectionHead, Sticker, cx } from "../components/ui";
+import { ARC } from "../lib/chain";
 import { CARDS, FEE_RATE, routesFor } from "../lib/engine";
 import { bps, inr, useRates, type RatesSummary } from "../lib/rates";
 import { useApp } from "../lib/store";
@@ -456,11 +457,11 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
 /* ------------------------------------------------------------------ trust */
 
 const TRUST: { icon: PixelName; title: string; body: string; href?: string }[] = [
-  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the VoucherEscrow contract and move only by the order's rules.", href: "https://github.com/Ambuj001/NetPositive/blob/main/contracts/src/VoucherEscrow.sol" },
+  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the VoucherEscrow contract and move only by the order's rules. You send every transaction from your own wallet.", href: "https://github.com/Ambuj001/NetPositive/blob/main/contracts/src/VoucherEscrowV2.sol" },
   { icon: "human", title: "World ID humans", body: "Proof of Human once per person. Bans stick, sybil farms don't work.", href: "https://world.org/world-id" },
   { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the receiver's key. The server stores ciphertext only.", href: "https://github.com/Ambuj001/NetPositive/blob/main/docs/vault.md" },
   { icon: "clock", title: "Review window", body: "Payout waits until the spender confirms the voucher works, or raises a dispute." },
-  { icon: "scale", title: "Stake-backed disputes", body: "Raising a dispute costs a small stake. Bad-faith claims lose it and get banned." },
+  { icon: "scale", title: "Disputes with limits", body: "Only the spender can dispute, and only inside the review window. The arbiter can split that one escrow and nothing else; if nobody rules, the USDC returns to the spender." },
   { icon: "shield", title: "Check the escrow yourself", body: "Before you spend a rupee, the app reads the deposit straight from the contract on Arc, not from our server." },
 ];
 
@@ -506,7 +507,9 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Is this real money?",
-    a: "Not yet. NetPositive runs on Arc Testnet, so the USDC in escrow is testnet USDC. Voucher codes in a real trade are real, so only trade vouchers you'd be happy to buy.",
+    a: ARC.testnet
+      ? `Not yet. NetPositive runs on ${ARC.name}, so the USDC in escrow is testnet USDC. Voucher codes in a real trade are real, so only trade vouchers you'd be happy to buy.`
+      : `Yes. NetPositive runs on ${ARC.name}, so the USDC in escrow is real USDC and the voucher codes are real. Only lock what you mean to spend, and only buy vouchers you'd be happy to keep.`,
   },
   {
     q: "Which wallets work?",

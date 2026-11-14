@@ -1,21 +1,23 @@
 import { LoaderCircle, Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui";
-import { ApiError, api, type ApiRequest } from "../lib/api";
+import { ApiError, api, onchainStepText, type ApiRequest } from "../lib/api";
+import { ARC } from "../lib/chain";
+import { MOCK_NOTE, sendEscrowStep, stepError } from "../lib/escrowFlow";
 import { useApp } from "../lib/store";
 import { registerVault, sealVoucher } from "../lib/vault";
 import { useWorldId } from "../lib/world";
 import type { Notice } from "./TrackActions";
 
 function messageOf(e: unknown, fallback: string) {
-  if ((e as { code?: number })?.code === 4001) return "You declined the request in your wallet.";
-  if (e instanceof ApiError) {
+  if (e instanceof ApiError && !onchainStepText(e)) {
     if (e.code === "requester_vault_key_missing") return "The spender hasn't set up their vault yet. Ask them to open this order and unlock it. The code stays on this page.";
     if (e.code === "world_id_required") return "Verify with World ID before sending the code.";
     if (e.code === "fulfil_window_expired") return "The fulfil window has expired, so this code can't be submitted.";
     return e.message;
   }
-  return e instanceof Error && e.message ? e.message : fallback;
+  // Wallet, chain and "the chain doesn't show this step yet" errors.
+  return stepError(e, fallback);
 }
 
 /** Spender, once per wallet: publish the public key the buyer will seal the code to. */
@@ -91,10 +93,14 @@ export function VaultSetup() {
   );
 }
 
-/** Buyer, during the fulfil window: seal the code to the spender and submit it. */
+/**
+ * Buyer, during the fulfil window: seal the code to the spender, mark the order delivered on-chain from the buyer's
+ * wallet (this starts the spender's review window), then send the sealed code to the server.
+ */
 export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (request: ApiRequest, notice: Notice) => void }) {
-  const { fullAddress, token, signIn, signingIn, humanVerified } = useApp();
+  const { fullAddress, token, signIn, signingIn, humanVerified, walletRequest, walletName } = useApp();
   const { verifyHuman, phase: worldPhase } = useWorldId();
+  const [stage, setStage] = useState<"seal" | "chain" | "send">("seal");
   const [code, setCode] = useState("");
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -135,6 +141,7 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
         const ok = await verifyHuman();
         if (!ok) return;
       }
+      setStage("seal");
       const sealed = await sealVoucher({
         requestId: req.id,
         spender: req.crypto_spender,
@@ -144,14 +151,17 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
         token: t,
       });
       const body = sealed.legacy ? { code: code.trim(), ...(pin.trim() ? { pin: pin.trim() } : {}) } : { sealed: sealed.sealed };
+      // On-chain first: the server refuses the code until the escrow shows it as delivered. The code stays in this
+      // box if anything fails, and pressing again won't send the transaction twice (the escrow is read first).
+      setStage("chain");
+      const { mock } = await sendEscrowStep(walletRequest, "markDelivered", { req, from: fullAddress, wallet: walletName });
+      setStage("send");
       const { request } = await api.submitCode(req.id, body, t);
       setCode("");
       setPin("");
       onUpdated(request, {
-        tone: "mint",
-        text: sealed.legacy
-          ? "Code submitted. The server stored it encrypted with its own key."
-          : "Code sealed and sent. Only the spender's vault key can open it.",
+        tone: mock ? "amber" : "mint",
+        text: `${sealed.legacy ? "Code submitted. The server stored it encrypted with its own key." : "Code sealed and sent. Only the spender's vault key can open it."} ${mock ? MOCK_NOTE : "The escrow shows it as delivered, so the spender's review window has started."}`,
       });
     } catch (e) {
       const text = messageOf(e, "Couldn't send the code");
@@ -166,7 +176,7 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
     <div className="mt-3 rounded-2xl bg-amber/[0.05] p-3.5 ring-1 ring-amber/25">
       <div className="text-[13px] font-medium text-amber-ink">Seal the voucher code</div>
       <p className="mt-1 text-[12px] leading-relaxed text-mute">
-        The code is encrypted on this device to the spender's vault key, then sent. The server stores the locked box and cannot read it.
+        The code is encrypted on this device to the spender's vault key. Your wallet then confirms one transaction on {ARC.name} that marks the voucher delivered and starts the spender's review window, and the locked box is sent. The server cannot read it.
       </p>
       {vaultMissing && (
         <p className="mt-2 text-[12px] text-amber-ink">The spender hasn't set up their vault yet. The code stays in this box until they do. Ask them to open this order.</p>
@@ -204,7 +214,7 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
       {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
       <div className="mt-3">
         <Button size="sm" variant="amber" onClick={() => void send()} disabled={!codeOk || !pinOk || busy || worldBusy || signingIn} icon={busy || worldBusy || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
-          {busy ? "Sealing and sending…" : worldBusy || signingIn ? "Check your wallet…" : "Seal and send"}
+          {busy ? (stage === "chain" ? "Confirm in your wallet…" : stage === "send" ? "Sending the sealed code…" : "Sealing…") : worldBusy || signingIn ? "Check your wallet…" : "Seal, mark delivered and send"}
         </Button>
       </div>
     </div>

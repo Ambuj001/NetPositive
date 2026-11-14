@@ -1,9 +1,9 @@
 /**
- * Disputes: API calls, the 1 USDC stake on Arc testnet, and screenshot helpers.
+ * Disputes: API calls and screenshot helpers. Only the spender can open one, by sending `dispute` to the escrow from
+ * their wallet (see escrowFlow.ts) and then telling the server why. There is no stake any more.
  * The JWT only ever goes in the Authorization header.
  */
-import { assertUsdc, switchToArc, usdcAllowance } from "./arc";
-import { API_URL, ApiError, type ApiRequest } from "./api";
+import { API_URL, ApiError, onchainStepText, type ApiRequest } from "./api";
 
 /* ------------------------------------------------------------------ types */
 
@@ -26,13 +26,8 @@ export const MAX_SHOTS = 4;
 export const MAX_SHOT_BYTES = 500 * 1024;
 export const SHOT_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
-export type Bond = {
-  required: boolean;
-  amountUsdc: string | number;
-  amountBaseUnits: string;
-  escrowContract: string;
-  escrowId: string;
-};
+/** Answer of POST /requests/:id/dispute/bond. With escrow V2 no stake is asked: `required` is false. */
+export type Bond = { required: boolean; amountUsdc?: string | number };
 
 /** What this backend stores on a request once a dispute is open (see backend/src/services/disputes.js). */
 export type DisputeInfo = {
@@ -41,7 +36,7 @@ export type DisputeInfo = {
   category?: string | null;
   reason?: string | null;
   openedAt?: string | null;
-  /** none = no stake was asked; held = locked in escrow; returned / forfeited = after the decision. */
+  /** Only on disputes from before escrow V2. none = no stake was asked; held = locked; returned / forfeited = after the decision. */
   bond?: { status?: string | null; amountBaseUnits?: string | null } | null;
   /** The other person's single reply. */
   response?: { by?: string | null; text?: string | null; at?: string | null } | null;
@@ -71,8 +66,8 @@ async function send(path: string, init: Init): Promise<Response> {
     throw new ApiError(0, "offline", "The NetPositive backend isn't reachable.");
   }
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-    throw new ApiError(res.status, data.error ?? "error", data.message ?? `Request failed (${res.status})`);
+    const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string; details?: unknown };
+    throw new ApiError(res.status, data.error ?? "error", data.message ?? `Request failed (${res.status})`, data.details);
   }
   return res;
 }
@@ -82,15 +77,18 @@ const rid = (id: string) => encodeURIComponent(id);
 /** Text to show for any error. A banned account always gets the same line. */
 export function disputeError(e: unknown) {
   if (e instanceof ApiError && e.code === "banned") return "Your account is banned";
+  const onchain = onchainStepText(e);
+  if (onchain) return onchain;
   const w = e as { code?: number; message?: string };
-  if (w?.code === 4001 || /reject|denied|cancel/i.test(w?.message ?? "")) return "You rejected the request in your wallet.";
+  if (w?.code === 4001 || /user rejected|user denied|rejected the request/i.test(w?.message ?? "")) return "You rejected the request in your wallet. Nothing was sent.";
   return e instanceof Error && e.message ? e.message : "Something went wrong. Try again.";
 }
 
 export const disputeApi = {
   get: (id: string, token: string) => json<{ request: DisputeRequest }>(`/requests/${rid(id)}`, { token }),
   bond: (id: string, token: string) => json<{ bond: Bond }>(`/requests/${rid(id)}/dispute/bond`, { token, json: {} }),
-  open: (id: string, token: string, body: { category: Category; reason: string; bondTxHash?: string }) =>
+  /** Call after the spender's wallet has sent `dispute` to the escrow. */
+  open: (id: string, token: string, body: { category: Category; reason: string }) =>
     json<{ request?: DisputeRequest }>(`/requests/${rid(id)}/dispute`, { token, json: body }),
   respond: (id: string, token: string, text: string) => json<unknown>(`/requests/${rid(id)}/dispute/respond`, { token, json: { text } }),
   uploadEvidence: (id: string, token: string, file: Blob) =>
@@ -133,95 +131,5 @@ export async function prepareShot(file: File): Promise<File> {
   }
   throw new Error(`${file.name}: still over 500 KB after shrinking. Crop it and try again.`);
 }
-
-/* ------------------------------------------------------------ Arc + stake */
-
-export const ARC_CHAIN_ID = 5042002;
-export const ARC_CHAIN_HEX = "0x4cef52";
-export const ARC_USDC = "0x3600000000000000000000000000000000000000";
-const APPROVE_SELECTOR = "0x095ea7b3"; // approve(address,uint256)
-const DEPOSIT_SELECTOR = "0x1de26e16"; // deposit(bytes32,uint256)
-export type Rpc = (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
-
-const pad32 = (hex: string) => hex.replace(/^0x/i, "").padStart(64, "0");
-const encodeApprove = (spender: string, amount: bigint) => APPROVE_SELECTOR + pad32(spender) + pad32(amount.toString(16));
-function encodeDeposit(id: string, amount: bigint) {
-  const h = id.replace(/^0x/i, "");
-  if (!/^[0-9a-fA-F]{64}$/.test(h)) throw new Error("Escrow id from the server is not a 32-byte hash.");
-  return DEPOSIT_SELECTOR + h.toLowerCase() + pad32(amount.toString(16));
-}
-
-const ensureArc = (rpc: Rpc) => switchToArc(rpc);
-
-async function waitForReceipt(rpc: Rpc, hash: string) {
-  for (let i = 0; i < 60; i++) {
-    const r = (await rpc({ method: "eth_getTransactionReceipt", params: [hash] })) as { status?: string } | null;
-    if (r) {
-      if (r.status === "0x0") throw new Error("The transaction failed on-chain.");
-      return;
-    }
-    await new Promise((res) => setTimeout(res, 1500));
-  }
-  throw new Error("The transaction is still pending. Wait a moment and press Try again. You won't be charged twice.");
-}
-
-async function sendTx(rpc: Rpc, tx: { from: string; to: string; data: string }, onHash?: (h: string) => void) {
-  const hash = await rpc({ method: "eth_sendTransaction", params: [{ ...tx, value: "0x0" }] });
-  if (typeof hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new Error("Your wallet didn't return a transaction hash.");
-  onHash?.(hash);
-  await waitForReceipt(rpc, hash);
-  return hash;
-}
-
-/**
- * Stake in two wallet steps: USDC.approve(escrow) then escrow.deposit(escrowId).
- * `onDepositHash` fires as soon as the deposit is sent, before it confirms, so it can be saved.
- */
-export async function stakeBond(
-  rpc: Rpc,
-  from: string,
-  bond: Bond,
-  hooks: { onStep: (s: "switch" | "approve" | "deposit") => void; onDepositHash: (h: string) => void },
-) {
-  if (!/^0x[0-9a-fA-F]{40}$/.test(bond.escrowContract)) throw new Error("The server sent no escrow address.");
-  const amount = BigInt(bond.amountBaseUnits);
-  if (amount <= 0n) throw new Error("The stake amount from the server is not valid.");
-  hooks.onStep("switch");
-  await ensureArc(rpc);
-  await assertUsdc(rpc, from, amount);
-  if ((await usdcAllowance(rpc, from, bond.escrowContract).catch(() => 0n)) < amount) {
-    hooks.onStep("approve");
-    await sendTx(rpc, { from, to: ARC_USDC, data: encodeApprove(bond.escrowContract, amount) });
-  }
-  hooks.onStep("deposit");
-  return sendTx(rpc, { from, to: bond.escrowContract, data: encodeDeposit(bond.escrowId, amount) }, hooks.onDepositHash);
-}
-
-/* ----------------------------------------- remember a paid stake locally */
-
-// A paid deposit hash survives a failed submit or a closed tab, so the user never pays twice.
-const BOND_KEY = (id: string) => `netpositive:dispute-bond:${id}`;
-export const savedBond = (id: string) => {
-  try {
-    const v = localStorage.getItem(BOND_KEY(id));
-    return v && /^0x[0-9a-fA-F]{64}$/.test(v) ? v : null;
-  } catch {
-    return null;
-  }
-};
-export const saveBond = (id: string, hash: string) => {
-  try {
-    localStorage.setItem(BOND_KEY(id), hash);
-  } catch {
-    /* storage blocked: still works this session */
-  }
-};
-export const clearBond = (id: string) => {
-  try {
-    localStorage.removeItem(BOND_KEY(id));
-  } catch {
-    /* nothing to clear */
-  }
-};
 
 export const sameAddr = (a?: string | null, b?: string | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();

@@ -2,16 +2,14 @@
   "name": "netpositive",
   "private": true,
   "version": "0.1.0",
-  "workspaces": [
-    "apps/web"
-  ],
+  "description": "Root scripts delegate to apps/web-v2. The backend (backend/) and contracts (contracts/) have their own tooling.",
   "scripts": {
-    "dev": "npm run dev --workspace @netpositive/web",
-    "build": "npm run build --workspace @netpositive/web",
-    "preview": "npm run preview --workspace @netpositive/web",
-    "typecheck": "npm run typecheck --workspace @netpositive/web",
-    "test": "npm run test --workspace @netpositive/web",
-    "format": "prettier --write apps/web/src apps/web/vite.config.ts"
+    "dev": "npm --prefix apps/web-v2 run dev",
+    "build": "npm --prefix apps/web-v2 run build",
+    "preview": "npm --prefix apps/web-v2 run preview",
+    "typecheck": "npm --prefix apps/web-v2 run typecheck",
+    "test": "npm --prefix apps/web-v2 test",
+    "format": "prettier --write apps/web-v2/src"
   },
   "engines": {
     "node": ">=22.12.0"

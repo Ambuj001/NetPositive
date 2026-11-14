@@ -156,25 +156,27 @@ try {
   assert.deepEqual([a1.status, a2.status].sort(), [200, 409]);
   step('accept is race-safe and self-accept blocked');
 
-  // ---- Ready permit: the spender tells the accepted buyer "I am ready" (gasless EIP-712 signature) ----
+  // ---- Ready permit: the spender's gasless EIP-712 signature that lets THIS buyer accept the escrow (VoucherEscrowV2 Assign) ----
   const READY = {
-    domain: { name: 'NetPositiveCodeMailbox', version: '1', chainId: 5042002, verifyingContract: '0xA8243e92A89de7F62D3023EB68EEB4f4e40e88B1' },
-    types: { Ready: [{ name: 'escrowId', type: 'bytes32' }, { name: 'fulfiller', type: 'address' }, { name: 'validUntil', type: 'uint64' }] },
+    // mock escrow: the server stands in 0x…01 for the contract address
+    domain: { name: 'NetPositiveEscrow', version: '2', chainId: 5042002, verifyingContract: '0x0000000000000000000000000000000000000001' },
+    types: { Assign: [{ name: 'id', type: 'bytes32' }, { name: 'fulfiller', type: 'address' }, { name: 'epoch', type: 'uint32' }, { name: 'validUntil', type: 'uint64' }] },
   };
-  const signReady = (acct, message, domain = READY.domain) => acct.signTypedData({ domain, types: READY.types, primaryType: 'Ready', message });
+  const signReady = (acct, message, domain = READY.domain) => acct.signTypedData({ domain, types: READY.types, primaryType: 'Assign', message });
   {
     const orderDoc = (await call('GET', `/requests/${id}`)).body.request;
     const now = Math.floor(Date.now() / 1000);
-    const msg = (over = {}) => ({ escrowId: orderDoc.escrowId, fulfiller: orderDoc.crypto_buyer, validUntil: BigInt(now + 600), ...over });
+    const msg = (over = {}) => ({ id: orderDoc.escrowId, fulfiller: orderDoc.crypto_buyer, epoch: 0, validUntil: BigInt(now + 600), ...over });
     const post = (token, validUntil, signature) => call('POST', `/requests/${id}/ready`, { token, body: { validUntil, signature } });
 
     // the server hands the wallet the exact typed data (single source of truth for the contract's domain)
     r = await call('GET', `/requests/${id}/ready-permit`, { token: ta });
     assert.equal(r.status, 200, JSON.stringify(r.body));
-    assert.equal(r.body.typedData.primaryType, 'Ready');
-    assert.equal(r.body.typedData.domain.name, 'NetPositiveCodeMailbox');
+    assert.equal(r.body.typedData.primaryType, 'Assign');
+    assert.equal(r.body.typedData.domain.name, 'NetPositiveEscrow');
+    assert.equal(r.body.typedData.message.epoch, 0);
     assert.equal(r.body.typedData.message.fulfiller, orderDoc.crypto_buyer);
-    assert.equal(r.body.typedData.message.escrowId, orderDoc.escrowId);
+    assert.equal(r.body.typedData.message.id, orderDoc.escrowId);
     assert.ok(r.body.typedData.types.EIP712Domain, 'wallets need EIP712Domain in the types');
     assert.equal((await call('GET', `/requests/${id}/ready-permit`, { token: tb })).status, 403); // buyer cannot ask for the permit
 
@@ -184,7 +186,7 @@ try {
     assert.equal(r.body.error, 'bad_ready_signature');
     r = await post(ta, now + 600, await signReady(alice, msg({ fulfiller: mallory.address }))); // names another buyer
     assert.equal(r.body.error, 'bad_ready_signature');
-    r = await post(ta, now + 600, await signReady(alice, msg({ escrowId: '0x' + '11'.repeat(32) }))); // another order
+    r = await post(ta, now + 600, await signReady(alice, msg({ id: '0x' + '11'.repeat(32) }))); // another order
     assert.equal(r.body.error, 'bad_ready_signature');
     r = await post(ta, now + 600, await signReady(alice, msg(), { ...READY.domain, chainId: 1 })); // another chain
     assert.equal(r.body.error, 'bad_ready_signature');
@@ -280,7 +282,7 @@ try {
   {
     const g = (await call('GET', `/requests/${ghosted}`)).body.request;
     const vu = Math.floor(Date.now() / 1000) + 600;
-    r = await call('POST', `/requests/${ghosted}/ready`, { token: ta, body: { validUntil: vu, signature: await signReady(alice, { escrowId: g.escrowId, fulfiller: g.crypto_buyer, validUntil: BigInt(vu) }) } });
+    r = await call('POST', `/requests/${ghosted}/ready`, { token: ta, body: { validUntil: vu, signature: await signReady(alice, { id: g.escrowId, fulfiller: g.crypto_buyer, epoch: 0, validUntil: BigInt(vu) }) } });
     assert.equal(r.status, 200, JSON.stringify(r.body));
   }
 

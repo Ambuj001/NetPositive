@@ -2,8 +2,8 @@ import type { DisputeRequest } from "./dispute";
 
 /**
  * What the dispute page shows for one order. Plain logic only (no React, no network) so it can be tested.
- * The rules mirror the backend: either person can dispute while the code is waiting for review; the crypto spender only
- * inside the review window.
+ * The rules mirror the escrow contract: only the crypto spender can open a dispute, and only inside the review window.
+ * The crypto buyer is paid when that window ends unless the spender disputes; once a dispute is open they can reply.
  */
 export type Role = "spender" | "buyer";
 
@@ -18,6 +18,10 @@ export function roleIn(r: Pick<DisputeRequest, "crypto_spender" | "crypto_buyer"
 export const disputerOf = (r: DisputeRequest) => r.dispute?.by ?? r.disputedBy ?? null;
 export const hasDispute = (r: DisputeRequest) => r.status === "disputed" || !!r.dispute || !!r.disputedBy;
 
+/** Why the buyer has no "raise a dispute" button. */
+export const BUYER_CANNOT_DISPUTE =
+  "Only the spender can open a dispute. You don't need one: you are paid automatically when the review window ends, unless the spender disputes first. If they do, you can give your side here.";
+
 export type Screen = { kind: "raise" } | { kind: "view" } | { kind: "none"; why: string };
 
 export function screenFor(r: DisputeRequest, viewer: string | null | undefined, now: number): Screen {
@@ -25,7 +29,8 @@ export function screenFor(r: DisputeRequest, viewer: string | null | undefined, 
   if (!role) return { kind: "none", why: "Only the two people in this trade can open or read its dispute." };
   if (hasDispute(r)) return { kind: "view" };
   if (r.status === "code_submitted") {
-    if (role === "spender" && r.reviewDeadline && Date.parse(r.reviewDeadline) < now) {
+    if (role === "buyer") return { kind: "none", why: BUYER_CANNOT_DISPUTE };
+    if (r.reviewDeadline && Date.parse(r.reviewDeadline) < now) {
       return { kind: "none", why: "The review window has closed, so the USDC is being released to the buyer." };
     }
     return { kind: "raise" };
@@ -34,7 +39,9 @@ export function screenFor(r: DisputeRequest, viewer: string | null | undefined, 
   return { kind: "none", why: "A dispute can be raised once the voucher code has been submitted." };
 }
 
-/** One line on where the stake stands. */
+const hadStake = (r: DisputeRequest) => !!r.dispute?.bond?.status && r.dispute.bond.status !== "none";
+
+/** One line on where the stake stands. Disputes no longer need one; older ones may have. */
 export function stakeLine(r: DisputeRequest, viewer?: string | null): string {
   const bond = r.dispute?.bond;
   if (!bond || bond.status === "none" || !bond.status) return "No stake was needed.";
@@ -51,12 +58,13 @@ export function outcomeLine(r: DisputeRequest, viewer?: string | null): { good: 
   if (verdict !== "disputer_right" && verdict !== "disputer_wrong") return null;
   const disputer = same(viewer, disputerOf(r));
   const right = verdict === "disputer_right";
+  const stake = hadStake(r);
   if (disputer) {
     return right
-      ? { good: true, text: "The team ruled in your favour. Your stake was returned and the trade settled your way." }
-      : { good: false, text: "The team ruled against you. Your stake went to the other person, the trade settled against you and your account is banned." };
+      ? { good: true, text: `The team ruled in your favour. ${stake ? "Your stake was returned and the" : "The"} trade settled your way.` }
+      : { good: false, text: `The team ruled against you. ${stake ? "Your stake went to the other person, the" : "The"} trade settled against you and your account is banned.` };
   }
   return right
     ? { good: false, text: "The team ruled for the other person. The trade settled their way and you got a strike." }
-    : { good: true, text: "The team ruled in your favour. The trade settled your way and you received the other person's stake." };
+    : { good: true, text: `The team ruled in your favour. The trade settled your way${stake ? " and you received the other person's stake" : ""}.` };
 }

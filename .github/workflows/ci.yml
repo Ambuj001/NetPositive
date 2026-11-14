@@ -1,0 +1,71 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  web:
+    name: Web app (apps/web-v2)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web-v2/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  backend:
+    name: Backend (mock escrow)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run smoke:mem
+      - run: npm run dispute:test
+      - run: npm run vault:test
+      - run: npm run vault:e2e
+      - run: npm run buyintents:test
+      - run: npm run world:test
+      - run: npm run world:bypass:test
+      - run: npm run cards:test
+      - run: npm run test:rates
+
+  contracts:
+    name: Contracts and backend on a local chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Contract tests
+        working-directory: contracts
+        run: forge test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Backend against VoucherEscrowV2 on anvil
+        working-directory: backend
+        run: |
+          npm ci
+          npm run chain:v2:local

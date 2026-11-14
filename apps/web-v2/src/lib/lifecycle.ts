@@ -37,7 +37,7 @@ export type NextStep = {
   body: string;
   deadline: { label: string; at: string } | null;
   /** What the page may offer. The page decides how to render each. "ready" and "settle" live inside the lifecycle steps. */
-  cta: "cancel" | "trade" | "fill" | "ready" | "settle" | "none";
+  cta: "cancel" | "trade" | "fill" | "ready" | "settle" | "dispute" | "none";
 };
 
 export const sameAddr = (a?: string | null, b?: string | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
@@ -69,12 +69,27 @@ export function facts(r: ApiRequest) {
   return { funded, accepted, code, disputed, settled: isSettled(r.status) };
 }
 
-const usdc = (r: ApiRequest) => (Number(r.amountUsdc) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** What the buyer is paid. */
+const usdc = (r: ApiRequest) => fmt(Number(r.amountUsdc) || 0);
+/** What the spender locked: the buyer's amount plus the fee. Orders from before escrow V2 have no total, so the amount stands in. */
+const lockedUsdc = (r: ApiRequest) => (r.totalUsdcBaseUnits && /^\d+$/.test(r.totalUsdcBaseUnits) ? fmt(Number(r.totalUsdcBaseUnits) / 1e6) : usdc(r));
+const wasFunded = (r: ApiRequest) => !!r.fundedAt || !!r.escrowTxHash;
+
+/**
+ * What the escrow contract says about the buyer, when the page has read it:
+ *   true   the buyer on this order is bound on-chain (their `accept` transaction went through)
+ *   false  nobody is bound yet
+ *   null   not known yet (still reading, or the read failed)
+ * Leave it out when the chain isn't being read at all (a development server with the mock escrow).
+ */
+export type ChainFacts = { assigned?: boolean | null };
 
 export function buildStages(r: ApiRequest, role: Role, brandName: string = r.brand, now: number = Date.now()): Stage[] {
   const f = facts(r);
   const s = r.status;
   const amt = `${usdc(r)} USDC`;
+  const locked = `${lockedUsdc(r)} USDC`;
   const stages: Stage[] = [];
   const mk = (p: Partial<Stage> & Pick<Stage, "key" | "title" | "detail">): Stage => ({
     state: "upcoming",
@@ -102,7 +117,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
     mk({
       key: "funded",
       title: "USDC locked in escrow",
-      detail: role === "spender" ? `You deposited ${amt}. It stays locked until the trade settles.` : `${amt} is held by the escrow contract, so the funds really exist.`,
+      detail: role === "spender" ? `You deposited ${locked} from your wallet. It stays locked until the trade settles.` : `${amt} for the buyer is held by the escrow contract, so the funds really exist.`,
       at: r.fundedAt ?? null,
       actor: r.crypto_spender,
       tx: r.escrowTxHash,
@@ -118,7 +133,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
       detail:
         role === "buyer"
           ? s === "accepted"
-            ? "You took this order. Buy the voucher and submit its code before the deadline."
+            ? "You took this order. Once the spender is ready, confirm it from your wallet, then buy the voucher and submit its code before the deadline."
             : "You took this order."
           : f.accepted
             ? s === "accepted"
@@ -132,7 +147,8 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
     }),
   );
 
-  // The spender's gasless "Ready" permit (EIP-712) naming this buyer. Evidence the spender is ready; it does not lock the buyer.
+  // The spender's gasless "Ready" permit: the escrow's EIP-712 Assign naming this buyer. The buyer uses it in their own
+  // `accept` transaction, which binds them on-chain. Until that confirms, the USDC is not bound to them.
   {
     const rd = r.ready ?? null;
     const expired = !!rd && rd.validUntil * 1000 <= now;
@@ -145,13 +161,13 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
         detail: rd
           ? role === "spender"
             ? live && !expired
-              ? "You told the buyer you're ready. They can now hand over the voucher code."
+              ? "You told the buyer you're ready. They confirm the order from their wallet, then hand over the voucher code."
               : live
                 ? "Your Ready permit expired. Sign again so the buyer can hand over the code."
                 : "You told the buyer you were ready."
             : role === "buyer"
               ? live && !expired
-                ? "The spender is ready. Buy the voucher and hand over the code."
+                ? "The spender is ready. Confirm the order from your wallet first. Only then buy the voucher and hand over the code."
                 : live
                   ? "The spender's Ready permit expired. Ask them to sign again."
                   : "The spender said they were ready."
@@ -188,7 +204,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
       at: r.codeSubmittedAt ?? null,
       actor: r.crypto_buyer,
       state: f.code ? "done" : "upcoming",
-      deadline: s === "code_submitted" && r.reviewDeadline ? { label: role === "buyer" ? "USDC auto-releases to you at" : role === "spender" ? "Confirm or dispute before" : "Auto-release at", at: r.reviewDeadline } : null,
+      deadline: s === "code_submitted" && r.reviewDeadline ? { label: role === "buyer" ? "You can be paid without the spender from" : role === "spender" ? "Confirm or dispute before" : "Review window ends at", at: r.reviewDeadline } : null,
     }),
   );
 
@@ -200,7 +216,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
     if (r.disputeReason) factsList.push({ label: "Reason", value: r.disputeReason });
     if (res) {
       factsList.push({ label: "Ruling", value: res.outcome === "release" ? "USDC released to the buyer" : "USDC refunded to the spender" });
-      if (res.note) factsList.push({ label: "Admin note", value: res.note });
+      if (res.note) factsList.push({ label: "Arbiter note", value: res.note });
     }
     stages.push(
       mk({
@@ -208,8 +224,8 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
         title: s === "disputed" ? "Dispute under review" : "Dispute resolved",
         detail:
           s === "disputed"
-            ? `${who[0].toUpperCase()}${who.slice(1)} disputed this order. An admin decides whether the buyer is paid or the spender is refunded.`
-            : `${who[0].toUpperCase()}${who.slice(1)} disputed this order and an admin ruled on it.`,
+            ? `${who[0].toUpperCase()}${who.slice(1)} disputed this order. The arbiter decides how the escrow is split between the buyer and the spender.`
+            : `${who[0].toUpperCase()}${who.slice(1)} disputed this order and it was resolved.`,
         at: res?.at ?? r.disputedAt ?? null,
         actor: r.disputedBy ?? null,
         state: s === "disputed" ? "current" : "done",
@@ -236,7 +252,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
     outcome = mk({
       key: "outcome",
       title: "USDC refunded to the spender",
-      detail: role === "spender" ? `${amt} came back to you.` : role === "buyer" ? "This order was refunded to the spender. You were not paid." : `${amt} was returned to the spender.`,
+      detail: role === "spender" ? `${locked} came back to you.` : role === "buyer" ? "This order was refunded to the spender. You were not paid." : `${locked} was returned to the spender.`,
       at: r.settledAt ?? null,
       actor: r.crypto_spender,
       tx: r.refundTxHash,
@@ -247,7 +263,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
     outcome = mk({
       key: "outcome",
       title: "Order cancelled",
-      detail: "Cancelled before any USDC was locked.",
+      detail: wasFunded(r) ? `Cancelled by the spender before a buyer was bound. ${locked} went back to them.` : "Cancelled before any USDC was locked.",
       at: r.updatedAt,
       actor: r.crypto_spender,
       state: "done",
@@ -257,7 +273,7 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
     outcome = mk({
       key: "outcome",
       title: s === "releasing" ? "Sending USDC to the buyer" : "Returning USDC to the spender",
-      detail: "The escrow transaction is being confirmed on Arc.",
+      detail: "The server is waiting to see the escrow transaction confirmed on Arc.",
       state: "current",
       tone: "iris",
     });
@@ -300,50 +316,63 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
   return stages;
 }
 
-export function nextStep(r: ApiRequest, role: Role, brandName: string = r.brand, now: number = Date.now()): NextStep {
+export function nextStep(r: ApiRequest, role: Role, brandName: string = r.brand, now: number = Date.now(), chain: ChainFacts = {}): NextStep {
   const amt = `${usdc(r)} USDC`;
+  const locked = `${lockedUsdc(r)} USDC`;
   const none = (tone: Tone, title: string, body: string): NextStep => ({ tone, title, body, deadline: null, cta: "none" });
 
   switch (r.status) {
     case "pending_funding":
       return role === "spender"
-        ? { tone: "amber", title: "Deposit USDC to publish this order", body: `The order isn't live until ${amt} is deposited into escrow. If you won't deposit, cancel it.`, deadline: null, cta: "cancel" }
+        ? { tone: "amber", title: "Deposit USDC to publish this order", body: `The order isn't live until ${locked} is deposited into escrow. If you won't deposit, cancel it.`, deadline: null, cta: "cancel" }
         : none("mute", "Not live yet", "The spender hasn't deposited the USDC, so nobody can take this order.");
     case "open":
-      if (role === "spender") return { tone: "mint", title: "Waiting for a buyer", body: `Your ${amt} is locked and the order is in the order book. You can cancel and get it back until someone accepts.`, deadline: null, cta: "cancel" };
+      if (role === "spender") return { tone: "mint", title: "Waiting for a buyer", body: `Your ${locked} is locked and the order is in the order book. Until a buyer is bound on-chain you can cancel from your wallet and get all of it back.`, deadline: null, cta: "cancel" };
       return { tone: "mint", title: "This order is open", body: `Buy a ₹${r.amountInr.toLocaleString("en-IN")} ${brandName} voucher on your best card and you receive ${amt}.`, deadline: null, cta: role === "observer" ? "fill" : "none" };
     case "accepted": {
       const readyLive = !!r.ready && r.ready.validUntil * 1000 > now;
+      const assigned = chain.assigned;
       if (role === "spender") {
+        // Once the buyer is bound on-chain the Ready permit has done its job, even if it has since expired.
+        if (assigned === true) return { tone: "amber", title: "The buyer is confirmed. Waiting for their code", body: "The buyer is bound to your order on-chain and is buying the voucher. If they miss the deadline, your USDC can be refunded.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" };
         return readyLive
-          ? { tone: "amber", title: "You're ready. Waiting for the buyer's code", body: "The buyer can hand the voucher over now. If they miss the deadline, the order reopens and your USDC stays locked for the next buyer.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" }
-          : { tone: "amber", title: r.ready ? "Sign Ready again" : "Tell the buyer you're ready", body: "A buyer accepted your order. Press Ready in the lifecycle below: a free signature (no gas) that lets them hand over the voucher code.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "ready" };
+          ? { tone: "amber", title: "You're ready. Waiting for the buyer's code", body: "The buyer now confirms the order from their wallet, buys the voucher and hands it over. If they miss the deadline, the order reopens and your USDC stays locked for the next buyer.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" }
+          : { tone: "amber", title: r.ready ? "Sign Ready again" : "Tell the buyer you're ready", body: "A buyer accepted your order. Press Ready in the lifecycle below: a free signature (no gas) that lets them confirm the order on-chain and hand over the voucher code.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "ready" };
       }
       if (role === "buyer") {
         const by = r.fulfilDeadline ? { label: "Submit the code by", at: r.fulfilDeadline } : null;
-        // The bank link only appears once the spender has said they're ready.
+        // The bank link only appears once this buyer is bound to the order on-chain. Buying earlier risks paying for a
+        // voucher while the USDC can still be cancelled or taken by someone else.
+        if (assigned === true) return { tone: "amber", title: "You're confirmed on-chain. Buy the voucher", body: "The USDC is now bound to your wallet. Pay on your card, then seal the code below.", deadline: by, cta: "trade" };
+        if (assigned === null) return { tone: "amber", title: "Checking the escrow on Arc", body: "Don't buy the voucher yet. The next step appears once the escrow has been read.", deadline: by, cta: "none" };
+        if (assigned === false) {
+          return readyLive
+            ? { tone: "amber", title: "Confirm the order from your wallet", body: "The spender is ready. Send the confirmation in the lifecycle below. Don't buy the voucher until it has gone through: until then the USDC is not bound to you.", deadline: by, cta: "none" }
+            : { tone: "amber", title: r.ready ? "The spender's Ready has expired" : "Waiting for the spender to be ready", body: r.ready ? "Ask them to press Ready again. Don't buy the voucher yet." : "Don't buy the voucher yet. The next step appears here once they press Ready.", deadline: by, cta: "none" };
+        }
+        // The chain isn't being read (development server with the mock escrow): go by the server's Ready alone.
         return readyLive
           ? { tone: "amber", title: "The spender is ready. Buy the voucher", body: "Pay on your card, then seal the code below.", deadline: by, cta: "trade" }
-          : { tone: "amber", title: "Waiting for the spender to be ready", body: "The link appears here once they press Ready.", deadline: by, cta: "none" };
+          : { tone: "amber", title: "Waiting for the spender to be ready", body: "Don't buy the voucher yet. The link appears here once they press Ready.", deadline: by, cta: "none" };
       }
       return { tone: "amber", title: "A buyer is purchasing the voucher", body: "Nothing for you to do yet. If they miss the deadline, the order reopens.", deadline: r.fulfilDeadline ? { label: "Buyer must submit by", at: r.fulfilDeadline } : null, cta: "none" };
     }
     case "code_submitted":
       return role === "spender"
-        ? { tone: "iris", title: "Check the voucher, then confirm", body: "Check the voucher is live, then settle to pay the buyer, or raise a dispute if it doesn't work. Both are in the lifecycle below. If you do nothing, the USDC is released automatically.", deadline: r.reviewDeadline ? { label: "Auto-release at", at: r.reviewDeadline } : null, cta: "settle" }
-        : { tone: "iris", title: role === "buyer" ? "Waiting for the spender to confirm" : "The spender is checking the voucher", body: role === "buyer" ? `Nothing to do. When they confirm, or if they don't respond by the deadline, ${amt} is released to you.` : "The voucher was handed over and is being checked.", deadline: r.reviewDeadline ? { label: "Auto-release at", at: r.reviewDeadline } : null, cta: "none" };
+        ? { tone: "iris", title: "Check the voucher, then confirm", body: "Check the voucher is live, then settle to pay the buyer, or raise a dispute if it doesn't work. Both are in the lifecycle below and both are sent from your wallet. If you do nothing, the buyer is paid once the review window ends.", deadline: r.reviewDeadline ? { label: "Review window ends at", at: r.reviewDeadline } : null, cta: "settle" }
+        : { tone: "iris", title: role === "buyer" ? "Waiting for the spender to confirm" : "The spender is checking the voucher", body: role === "buyer" ? `Nothing to do. When they confirm, or if they don't dispute before the review window ends, ${amt} is paid to you.` : "The voucher was handed over and is being checked.", deadline: r.reviewDeadline ? { label: "Review window ends at", at: r.reviewDeadline } : null, cta: "none" };
     case "disputed":
-      return { tone: "rose", title: "Under review by an admin", body: "The funds stay in escrow until the admin releases them to the buyer or refunds the spender.", deadline: null, cta: role === "observer" ? "none" : "trade" };
+      return { tone: "rose", title: "Under review by the arbiter", body: "The funds stay in escrow until the arbiter splits them between the buyer and the spender. If nobody rules in time, they return to the spender.", deadline: null, cta: role === "observer" ? "none" : "dispute" };
     case "releasing":
       return none("iris", "Paying out", `${amt} is being sent to the buyer on Arc.`);
     case "released":
       return role === "buyer" ? none("mint", "Completed. You were paid", `${amt} reached your wallet.`) : role === "spender" ? none("mint", "Completed", `The buyer was paid ${amt}. The voucher is yours.`) : none("mint", "Completed", `The buyer was paid ${amt}.`);
     case "refunding":
-      return none("iris", "Refunding", `${amt} is being returned to the spender.`);
+      return none("iris", "Refunding", `${locked} is being returned to the spender.`);
     case "refunded":
-      return role === "spender" ? none("mute", "Refunded", `${amt} was returned to you.`) : role === "buyer" ? none("mute", "Refunded to the spender", "You were not paid for this order.") : none("mute", "Refunded", `${amt} was returned to the spender.`);
+      return role === "spender" ? none("mute", "Refunded", `${locked} was returned to you.`) : role === "buyer" ? none("mute", "Refunded to the spender", "You were not paid for this order.") : none("mute", "Refunded", `${locked} was returned to the spender.`);
     case "cancelled":
-      return none("mute", "Cancelled", "This order was cancelled before any USDC was locked.");
+      return none("mute", "Cancelled", wasFunded(r) ? `The spender cancelled this order and ${locked} went back to them.` : "This order was cancelled before any USDC was locked.");
     default:
       return none("mute", "Unknown state", `The order reports status "${String(r.status)}".`);
   }

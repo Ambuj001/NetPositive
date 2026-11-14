@@ -1,46 +1,43 @@
-import { createPublicClient, createWalletClient, defineChain, http, keccak256, stringToHex, getAddress } from 'viem';
+import { createPublicClient, createWalletClient, defineChain, encodeAbiParameters, http, keccak256, parseAbi, stringToHex, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { config } from '../config.js';
 import { HttpError } from '../lib/errors.js';
 
 /**
- * Expected escrow contract interface (write this in Arc Studio / Foundry):
+ * VoucherEscrowV2 (contracts/src/VoucherEscrowV2.sol).
  *
- *   enum Status { None, Funded, Released, Refunded }
- *   function deposit(bytes32 id, uint256 amount) external;            // requester, after USDC approve
- *   function release(bytes32 id, address to) external onlyOperator;   // pay fulfiller
- *   function refund(bytes32 id) external onlyOperator;                // back to depositor
- *   function escrows(bytes32 id) external view
- *       returns (address depositor, uint256 amount, uint8 status);
- *
- * Recommended extra (for CROPS / no-admin-freeze): a permissionless
- * claimAfterTimeout() so funds can't be stuck if this backend disappears.
+ * This server holds no key that can move an escrow to an address of its choosing. What it does:
+ *   - reads escrow state, to check what the two parties did from their own wallets;
+ *   - sends the calls anyone may send (claim, refundExpired) with the keeper key, which has no role in the contract;
+ *   - sends `resolve` on a disputed escrow with the arbiter key, when one is configured.
+ * The depositor's own steps (deposit, release, cancel, dispute) and the fulfiller's (accept, markDelivered) are
+ * transactions from their wallets; the routes verify them here afterwards.
  */
-export const ESCROW_ABI = [
-  {
-    type: 'function', name: 'escrows', stateMutability: 'view',
-    inputs: [{ name: 'id', type: 'bytes32' }],
-    outputs: [
-      { name: 'depositor', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'status', type: 'uint8' },
-    ],
-  },
-  {
-    type: 'function', name: 'release', stateMutability: 'nonpayable',
-    inputs: [{ name: 'id', type: 'bytes32' }, { name: 'to', type: 'address' }], outputs: [],
-  },
-  {
-    type: 'function', name: 'refund', stateMutability: 'nonpayable',
-    inputs: [{ name: 'id', type: 'bytes32' }], outputs: [],
-  },
-  {
-    type: 'function', name: 'deposit', stateMutability: 'nonpayable',
-    inputs: [{ name: 'id', type: 'bytes32' }, { name: 'amount', type: 'uint256' }], outputs: [],
-  },
-];
+export const ESCROW_ABI = parseAbi([
+  'struct Escrow { address depositor; uint64 openUntil; uint32 epoch; address fulfiller; uint64 deadline; uint8 status; address token; uint32 reviewWindow; uint32 fulfillWindow; uint128 amount; uint128 fee; }',
+  'function getEscrow(bytes32 id) view returns (Escrow)',
+  'function escrows(bytes32 id) view returns (address depositor, uint256 amount, uint8 status)',
+  'function escrowId(address depositor, bytes32 ref) pure returns (bytes32)',
+  'function quoteFee(uint256 amount) view returns (uint256)',
+  'function arbiter() view returns (address)',
+  'function deposit(bytes32 ref, address token, uint256 amount, uint64 ttl, uint256 maxTotal) returns (bytes32)',
+  'function assign(bytes32 id, address fulfiller)',
+  'function accept(bytes32 id, uint64 validUntil, bytes signature)',
+  'function unassign(bytes32 id)',
+  'function markDelivered(bytes32 id, bytes32 evidence)',
+  'function release(bytes32 id)',
+  'function claim(bytes32 id)',
+  'function cancel(bytes32 id)',
+  'function refundExpired(bytes32 id)',
+  'function dispute(bytes32 id, bytes32 reason)',
+  'function concede(bytes32 id)',
+  'function resolve(bytes32 id, uint256 toFulfiller)',
+  'function refundStaleDispute(bytes32 id)',
+]);
 
-const STATUS = { None: 0, Funded: 1, Released: 2, Refunded: 3 };
+export const STATUS = { None: 0, Funded: 1, Delivered: 2, Disputed: 3, Released: 4, Refunded: 5, Resolved: 6 };
+const STATUS_NAMES = ['none', 'funded', 'delivered', 'disputed', 'released', 'refunded', 'resolved'];
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export const arc = defineChain({
   id: config.ARC_CHAIN_ID,
@@ -51,31 +48,59 @@ export const arc = defineChain({
 
 export const publicClient = createPublicClient({ chain: arc, transport: http(config.ARC_RPC_URL) });
 
-const operator = config.ESCROW_OPERATOR_PRIVATE_KEY
-  ? privateKeyToAccount(config.ESCROW_OPERATOR_PRIVATE_KEY)
-  : null;
-const walletClient = operator
-  ? createWalletClient({ account: operator, chain: arc, transport: http(config.ARC_RPC_URL) })
-  : null;
+const walletFor = (key) => (key ? createWalletClient({ account: privateKeyToAccount(key), chain: arc, transport: http(config.ARC_RPC_URL) }) : null);
+const keeper = walletFor(config.ESCROW_KEEPER_PRIVATE_KEY);
+const arbiter = walletFor(config.ESCROW_ARBITER_PRIVATE_KEY);
 
-const isMock = config.ESCROW_MODE === 'mock';
+export const isMock = config.ESCROW_MODE === 'mock';
 /** Mock mode only: names of operations that should fail ('release', 'refund', 'verifyDeposit'), to test failure paths. */
 export const mockFaults = new Set();
 if (isMock) console.warn('[escrow] ESCROW_MODE=mock: on-chain checks and payouts are SIMULATED.');
 
-/** Deterministic on-chain id for a Firestore request id. The frontend must use the same. */
-export const escrowIdFor = (requestId) => keccak256(stringToHex(requestId));
+/** The `ref` the depositor passes to deposit(): one per order. */
+export const escrowRefFor = (requestId) => keccak256(stringToHex(requestId));
 
-/**
- * Confirm the requester actually locked the expected USDC for this request.
- * We check contract state (not just the tx receipt) so a spoofed or unrelated tx can't pass.
- */
-export async function verifyDeposit({ requestId, depositor, amountBaseUnits, txHash }) {
-  return verifyDepositById({ id: escrowIdFor(requestId), depositor, amountBaseUnits, txHash });
+/** The on-chain escrow id: keccak256(abi.encode(depositor, ref)). Nobody but the depositor can occupy it. */
+export const escrowIdOf = (depositor, ref) =>
+  keccak256(encodeAbiParameters([{ type: 'address' }, { type: 'bytes32' }], [getAddress(depositor), ref]));
+
+/** The chain's clock (unix seconds). Deadlines are compared against block time, not this server's clock. */
+export async function chainNow() {
+  return Number((await publicClient.getBlock({ blockTag: 'latest' })).timestamp);
 }
 
-/** Same check for any escrow id (used for the dispute bond, which lives in the same contract under its own id). */
-export async function verifyDepositById({ id, depositor, amountBaseUnits, txHash }) {
+/** Fee the contract will pull on top of `amountBaseUnits` for a deposit made now. */
+export async function quoteFee(amountBaseUnits) {
+  const amount = BigInt(amountBaseUnits);
+  if (isMock) return (amount * BigInt(config.ESCROW_MOCK_FEE_BPS)) / 10_000n;
+  return publicClient.readContract({ address: config.ESCROW_CONTRACT_ADDRESS, abi: ESCROW_ABI, functionName: 'quoteFee', args: [amount] });
+}
+
+/**
+ * The escrow as the chain has it, or null in mock mode.
+ * `status` is one of none | funded | delivered | disputed | released | refunded | resolved. Times are unix seconds.
+ */
+export async function readEscrow(id) {
+  if (isMock) return null;
+  const e = await publicClient.readContract({ address: config.ESCROW_CONTRACT_ADDRESS, abi: ESCROW_ABI, functionName: 'getEscrow', args: [id] });
+  return {
+    status: STATUS_NAMES[e.status] ?? 'unknown',
+    depositor: e.depositor.toLowerCase(),
+    fulfiller: e.fulfiller === ZERO_ADDRESS ? null : e.fulfiller.toLowerCase(),
+    token: e.token.toLowerCase(),
+    amount: e.amount,
+    fee: e.fee,
+    epoch: Number(e.epoch),
+    openUntil: Number(e.openUntil),
+    deadline: Number(e.deadline),
+  };
+}
+
+/**
+ * Confirm the depositor locked exactly the expected amount of USDC under this escrow id.
+ * We check contract state (not just the receipt) so a spoofed or unrelated transaction cannot pass.
+ */
+export async function verifyDeposit({ id, depositor, amountBaseUnits, txHash }) {
   if (isMock) {
     if (mockFaults.has('verifyDeposit')) throw new HttpError(400, 'escrow_not_funded', 'Escrow is not in Funded state');
     return { ok: true };
@@ -85,72 +110,105 @@ export async function verifyDepositById({ id, depositor, amountBaseUnits, txHash
   if (!receipt || receipt.status !== 'success') {
     throw new HttpError(400, 'tx_not_confirmed', 'Escrow transaction not found or failed');
   }
-  if (getAddress(receipt.to ?? '0x0000000000000000000000000000000000000000') !== getAddress(config.ESCROW_CONTRACT_ADDRESS)) {
+  if (getAddress(receipt.to ?? ZERO_ADDRESS) !== getAddress(config.ESCROW_CONTRACT_ADDRESS)) {
     throw new HttpError(400, 'tx_wrong_contract', 'Transaction was not sent to the escrow contract');
   }
 
-  const [onchainDepositor, amount, status] = await publicClient.readContract({
-    address: config.ESCROW_CONTRACT_ADDRESS,
-    abi: ESCROW_ABI,
-    functionName: 'escrows',
-    args: [id],
-  });
-
-  if (status !== STATUS.Funded) throw new HttpError(400, 'escrow_not_funded', 'Escrow is not in Funded state');
-  if (getAddress(onchainDepositor) !== getAddress(depositor)) {
-    throw new HttpError(400, 'escrow_wrong_depositor', 'Escrow depositor does not match requester');
-  }
-  if (amount < BigInt(amountBaseUnits)) {
-    throw new HttpError(400, 'escrow_underfunded', `Escrow holds ${amount}, expected ${amountBaseUnits}`);
+  const e = await readEscrow(id);
+  if (e.status !== 'funded') throw new HttpError(400, 'escrow_not_funded', 'Escrow is not in Funded state');
+  if (e.depositor !== depositor.toLowerCase()) throw new HttpError(400, 'escrow_wrong_depositor', 'Escrow depositor does not match requester');
+  if (e.token !== config.USDC_ADDRESS.toLowerCase()) throw new HttpError(400, 'escrow_wrong_token', 'Escrow holds a different token than USDC');
+  if (e.amount !== BigInt(amountBaseUnits)) {
+    throw new HttpError(400, 'escrow_wrong_amount', `Escrow holds ${e.amount}, expected ${amountBaseUnits}`);
   }
   return { ok: true };
-}
-
-/** On-chain status for reconciliation: 'none' | 'funded' | 'released' | 'refunded' | 'unknown' (mock). */
-export async function readEscrowStatus(requestId) {
-  return readStatusById(escrowIdFor(requestId));
-}
-
-export async function readStatusById(id) {
-  if (isMock) return 'unknown';
-  const [, , status] = await publicClient.readContract({
-    address: config.ESCROW_CONTRACT_ADDRESS,
-    abi: ESCROW_ABI,
-    functionName: 'escrows',
-    args: [id],
-  });
-  return ['none', 'funded', 'released', 'refunded'][status] ?? 'unknown';
 }
 
 /** Mock mode only: every payout that would have gone on-chain, so tests can assert who was paid. */
 export const mockCalls = [];
 
-async function send(functionName, args) {
-  if (isMock) {
-    if (mockFaults.has(functionName)) throw new Error(`mock ${functionName} failure`);
-    mockCalls.push({ functionName, args });
-    return `0xmock${Date.now().toString(16)}${mockCalls.length}`;
-  }
-  const hash = await walletClient.writeContract({
-    address: config.ESCROW_CONTRACT_ADDRESS,
-    abi: ESCROW_ABI,
-    functionName,
-    args,
-  });
+function mockSend(functionName, args) {
+  if (mockFaults.has(functionName)) throw new Error(`mock ${functionName} failure`);
+  mockCalls.push({ functionName, args });
+  return `0xmock${Date.now().toString(16)}${mockCalls.length}`;
+}
+
+async function send(wallet, functionName, args) {
+  const hash = await wallet.writeContract({ address: config.ESCROW_CONTRACT_ADDRESS, abi: ESCROW_ABI, functionName, args });
   const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
   if (receipt.status !== 'success') throw new Error(`${functionName} reverted (${hash})`);
   return hash;
 }
 
-export const releaseEscrow = (requestId, to) => send('release', [escrowIdFor(requestId), getAddress(to)]);
-export const refundEscrow = (requestId) => send('refund', [escrowIdFor(requestId)]);
+/** The party has to act from their own wallet first; the server cannot do it for them. */
+const walletActionRequired = (fn, id, message) => new HttpError(409, 'wallet_action_required', message, { function: fn, escrowId: id });
 
-// ---------- Dispute bond (same contract, its own escrow id) ----------
+/**
+ * Bring the escrow to its end state, or confirm it is already there.
+ *
+ * kind 'release': the fulfiller is paid.  kind 'refund': the depositor gets everything back.
+ * Returns a transaction hash, or 'settled-on-chain' when a party (or anyone) already did it.
+ * Throws 409 wallet_action_required when only the depositor can make the next move, and 409 chain_mismatch when the
+ * chain already ended the other way.
+ */
+export async function settleOnChain({ requestId, depositor, kind, to }) {
+  const ref = escrowRefFor(requestId);
+  if (isMock) return mockSend(kind, kind === 'release' ? [ref, getAddress(to)] : [ref]);
+
+  const id = escrowIdOf(depositor, ref);
+  const [e, now] = await Promise.all([readEscrow(id), chainNow()]);
+  const done = kind === 'release' ? 'released' : 'refunded';
+  const opposite = kind === 'release' ? 'refunded' : 'released';
+
+  if (e.status === done || e.status === 'resolved') return 'settled-on-chain';
+  if (e.status === opposite) throw new HttpError(409, 'chain_mismatch', `The escrow was already ${opposite} on-chain`);
+  if (e.status === 'none') throw new HttpError(409, 'chain_mismatch', 'There is no deposit on-chain for this order');
+
+  if (e.status === 'disputed') {
+    if (!arbiter) throw new HttpError(503, 'arbiter_not_configured', 'This server has no arbiter key; the arbiter must send resolve() to the escrow');
+    return send(arbiter, 'resolve', [id, kind === 'release' ? e.amount : 0n]);
+  }
+
+  if (kind === 'release') {
+    if (e.status === 'delivered' && now >= e.deadline) return send(keeper, 'claim', [id]);
+    throw walletActionRequired('release', id, 'Send release() from the spender wallet to pay the buyer, then confirm again');
+  }
+
+  // refund
+  if (e.status === 'funded' && now >= e.deadline) return send(keeper, 'refundExpired', [id]);
+  if (e.status === 'funded' && !e.fulfiller) {
+    throw walletActionRequired('cancel', id, 'Send cancel() from the spender wallet to take the deposit back, then cancel again');
+  }
+  throw new HttpError(409, 'refund_not_possible', 'A buyer is bound to this escrow on-chain; it can only be refunded after their deadline, by the buyer, or through a dispute');
+}
+
+// ---------- Dispute stake: mock mode only ----------
+// VoucherEscrowV2 never pays an escrow to a third party, so a stake cannot live in it. The stake flow is kept for the
+// local mock until an on-chain bond exists; config refuses a non-zero stake when ESCROW_MODE=chain.
+
+const mockOnly = () => {
+  if (!isMock) throw new HttpError(501, 'bond_unavailable', 'Dispute stakes are not available with the V2 escrow');
+};
 
 /**
  * The bond id contains a secret nonce the server gives only to the person who will stake, so nobody can
  * front-run (deposit into) another person's bond id and block their dispute.
  */
 export const bondIdFor = (requestId, actor, nonce) => keccak256(stringToHex(`dispute-bond:${requestId}:${actor}:${nonce}`));
-export const releaseById = (id, to) => send('release', [id, getAddress(to)]);
-export const refundById = (id) => send('refund', [id]);
+export async function verifyBondDeposit() {
+  mockOnly();
+  if (mockFaults.has('verifyDeposit')) throw new HttpError(400, 'escrow_not_funded', 'Escrow is not in Funded state');
+  return { ok: true };
+}
+export async function readBondStatus() {
+  mockOnly();
+  return 'unknown';
+}
+export async function releaseBond(id, to) {
+  mockOnly();
+  return mockSend('release', [id, getAddress(to)]);
+}
+export async function refundBond(id) {
+  mockOnly();
+  return mockSend('refund', [id]);
+}
