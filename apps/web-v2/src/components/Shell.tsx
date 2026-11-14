@@ -76,10 +76,10 @@ function Announcement() {
       <span className="truncate">
         {usdt ? (
           <>
-            USDT on P2P right now <span className="tabular font-medium text-fg">{inr(usdt)}</span>. Get more for your USDC with a voucher trade.
+            USDT on P2P right now <span className="tabular font-medium text-fg">{inr(usdt)}</span>. Buy for less with the card you already have.
           </>
         ) : (
-          <>Spend USDC at Amazon, Flipkart, Myntra, Swiggy and more.</>
+          <>Buy USDC with your card, paid straight to your own wallet.</>
         )}
       </span>
       <a href="/#how" className="hidden shrink-0 items-center gap-1 font-medium text-fg hover:underline sm:inline-flex">
@@ -262,7 +262,7 @@ function Footer() {
             </span>
             Escrow live on Arc Testnet
           </div>
-          <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-mute">Spend crypto at the stores you already use. Card holders fill the order and keep every reward point.</p>
+          <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-mute">Buy USDC with the card you already have, paid by escrow straight to your own wallet. Your reward points stay yours.</p>
           <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-sunken px-3 py-1.5 font-mono text-[11px] text-mute">Built at ETHGlobal Mumbai · 2026</div>
         </div>
         {FOOTER_COLUMNS.map((c) => (
@@ -399,7 +399,7 @@ function waitForAddress(read: () => string) {
 
 function WalletModal() {
   const app = useApp();
-  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast, onArc, switchToArc } = app;
+  const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast, onArc, switchToArc, walletLimited, walletRequest } = app;
   const appRef = useRef(app);
   appRef.current = app;
   const { verifyHuman, phase, config } = useWorldId();
@@ -576,7 +576,7 @@ function WalletModal() {
                             await switchToArc();
                             toast({ title: "On Arc Testnet", body: "Escrow deposits use this network.", tone: "mint" });
                           } catch (e) {
-                            toast({ title: "Couldn't switch network", body: (e as Error)?.message?.slice(0, 120) || "Switch to Arc Testnet in your wallet.", tone: "rose" });
+                            toast({ title: "Couldn't switch network", body: (e as Error)?.message?.slice(0, 260) || "Switch to Arc Testnet in your wallet.", tone: "rose" });
                           } finally {
                             setSwitching(false);
                           }
@@ -587,11 +587,31 @@ function WalletModal() {
                         Switch to Arc
                       </button>
                     ) : (
-                      <a href={`https://testnet.arcscan.app/address/${fullAddress}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-mute hover:text-fg">
-                        Explorer <ExternalLink className="size-3" />
-                      </a>
+                      <span className="flex items-center gap-3">
+                        <button
+                          onClick={async () => {
+                            try {
+                              // EIP-747: asks the wallet to list Arc USDC so a payout shows up in the token list.
+                              await walletRequest({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: "0x3600000000000000000000000000000000000000", symbol: "USDC", decimals: 6 } } });
+                            } catch {
+                              toast({ title: "Your wallet didn't add the token", body: "On Arc, USDC is also the gas coin, so most wallets already show it as the main balance.", tone: "amber" });
+                            }
+                          }}
+                          className="text-mute hover:text-fg"
+                        >
+                          Show USDC in wallet
+                        </button>
+                        <a href={`https://testnet.arcscan.app/address/${fullAddress}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-mute hover:text-fg">
+                          Explorer <ExternalLink className="size-3" />
+                        </a>
+                      </span>
                     )}
                   </div>
+                  {walletLimited && (
+                    <p className="mt-3 rounded-xl bg-amber/12 px-3 py-2.5 text-[12.5px] leading-relaxed text-amber-ink">
+                      {walletName} can sign in and verify, but it can't use Arc Testnet. USDC paid to this address on Arc won't show up in {walletName}, and it can't lock USDC. For trading, connect MetaMask, Rabby, Coinbase Wallet or OKX Wallet.
+                    </p>
+                  )}
                 </div>
 
                 <div className={cx("rounded-2xl p-4 ring-1", humanVerified ? "bg-brand-soft ring-brand/30" : "bg-surface ring-line")}>

@@ -2,7 +2,7 @@
  * Disputes: API calls, the 1 USDC stake on Arc testnet, and screenshot helpers.
  * The JWT only ever goes in the Authorization header.
  */
-import { switchToArc } from "./arc";
+import { assertUsdc, switchToArc, usdcAllowance } from "./arc";
 import { API_URL, ApiError, type ApiRequest } from "./api";
 
 /* ------------------------------------------------------------------ types */
@@ -188,8 +188,11 @@ export async function stakeBond(
   if (amount <= 0n) throw new Error("The stake amount from the server is not valid.");
   hooks.onStep("switch");
   await ensureArc(rpc);
-  hooks.onStep("approve");
-  await sendTx(rpc, { from, to: ARC_USDC, data: encodeApprove(bond.escrowContract, amount) });
+  await assertUsdc(rpc, from, amount);
+  if ((await usdcAllowance(rpc, from, bond.escrowContract).catch(() => 0n)) < amount) {
+    hooks.onStep("approve");
+    await sendTx(rpc, { from, to: ARC_USDC, data: encodeApprove(bond.escrowContract, amount) });
+  }
   hooks.onStep("deposit");
   return sendTx(rpc, { from, to: bond.escrowContract, data: encodeDeposit(bond.escrowId, amount) }, hooks.onDepositHash);
 }

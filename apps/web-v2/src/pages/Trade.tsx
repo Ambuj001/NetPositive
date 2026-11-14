@@ -30,6 +30,7 @@ import { sealVoucher } from "../lib/vault";
 import { brand } from "../lib/data";
 import { effectivePrice, inr, quote, routesFor, usdt } from "../lib/engine";
 import { ledgerFromRequest, toOrder } from "../lib/orderbook";
+import { OnchainProof } from "../components/OnchainProof";
 import { useApp } from "../lib/store";
 import { shortAddr } from "../lib/wallet";
 import { useWorldId } from "../lib/world";
@@ -596,8 +597,9 @@ export default function Trade() {
                 <Row k="Rate" v={`₹${order.rate.toFixed(2)}`} />
               </div>
               <div className="mt-3 truncate font-mono text-[10.5px] text-dim">
-                {request ? `escrow ${shortAddr(request.escrowId)} · Arc${request.escrowTxHash ? ` · ${shortAddr(request.escrowTxHash)}` : ""}` : "contract 0xE5c7…41aB · Base Sepolia"}
+                {request ? `escrow ${shortAddr(request.escrowId)} · Arc${request.escrowTxHash ? ` · ${shortAddr(request.escrowTxHash)}` : ""}` : "walkthrough order · nothing is locked"}
               </div>
+              {request && <OnchainProof req={request} className="mt-4" />}
             </Card>
             <Card className="p-5">
               <div className="label mb-3">Contract events</div>

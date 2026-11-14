@@ -35,8 +35,8 @@ function Hero() {
     <section className="relative overflow-hidden pt-20 pb-16 md:pt-32 md:pb-24">
       <PlusField />
       <div className={cx(wrap, "relative flex flex-col items-center text-center")}>
-        <h1 className="sr-only">Spend crypto. Keep rewards.</h1>
-        <LedBoard text="SPEND CRYPTO" maxCell={13} className="w-full max-w-[924px]" />
+        <h1 className="sr-only">Buy crypto. Keep rewards.</h1>
+        <LedBoard text="BUY CRYPTO" maxCell={14} className="w-full max-w-[826px]" />
         <motion.div
           aria-hidden
           initial={{ opacity: 0, scale: 1.25, rotate: 4 }}
@@ -50,24 +50,24 @@ function Hero() {
         </motion.div>
 
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95, duration: 0.6 }} className="mt-10 max-w-[600px] text-[18px] leading-relaxed text-mute md:text-[20px]">
-          Shop at Amazon, Flipkart, Myntra and Swiggy with USDC. A card holder buys your voucher on their rewards card and is paid from escrow.
+          Get USDC in your own wallet by filling a gift-voucher order with the card you already have. No exchange account, no withdrawal queue.
         </motion.p>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.05 }} className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[16px] text-mute md:text-[18px]">
-          <span>USDC escrow on Arc</span>
+          <span>Paid by escrow on Arc</span>
           <Dot />
-          <span className="font-medium text-brand">World ID humans only</span>
+          <span className="font-medium text-brand">Straight to your wallet</span>
           <Dot />
-          <span>Sealed voucher codes</span>
+          <span>World ID humans only</span>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.15, duration: 0.5 }} className="mt-9 flex flex-wrap items-center justify-center gap-3">
           {address ? (
             <Button size="lg" to="/trade">
-              Open the app
+              Buy USDC
             </Button>
           ) : (
             <Button size="lg" onClick={openWallet} data-testid="hero-connect">
-              Connect wallet
+              Buy USDC
             </Button>
           )}
           <Button size="lg" variant="outline" href="#rates">
@@ -158,8 +158,18 @@ function TwoSides() {
   return (
     <section className="bg-sunken py-20 md:py-28">
       <div className={wrap}>
-        <SectionHead eyebrow="Who it's for" title="One trade. Two people. Both ahead." sub="A crypto holder who wants to shop, and a card holder who wants USDC. NetPositive matches them and holds the money until the voucher is delivered." />
+        <SectionHead eyebrow="Who it's for" title="One trade. Two people. Both ahead." sub="A card holder who wants USDC in their own wallet, and a crypto holder who wants to shop. An escrow contract sits between them." />
         <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <SideCard
+            icon="card"
+            title="Want crypto you can actually use?"
+            body="Fill an order by buying the gift voucher on your card. The escrow contract releases the USDC to your own wallet, ready for DeFi, with no exchange in between. Every reward point stays with you."
+            facts={[
+              ["Paid to", "Your own wallet"],
+              ["Your rewards", "Stay on your card"],
+            ]}
+            cta={{ label: "Buy USDC", to: "/trade" }}
+          />
           <SideCard
             icon="wallet"
             title="Hold crypto? Spend it."
@@ -169,16 +179,6 @@ function TwoSides() {
               ["You pay", "USDC + 1% fee"],
             ]}
             cta={{ label: "Spend USDC", to: "/trade?mode=sell" }}
-          />
-          <SideCard
-            icon="card"
-            title="Hold a rewards card? Earn USDC."
-            body="Fill an order by buying the voucher through your card's best reward route. Deliver the code, and the USDC is yours. Every point and cashback stays with you."
-            facts={[
-              ["Your rewards", "Stay on your card"],
-              ["Paid in", "USDC on Arc"],
-            ]}
-            cta={{ label: "Fill orders", to: "/trade" }}
           />
         </div>
       </div>
@@ -218,8 +218,8 @@ function SideCard({ icon, title, body, facts, cta }: { icon: PixelName; title: s
 const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detail: string[] }[] = [
   {
     icon: "lock",
-    title: "Post an order and lock USDC",
-    line: "Choose the store, the voucher amount and your rate. The USDC goes into the escrow contract on Arc.",
+    title: "A spender locks USDC in escrow",
+    line: "Someone who wants to shop posts an order: a store, a voucher amount and a rate. Their USDC goes into the escrow contract on Arc, and you can check it there yourself.",
     tags: ["Arc escrow", "1% fee"],
     detail: [
       "Your wallet signs two transactions: approve USDC, then deposit into VoucherEscrow under this order's id.",
@@ -229,8 +229,8 @@ const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detai
   },
   {
     icon: "human",
-    title: "A verified card holder accepts",
-    line: "Only people who passed World ID's Proof of Human can accept, one account per person.",
+    title: "You accept the order",
+    line: "Only people who passed World ID's Proof of Human can accept, one account per person. The order is now yours to fill.",
     tags: ["World ID", "One human, one account"],
     detail: [
       "The order book ranks every open order by what it's worth to each card holder after their card's rewards.",
@@ -239,8 +239,8 @@ const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detai
   },
   {
     icon: "sealed",
-    title: "The voucher code arrives sealed",
-    line: "The card holder buys the voucher on their card and seals the code to your wallet's key. The server never sees it.",
+    title: "Buy the voucher and send the code sealed",
+    line: "Pay for the voucher on your card, then paste the code. It is encrypted in your browser to the spender's key. The server never sees it.",
     tags: ["Client-side encryption", "Voucher vault"],
     detail: [
       "Codes are sealed in the browser with a key derived from your wallet signature. NetPositive only stores ciphertext.",
@@ -249,8 +249,8 @@ const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detai
   },
   {
     icon: "clock",
-    title: "Confirm, and escrow pays out",
-    line: "Check the voucher works and settle. The escrow releases the USDC to the card holder.",
+    title: "Escrow pays your wallet",
+    line: "The spender confirms the voucher works and the contract releases the USDC to the wallet you connected.",
     tags: ["Review window", "Stake-backed disputes"],
     detail: [
       "If something is wrong, raise a dispute with a small USDC stake and screenshots. The escrow freezes until it's decided.",
@@ -263,7 +263,7 @@ function HowItWorks() {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section id="how" className={cx(wrap, "scroll-mt-24 py-20 md:py-28")}>
-      <SectionHead eyebrow="How it works" title="From USDC to a working voucher in four steps" sub="Every step is enforced by the escrow contract, World ID or encryption, not by trusting the other person." />
+      <SectionHead eyebrow="How it works" title="From your card to USDC in your wallet, in four steps" sub="Seen from the buyer's side. Every step is enforced by the escrow contract, World ID or encryption, not by trusting the other person." />
       <div className="mt-12 space-y-3">
         {HOW.map((h, i) => {
           const isOpen = open === i;
@@ -461,7 +461,7 @@ const TRUST: { icon: PixelName; title: string; body: string; href?: string }[] =
   { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the receiver's key. The server stores ciphertext only.", href: "https://github.com/Ambuj001/NetPositive/blob/main/docs/vault.md" },
   { icon: "clock", title: "Review window", body: "Payout waits until the spender confirms the voucher works, or raises a dispute." },
   { icon: "scale", title: "Stake-backed disputes", body: "Raising a dispute costs a small stake. Bad-faith claims lose it and get banned." },
-  { icon: "chart", title: "Live price feed", body: "P2P and order-book prices with outlier rejection, so both sides see the real market." },
+  { icon: "shield", title: "Check the escrow yourself", body: "Before you spend a rupee, the app reads the deposit straight from the contract on Arc, not from our server." },
 ];
 
 function Trust() {
@@ -501,12 +501,16 @@ function Trust() {
 
 const FAQS: { q: string; a: ReactNode }[] = [
   {
+    q: "Do I need an exchange account?",
+    a: "No. The escrow contract pays the USDC to the wallet you connect, and NetPositive never holds it. From there it is yours to move or use in DeFi.",
+  },
+  {
     q: "Is this real money?",
     a: "Not yet. NetPositive runs on Arc Testnet, so the USDC in escrow is testnet USDC. Voucher codes in a real trade are real, so only trade vouchers you'd be happy to buy.",
   },
   {
     q: "Which wallets work?",
-    a: "Any EVM wallet: MetaMask, Coinbase Wallet, Rabby, Rainbow, OKX, Trust, Phantom, Zerion, Brave, a Base Account passkey wallet, or any mobile wallet through WalletConnect. The app adds Arc Testnet to your wallet when it first needs it.",
+    a: "Any EVM wallet can sign in. To trade you need one that can add the Arc network: MetaMask, Rabby, Coinbase Wallet, OKX, Rainbow, Trust, Zerion, Brave, or a mobile wallet through WalletConnect. The app adds Arc for you. Phantom can sign in but can't use Arc, so it can't hold your payout.",
   },
   {
     q: "Why do I need World ID?",
@@ -564,8 +568,8 @@ function Band() {
       <PlusField color="#ffffff" idle="rgba(255,255,255,0.2)" fade={false} />
       <div className={cx(wrap, "relative flex flex-col items-center py-20 text-center md:py-28")}>
         <h2 className="sr-only">NetPositive</h2>
-        <LedBoard text={["NET POSITIVE", "SPEND USDC", "EARN USDC", "KEEP REWARDS"]} color="#ffffff" hot="#00e07f" maxCell={12} interval={3000} className="w-full max-w-[860px]" />
-        <p className="mt-9 max-w-[520px] text-[18px] leading-relaxed text-white/75">Post your first order, or fill one with the card already in your pocket.</p>
+        <LedBoard text={["NET POSITIVE", "BUY USDC", "YOUR WALLET", "KEEP REWARDS"]} color="#ffffff" hot="#00e07f" maxCell={12} interval={3000} className="w-full max-w-[860px]" />
+        <p className="mt-9 max-w-[520px] text-[18px] leading-relaxed text-white/75">Fill your first order with the card already in your pocket. The USDC lands in your own wallet.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           {address ? (
             <Button size="lg" variant="white" to="/trade" icon={<ArrowRight className="size-4" />}>

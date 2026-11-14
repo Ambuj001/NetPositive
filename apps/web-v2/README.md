@@ -84,6 +84,13 @@ React 19, TypeScript, Vite, Tailwind CSS v4, Motion, React Router, Lucide icons.
 
 **World ID.** Browsing needs only a wallet. Proof of Human is asked once, right after connecting and again whenever someone posts or accepts an order without it. The app takes app id, action, environment and the dev-bypass flag from `GET /world-id/config`, so a frontend/backend `.env` mismatch can't break it. If the server has no RP keys, the app says exactly what to add.
 
-**Tested end to end** (Playwright, injected wallets with real secp256k1 signatures): connect with an EIP-6963 catalog wallet, an unknown EIP-6963 wallet and a legacy `window.ethereum` wallet; World ID; reload keeps the session; switch/add Arc; and a full two-wallet trade (post + lock → accept → Ready with vault key + EIP-712 permit → sealed code → reveal → settle).
+**On-chain features.**
+
+- *Check the escrow yourself* (`src/lib/onchain.ts`, `components/OnchainProof.tsx`): the trade room and the order page read the order's deposit straight from the VoucherEscrow contract through a public Arc node and compare it with what the server says. A missing deposit, a wrong amount or a different depositor shows "Don't proceed". Set `VITE_ARC_RPC_URL` to use another node.
+- *Sign-In with Ethereum* (EIP-4361) for the sign-in signature.
+- *Safer wallet steps* (`src/lib/arc.ts`): before any prompt the app checks the USDC balance on Arc (and points to the faucet), reuses an approval left from an earlier attempt, and switches to Arc before signing the Ready permit (wallets refuse typed data for another chain). Wallets that can't add networks (Phantom) are labelled in the picker and get a plain explanation.
+- *Show USDC in wallet* (EIP-747 `wallet_watchAsset`) in the account sheet.
+
+**Tested end to end** (Playwright, injected wallets with real secp256k1 signatures): connect with an EIP-6963 catalog wallet, an unknown EIP-6963 wallet and a legacy `window.ethereum` wallet; World ID; reload keeps the session; switch/add Arc; and a full two-wallet trade (post + lock → accept → Ready with vault key + EIP-712 permit → sealed code → reveal → settle). `e2e/errors.mjs` covers what people see when things fail: a stale session, a server error before the World App step, unusable server settings, and a wallet that can't add Arc.
 
 Reward maths lives in `src/lib/engine.ts` and reproduces the Product Walkthrough V3 example (₹10,000 Lifestyle voucher at ₹90/USDT: seller locks 112.22 USDT, buyer receives 111.11 USDT + 1,650 Infinia points via SmartBuy 5X). Card rates are illustrative and must be refreshed from issuer terms before real recommendations.

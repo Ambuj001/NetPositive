@@ -6,6 +6,7 @@ import { ApiError, api, type ApiRequest } from "../lib/api";
 import { inr, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
 import { readSealedVoucher, registerVault, unlockVault } from "../lib/vault";
+import { switchToArc } from "../lib/arc";
 
 /**
  * The spender's three actions on the tracker, shown inside the lifecycle step they belong to:
@@ -39,7 +40,7 @@ function messageOf(e: unknown, fallback: string) {
 export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, walletRequest, expired }: Common & { viewer: string; walletRequest: WalletRequest; expired: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const { signMessage } = useApp();
+  const { signMessage, walletName } = useApp();
 
   async function go() {
     setErr("");
@@ -50,6 +51,9 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
       // "Ready" means "I can receive the code": publish this wallet's vault key first if it isn't published yet.
       await registerVault(viewer, t, signMessage);
       const { validUntil, typedData } = await api.readyPermit(req.id, t);
+      // The permit is typed data for a contract on Arc. Most wallets refuse to sign typed data for a chain other than
+      // the one they are on ("chainId must match the active chain"), so move to Arc first.
+      await switchToArc(walletRequest, walletName);
       let signature: unknown;
       try {
         signature = await walletRequest({ method: "eth_signTypedData_v4", params: [viewer, JSON.stringify(typedData)] });

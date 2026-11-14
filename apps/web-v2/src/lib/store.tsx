@@ -20,6 +20,8 @@ type Ctx = {
   walletName: string;
   walletIcon: string;
   walletId: string;
+  /** The connected wallet can't add Arc Testnet, so it can sign in but not use the escrow. */
+  walletLimited: boolean;
   choices: WalletChoice[];
   pending: string | null;
   walletError: string;
@@ -178,6 +180,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       walletName: wallet.walletName,
       walletIcon: wallet.walletIcon,
       walletId: wallet.walletId,
+      walletLimited: wallet.walletLimited,
       choices: wallet.choices,
       pending: wallet.pending,
       walletError: wallet.error,

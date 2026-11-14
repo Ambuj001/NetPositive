@@ -29,6 +29,8 @@ export type WorldConfig = {
   ready: boolean;
   /** Server runs WORLD_ID_DEV_BYPASS (local only): no World App step. */
   bypass: boolean;
+  /** Why the server's World ID settings can't work, in plain words. */
+  problem: string | null;
   /** Loaded from the server (false = fallback values). */
   fromServer: boolean;
 };
@@ -36,7 +38,7 @@ export type WorldConfig = {
 let configPromise: Promise<WorldConfig> | null = null;
 /** One fetch per page load. Keeps the app's app_id / action / environment identical to what the server will check. */
 export function loadWorldConfig(): Promise<WorldConfig> {
-  configPromise ??= api<{ app_id?: string; rp_id?: string | null; action?: string; environment?: string; ready?: boolean; bypass?: boolean }>("/world-id/config")
+  configPromise ??= api<{ app_id?: string; rp_id?: string | null; action?: string; environment?: string; ready?: boolean; bypass?: boolean; problem?: string | null }>("/world-id/config")
     .then((c) => ({
       app_id: (c.app_id?.startsWith("app_") ? c.app_id : ENV_DEFAULTS.app_id) as `app_${string}`,
       action: c.action || ENV_DEFAULTS.action,
@@ -44,11 +46,12 @@ export function loadWorldConfig(): Promise<WorldConfig> {
       environment: c.environment === "production" || c.environment === "sandbox" || c.environment === "staging" ? c.environment : ENV_DEFAULTS.environment,
       ready: !!c.ready,
       bypass: !!c.bypass,
+      problem: typeof c.problem === "string" ? c.problem : null,
       fromServer: true,
     }))
     .catch(() => {
       configPromise = null; // try again next time
-      return { ...ENV_DEFAULTS, ready: false, bypass: LOCAL_BYPASS, fromServer: false };
+      return { ...ENV_DEFAULTS, ready: false, bypass: LOCAL_BYPASS, problem: null, fromServer: false };
     });
   return configPromise;
 }
@@ -128,29 +131,70 @@ function isWalletReject(error: unknown) {
   return e?.code === 4001 || /reject|denied|cancel/i.test(e?.message ?? "");
 }
 
-function toNotice(error: unknown, connected?: string): WorldNotice {
+/** Where in the flow something failed. The same server error means different things before and after the World App step. */
+type Stage = "signin" | "request" | "proof";
+
+const STAGE_TITLE: Record<Stage, string> = {
+  signin: "Couldn't sign in",
+  request: "Couldn't start World ID",
+  proof: "Couldn't finish verification",
+};
+
+function toNotice(error: unknown, connected?: string, stage: Stage = "proof"): WorldNotice {
   if (!(error instanceof ApiError)) {
-    return { outcome: "rejected", title: "Couldn't verify", detail: "World ID didn't finish. You can try again, or keep browsing." };
+    const text = error instanceof Error && error.message ? ` (${error.message.slice(0, 140)})` : "";
+    return { outcome: "rejected", title: STAGE_TITLE[stage], detail: `Something failed in this browser before the server was asked${text}. You can try again, or keep browsing.` };
   }
-  if (error.code === "user_rejected") {
+  const d = (error.details ?? {}) as { ref?: string; code?: string | null };
+  switch (error.code) {
+    case "user_rejected":
+      return { outcome: "cancelled", title: "Sign-in cancelled", detail: "You declined the wallet signature. Nothing was checked. You can keep browsing. Posting and accepting stay locked." };
+    case "wallet_sign_failed":
+      return { outcome: "rejected", title: "Your wallet couldn't sign in", detail: error.message };
+    case "world_id_already_used":
+      return alreadyLinked(error, connected);
+    case "wallet_already_verified":
+      return { outcome: "ineligible", title: "Wallet already linked", detail: "This wallet is linked to a different World ID. One human, one account." };
+    case "not_configured":
+      return { outcome: "unavailable", title: "World ID isn't set up on the server", detail: error.message };
+    case "unreachable":
+      return { outcome: "unavailable", title: "Can't reach the NetPositive server", detail: error.message };
+    case "world_id_unreachable":
+      return { outcome: "unavailable", title: "World's verifier didn't answer", detail: `${error.message} Your proof wasn't rejected; nothing was linked. Try again.` };
+    case "world_id_rejected":
+      return {
+        outcome: "rejected",
+        title: "World didn't accept this proof",
+        detail: `${error.message}${d.code ? ` (${d.code})` : ""}. In test mode, use the World ID Simulator and pick an Orb-verified identity.`,
+      };
+    case "world_id_credential":
+      return { outcome: "unavailable", title: "Proof of Human needed", detail: "That identity isn't Orb-verified. In the simulator, choose an Orb-verified identity; in World App, verify at an Orb first." };
+    case "world_id_signal":
+      return { outcome: "rejected", title: "Proof was made for another wallet", detail: "The wallet changed while World ID was open. Keep the same wallet connected and try again." };
+    case "world_id_environment":
+    case "world_id_action":
+    case "world_id_rp":
+    case "world_id_action_mismatch":
+      return { outcome: "unavailable", title: "App and server settings don't match", detail: `${error.message}. Reload the page so the app picks up the server's World ID settings, then try again.` };
+    case "world_id_store_failed":
+      return { outcome: "rejected", title: "Couldn't save the verification", detail: error.message };
+    case "validation_error":
+      return { outcome: "rejected", title: "Unexpected proof format", detail: `The server couldn't read the result from World${Array.isArray(error.details) && error.details[0]?.path ? ` (${error.details[0].path})` : ""}. Update the app and server to the same version.` };
+    case "banned":
+      return { outcome: "ineligible", title: "This account is banned", detail: "It can browse, but it can't post or accept orders." };
+  }
+  if (error.status === 401) return { outcome: "cancelled", title: "Sign-in expired", detail: "Your session ended. Press Verify again and sign the message in your wallet." };
+  if (error.status === 404) return { outcome: "unavailable", title: "World ID isn't set up on the server", detail: "This server version has no World ID route. Update the backend." };
+  if (error.status >= 500)
     return {
-      outcome: "cancelled",
-      title: "Sign-in cancelled",
-      detail: "You declined the wallet signature. Nothing was checked. You can keep browsing. Posting and accepting stay locked.",
+      outcome: "unavailable",
+      title: STAGE_TITLE[stage],
+      detail:
+        stage === "proof"
+          ? `The server failed after World answered${d.ref ? ` (ref ${d.ref})` : ""}. Your proof wasn't judged; nothing was linked. Try again, and if it repeats, the server log has the cause${d.ref ? ` under that ref` : ""}.`
+          : `The server failed before the World App step${d.ref ? ` (ref ${d.ref})` : ""}. This isn't about your proof. Check the server log${d.ref ? " for that ref" : ""}.`,
     };
-  }
-  if (error.code === "world_id_already_used") return alreadyLinked(error, connected);
-  if (error.code === "wallet_already_verified") {
-    return {
-      outcome: "ineligible",
-      title: "Wallet already linked",
-      detail: "This wallet is linked to a different World ID. One human, one account.",
-    };
-  }
-  if (error.code === "not_configured" || error.code === "unreachable" || error.status === 404) {
-    return { outcome: "unavailable", title: "World ID isn't ready", detail: error.message };
-  }
-  return { outcome: "rejected", title: "Proof rejected", detail: error.message };
+  return { outcome: "rejected", title: STAGE_TITLE[stage], detail: `${error.message} (${error.code})` };
 }
 
 function mapIdKit(code: IDKitErrorCodes, prior: WorldNotice | null): WorldNotice {
@@ -225,9 +269,9 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
 
   const preset = useMemo(() => proofOfHuman({ signal: app.fullAddress || undefined }), [app.fullAddress]);
 
-  const ensureSession = useCallback(async () => {
+  const ensureSession = useCallback(async (fresh = false) => {
     const { fullAddress, token, signMessage, applySession } = appRef.current;
-    if (token) return { token, already: appRef.current.humanVerified };
+    if (token && !fresh) return { token, already: appRef.current.humanVerified };
     const { message } = await api<{ message: string }>("/auth/nonce", { body: { address: fullAddress } });
     let signature: string;
     try {
@@ -250,6 +294,7 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
       throw new ApiError(0, "not_configured", "Set WORLD_ID_APP_ID to the app id from the World Developer Portal.");
     }
     if (cfg.fromServer && !cfg.ready) {
+      if (cfg.problem) throw new ApiError(503, "not_configured", cfg.problem);
       throw new ApiError(
         503,
         "not_configured",
@@ -292,19 +337,37 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
     noticeRef.current = null;
     setNotice(null);
     setPhase("signing");
+    let stage: Stage = "signin";
     try {
-      const session = await ensureSession();
+      let session = await ensureSession();
       tokenRef.current = session.token;
       if (session.already) return true;
-      const cfg = configRef.current ?? (await loadWorldConfig());
+      stage = "request";
+      // Settings are re-read on every attempt so a server that was just fixed works without a page reload.
+      configPromise = null;
+      const cfg = await loadWorldConfig();
       configRef.current = cfg;
+      setConfig(cfg);
+      // A saved session can be stale (expired, or the server was restarted). Sign in again once instead of failing.
+      const withSession = async <T,>(run: (token: string) => Promise<T>): Promise<T> => {
+        try {
+          return await run(session.token);
+        } catch (e) {
+          if (!(e instanceof ApiError) || e.status !== 401) throw e;
+          stage = "signin";
+          session = await ensureSession(true);
+          tokenRef.current = session.token;
+          stage = "request";
+          return run(session.token);
+        }
+      };
       if (cfg.bypass) {
-        await api("/world-id/verify", { token: session.token, body: {} });
+        await withSession((t) => api("/world-id/verify", { token: t, body: {} }));
         appRef.current.applySession(appRef.current.fullAddress, session.token, true);
         appRef.current.toast({ title: "Registered (dev bypass)", body: "World ID was skipped for local testing. This wallet counts as a verified human.", tone: "amber" });
         return true;
       }
-      const rp = await fetchSignature(session.token, cfg);
+      const rp = await withSession((t) => fetchSignature(t, cfg));
       requestRef.current = rp;
       setRequest(rp);
       setPhase("world");
@@ -314,7 +377,7 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
         pendingRef.current = resolve;
       });
     } catch (error) {
-      const next = toNotice(error);
+      const next = toNotice(error, appRef.current.fullAddress, stage);
       noticeRef.current = next;
       setNotice(next);
       return false;

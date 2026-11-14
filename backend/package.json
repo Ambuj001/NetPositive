@@ -25,7 +25,9 @@
     "world:bypass:test": "node --import ./test-support/register.mjs scripts/world-bypass.test.js",
     "test:rates": "node --import ./test-support/register.mjs scripts/rates-test.js",
     "rates:live": "node scripts/rates-live.js",
-    "dev:mem": "node --import ./test-support/register.mjs scripts/dev-mem.js"
+    "dev:mem": "node --import ./test-support/register.mjs scripts/dev-mem.js",
+    "world:test": "node --import ./test-support/register.mjs scripts/world-id.test.js",
+    "world:doctor": "node scripts/world-doctor.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^1.3.0",

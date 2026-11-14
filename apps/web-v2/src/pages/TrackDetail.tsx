@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, Check, Clock, Copy, LoaderCircle, Minus, Refre
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BuyOnPortal } from "../components/BuyOnPortal";
+import { OnchainProof } from "../components/OnchainProof";
 import { PickRoute } from "../components/PickRoute";
 import { Aurora, BrandMark, Button, Pill, Row, cx } from "../components/ui";
 import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest, type ReqStatus } from "../lib/api";
@@ -554,6 +555,8 @@ function Technical({ req }: { req: ApiRequest }) {
     ["Refund", req.refundTxHash],
   ].filter((t): t is [string, string] => !!t[1] && !t[1].startsWith("reconciled"));
   return (
+    <>
+    <OnchainProof req={req} />
     <details className="hairline group rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
       <summary className="label cursor-pointer list-none select-none">Technical details</summary>
       <div className="mt-3 space-y-2 text-[12px]">
@@ -573,6 +576,7 @@ function Technical({ req }: { req: ApiRequest }) {
         {req.lastError && <Kv k="Last error" v={req.lastError} />}
       </div>
     </details>
+    </>
   );
 }
 

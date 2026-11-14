@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { col, db, FieldValue, serialize } from '../services/firestore.js';
-import { devBypassNullifier, signWorldIdRequest, verifyWorldIdProof, worldIdReady } from '../services/worldid.js';
+import { devBypassNullifier, signWorldIdRequest, verifyWorldIdProof, worldIdProblem, worldIdReady } from '../services/worldid.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { badRequest, conflict, HttpError } from '../lib/errors.js';
@@ -38,6 +38,8 @@ router.get('/config', (_req, res) => {
     action: config.WORLD_ID_ACTION,
     environment: config.WORLD_ID_ENV,
     ready: worldIdReady(),
+    // Why World ID can't run with the current settings (never contains a secret), or null.
+    problem: worldIdProblem(),
     // Local development only (refused in production by config.js). The app then skips the World App step.
     bypass: config.WORLD_ID_DEV_BYPASS,
     // Proofs are checked for shape and wallet binding but not sent to World (tests / offline demos).
@@ -77,7 +79,23 @@ router.post('/verify', requireAuth, validate(config.WORLD_ID_DEV_BYPASS ? z.any(
   const nullRef = col.nullifiers.doc(nullifierHash);
   const userRef = col.users.doc(wallet);
 
-  await db.runTransaction(async (tx) => {
+  await bind();
+
+  const user = (await userRef.get()).data();
+  res.json({ verified: true, user: serialize(user) });
+
+  // Binding is the only step left that can fail for a reason the person can't fix. Name it instead of a bare 500.
+  async function bind() {
+    try {
+      await runBind();
+    } catch (err) {
+      if (err instanceof HttpError) throw err;
+      console.error('[world-id] could not store the verification:', err);
+      throw new HttpError(500, 'world_id_store_failed', 'Your proof was accepted, but saving it failed. Nothing was linked; try again.');
+    }
+  }
+  async function runBind() {
+   await db.runTransaction(async (tx) => {
     const [nullSnap, userSnap] = await Promise.all([tx.get(nullRef), tx.get(userRef)]);
 
     // Addresses are compared case-insensitively. Only the person who just proved they ARE this human is told
@@ -96,10 +114,8 @@ router.post('/verify', requireAuth, validate(config.WORLD_ID_DEV_BYPASS ? z.any(
 
     tx.create(nullRef, { address: wallet, action: config.WORLD_ID_ACTION, verificationLevel, createdAt: FieldValue.serverTimestamp() });
     tx.update(userRef, { worldIdNullifier: nullifierHash, verificationLevel, worldIdVerifiedAt: FieldValue.serverTimestamp() });
-  });
-
-  const user = (await userRef.get()).data();
-  res.json({ verified: true, user: serialize(user) });
+   });
+  }
 });
 
 export default router;

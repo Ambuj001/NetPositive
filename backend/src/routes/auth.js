@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { verifyMessage } from 'viem';
+import { verifyMessage, getAddress } from 'viem';
+import { config } from '../config.js';
 import { col, db, FieldValue, Timestamp, serialize } from '../services/firestore.js';
 import { publicClient } from '../services/escrow.js';
 import { validate, address, hex } from '../middleware/validate.js';
@@ -17,15 +18,22 @@ const NONCE_TTL_MS = 5 * 60_000;
  */
 router.post('/nonce', validate(z.object({ address })), async (req, res) => {
   const nonce = randomBytes(16).toString('hex');
-  const issuedAt = new Date().toISOString();
+  const now = new Date();
+  const site = signInOrigin(req.get('origin'));
+  // Sign-In with Ethereum (EIP-4361). Wallets recognise this format, show it as a sign-in rather than an opaque blob,
+  // and warn when the domain in the message is not the site asking: that is the phishing protection.
   const message = [
-    'Sign in to NetPositive',
+    `${site.host} wants you to sign in with your Ethereum account:`,
+    getAddress(req.body.address),
     '',
-    `Address: ${req.body.address}`,
+    'Sign in to NetPositive. This does not send a transaction or cost gas.',
+    '',
+    `URI: ${site.origin}`,
+    'Version: 1',
+    `Chain ID: ${config.ARC_CHAIN_ID}`,
     `Nonce: ${nonce}`,
-    `Issued At: ${issuedAt}`,
-    '',
-    'This request will not trigger a transaction or cost any gas.',
+    `Issued At: ${now.toISOString()}`,
+    `Expiration Time: ${new Date(now.getTime() + NONCE_TTL_MS).toISOString()}`,
   ].join('\n');
 
   await col.nonces.doc(req.body.address).set({
@@ -34,6 +42,22 @@ router.post('/nonce', validate(z.object({ address })), async (req, res) => {
   });
   res.json({ message });
 });
+
+/**
+ * The site named in the sign-in message. Only an origin this server already trusts (CORS_ORIGINS) is ever written into
+ * it, so a look-alike site cannot get a message that names itself. With no list configured (local development) the
+ * caller's origin is used.
+ */
+function signInOrigin(origin) {
+  const allowed = config.CORS_ORIGINS;
+  const pick = origin && (allowed.length === 0 || allowed.includes(origin)) ? origin : (allowed[0] ?? 'http://localhost:5173');
+  try {
+    const u = new URL(pick);
+    return { origin: u.origin, host: u.host };
+  } catch {
+    return { origin: 'http://localhost:5173', host: 'localhost:5173' };
+  }
+}
 
 /**
  * Wallet sign-in, step 2: submit the signature.

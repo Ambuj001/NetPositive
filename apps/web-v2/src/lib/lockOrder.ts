@@ -37,7 +37,7 @@ export function amountUsdc(n: number) {
 }
 
 export function useLockOrder() {
-  const { fullAddress, humanVerified, openWallet, token, signIn, postOrder, toast, walletRequest } = useApp();
+  const { fullAddress, humanVerified, openWallet, token, signIn, postOrder, toast, walletRequest, walletName } = useApp();
   const { verifyHuman } = useWorldId();
   const [phase, setPhase] = useState<LockPhase | null>(null);
   const [error, setError] = useState("");
@@ -96,6 +96,7 @@ export function useLockOrder() {
             escrow: created.escrowContract,
             escrowId: created.request.escrowId,
             amountBaseUnits: created.request.amountUsdcBaseUnits,
+            wallet: walletName,
           })
         : mockTxHash();
       deposited = Boolean(created.escrowContract);

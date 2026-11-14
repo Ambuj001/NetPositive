@@ -133,7 +133,7 @@ async function call<T>(path: string, opts: ApiOpts = {}): Promise<T> {
 
 type ApiClient = {
   <T>(path: string, opts?: ApiOpts): Promise<T>;
-  health: () => Promise<{ ok: boolean; escrowMode: string; worldIdMock: boolean }>;
+  health: () => Promise<{ ok: boolean; escrowMode: string; worldIdMock: boolean; chainId?: number; escrowContract?: string | null }>;
   nonce: (address: string) => Promise<{ message: string }>;
   verify: (address: string, signature: string) => Promise<{ token: string; user: ApiUser }>;
   me: (token: string) => Promise<{ user: ApiUser }>;
@@ -202,7 +202,7 @@ export type VoucherPayload = {
 
 /** Callable for World ID routes, with named methods for the order book and sign-in. */
 export const api: ApiClient = Object.assign(call, {
-  health: () => call<{ ok: boolean; escrowMode: string; worldIdMock: boolean }>("/health"),
+  health: () => call<{ ok: boolean; escrowMode: string; worldIdMock: boolean; chainId?: number; escrowContract?: string | null }>("/health"),
   nonce: (address: string) => call<{ message: string }>("/auth/nonce", { body: { address } }),
   verify: (address: string, signature: string) => call<{ token: string; user: ApiUser }>("/auth/verify", { body: { address, signature } }),
   me: (token: string) => call<{ user: ApiUser }>("/auth/me", { token }),

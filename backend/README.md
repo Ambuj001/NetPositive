@@ -89,6 +89,22 @@ requests/{id}/events/{auto}           audit trail
 Deploy rules and indexes with `firebase deploy --only firestore` (see `firestore.rules` and `firestore.indexes.json`).
 
 
+## World ID: checking a setup and reading failures
+
+```sh
+npm run world:doctor   # reads backend/.env, signs a test request, calls World's verifier with a made-up proof; prints no secrets
+npm run world:test     # proof shapes, World's answers and failure paths against a stand-in verifier (no network)
+```
+
+- `GET /world-id/config` returns `ready` and, when the settings can't work, a `problem` in plain words (RP id that isn't `rp_…`, a signing key that can't sign). The web app shows it instead of failing mid-flow.
+- World's verifier is trusted on `success: true`. Its `environment` is compared only when present. Signal hashes are compared as numbers and nullifiers are stored in one spelling, so padding, case or hex/decimal differences between World App versions can't reject a valid proof or let one person register twice.
+- Every unexpected server error answers with a reference (`ref 1a2b3c4d`) that is also in the server log line, so a report from a user can be traced to its cause.
+- With `WORLD_ID_ENV=staging` only the [World ID Simulator](https://simulator.worldcoin.org) can verify. Real World App users need `WORLD_ID_ENV=production`.
+
+## Sign-in
+
+`POST /auth/nonce` returns a Sign-In with Ethereum message (EIP-4361): site, address, chain id, nonce, issue and expiry times. Wallets show it as a sign-in and warn when the site in the message isn't the site asking. Only an origin listed in `CORS_ORIGINS` is ever written into it. Smart-contract wallets verify through ERC-1271/6492.
+
 ## Live rates API (`/rates`)
 
 Live USD/INR and USDT/USDC–INR from foreign exchanges' P2P ads and Indian spot order books, priced for a trade size.

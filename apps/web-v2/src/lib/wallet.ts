@@ -129,6 +129,8 @@ type CatalogEntry = {
   /** What to do when the extension isn't installed. */
   fallback: Fallback;
   install?: string;
+  /** Can't add networks it doesn't ship with, so it can sign in but not use the escrow on Arc. */
+  limited?: boolean;
 };
 
 const CATALOG: CatalogEntry[] = [
@@ -139,7 +141,7 @@ const CATALOG: CatalogEntry[] = [
   { id: "rainbow", name: "Rainbow", rdns: ["me.rainbow"], flag: "isRainbow", fallback: "walletconnect", install: "https://rainbow.me/download" },
   { id: "trust", name: "Trust Wallet", rdns: ["com.trustwallet.app"], flag: "isTrust", fallback: "walletconnect", install: "https://trustwallet.com/download" },
   { id: "okx", name: "OKX Wallet", rdns: ["com.okex.wallet"], flag: "isOkxWallet", fallback: "walletconnect", install: "https://www.okx.com/web3" },
-  { id: "phantom", name: "Phantom", rdns: ["app.phantom"], flag: "isPhantom", fallback: "install", install: "https://phantom.com/download" },
+  { id: "phantom", name: "Phantom", rdns: ["app.phantom"], flag: "isPhantom", fallback: "install", install: "https://phantom.com/download", limited: true },
   { id: "zerion", name: "Zerion", rdns: ["io.zerion.wallet"], flag: "isZerion", fallback: "walletconnect", install: "https://zerion.io/download" },
   { id: "brave", name: "Brave Wallet", rdns: ["com.brave.wallet"], flag: "isBraveWallet", fallback: "install", install: "https://brave.com/wallet/" },
   { id: "walletconnect", name: "WalletConnect", rdns: [], fallback: "walletconnect" },
@@ -160,6 +162,8 @@ export type WalletChoice = {
   /** Installed extension provider, when present. */
   announced?: Announced;
   fallback: Fallback;
+  /** Can sign in, but can't add Arc Testnet. */
+  limited?: boolean;
 };
 
 /* ----------------------------------------------------------- SDK providers */
@@ -313,7 +317,7 @@ export function useWallet() {
       const hit = announced.find((a) => a.info.rdns && c.rdns.includes(a.info.rdns));
       if (hit) {
         used.add(hit.info.uuid);
-        return { id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: "Detected in this browser", announced: hit, fallback: c.fallback, install: c.install };
+        return { id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: c.limited ? "Sign-in only · can't use Arc Testnet" : "Detected in this browser", announced: hit, fallback: c.fallback, install: c.install, limited: c.limited };
       }
       const base = { id: c.id, name: c.name, fallback: c.fallback, install: c.install };
       if (c.fallback === "base-sdk") return { ...base, status: "popup", hint: "Passkey smart wallet · no extension" };
@@ -519,7 +523,7 @@ export function useWallet() {
   const switchChain = useCallback(async () => {
     const p = session?.provider;
     if (!p) throw new Error("Connect a wallet first");
-    await switchToArc(p.request.bind(p));
+    await switchToArc(p.request.bind(p), session?.name);
     const c = await p.request({ method: "eth_chainId" }).catch(() => "");
     setChainId(toHexChain(c));
   }, [session]);
@@ -555,6 +559,8 @@ export function useWallet() {
     walletId: session?.id ?? "",
     walletName: session?.name ?? "",
     walletIcon: session?.icon ?? "",
+    /** This wallet can't add Arc Testnet (see CATALOG.limited). */
+    walletLimited: !!CATALOG.find((c) => c.id === session?.id)?.limited,
     walletBalance,
     pending,
     restoring,

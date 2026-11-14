@@ -1,4 +1,4 @@
-import { switchToArc } from "./arc";
+import { assertUsdc, switchToArc, usdcAllowance } from "./arc";
 import type { Provider } from "./wallet";
 
 /** Arc testnet. Native gas is USDC at 18 decimals; the escrow pulls the 6-decimal ERC-20 at this address. */
@@ -50,13 +50,21 @@ async function send(request: Rpc, tx: { from: string; to: string; data: string }
  */
 export async function lockUsdc(
   request: Rpc,
-  opts: { from: string; escrow: string; escrowId: string; amountBaseUnits: string },
+  opts: { from: string; escrow: string; escrowId: string; amountBaseUnits: string; wallet?: string; onStep?: (s: "switch" | "approve" | "deposit") => void },
 ) {
   if (!/^0x[0-9a-fA-F]{40}$/.test(opts.escrow)) throw new Error("Escrow contract address is missing.");
   const amount = BigInt(opts.amountBaseUnits);
   if (amount <= 0n) throw new Error("Lock amount must be greater than zero.");
-  await switchToArc(request);
-  await send(request, { from: opts.from, to: ARC_USDC, data: encodeApprove(opts.escrow, amount) });
+  opts.onStep?.("switch");
+  await switchToArc(request, opts.wallet);
+  await assertUsdc(request, opts.from, amount);
+  // An approval left over from an earlier attempt is reused, so a retry asks for one signature, not two.
+  const allowed = await usdcAllowance(request, opts.from, opts.escrow).catch(() => 0n);
+  if (allowed < amount) {
+    opts.onStep?.("approve");
+    await send(request, { from: opts.from, to: ARC_USDC, data: encodeApprove(opts.escrow, amount) });
+  }
+  opts.onStep?.("deposit");
   return send(request, { from: opts.from, to: opts.escrow, data: encodeDeposit(opts.escrowId, amount) });
 }
 

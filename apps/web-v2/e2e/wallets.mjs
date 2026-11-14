@@ -42,10 +42,11 @@ export async function newWalletPage(browser, acct, walletKind, viewport = { widt
           case 'eth_signTypedData_v4': return window.__npSignTyped(params[1]);
           case 'wallet_switchEthereumChain': {
             const want = params[0].chainId;
+            if (walletKind === 'phantom' && want === '0x4cef52') { const e = new Error('Unsupported chain'); e.code = 4902; throw e; }
             if (want === '0x4cef52' && !window.__arcAdded) { const e = new Error('Unrecognized chain ID "0x4cef52". Try adding the chain using wallet_addEthereumChain first.'); e.code = 4902; throw e; }
             chainId = want; emit('chainChanged', chainId); return null;
           }
-          case 'wallet_addEthereumChain': window.__arcAdded = true; return null;
+          case 'wallet_addEthereumChain': if (walletKind === 'phantom') { const e = new Error('The method "wallet_addEthereumChain" is not supported.'); e.code = 4200; throw e; } window.__arcAdded = true; return null;
           case 'wallet_revokePermissions': connected = false; localStorage.removeItem('np.test.connected'); return null;
           case 'eth_getBalance': return '0x' + (25n * 10n ** 18n).toString(16);
           case 'eth_call': return '0x' + (25n * 10n ** 6n).toString(16).padStart(64, '0');
@@ -61,7 +62,7 @@ export async function newWalletPage(browser, acct, walletKind, viewport = { widt
       // An older wallet that only injects window.ethereum (no EIP-6963).
       window.ethereum = provider;
     } else {
-      const info = { uuid: 'test-' + walletKind, name: walletKind === 'rabby' ? 'Rabby Wallet' : 'Test Wallet', icon: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%237084ff%22/%3E%3C/svg%3E', rdns: walletKind === 'rabby' ? 'io.rabby' : 'io.example.wallet' };
+      const info = { uuid: 'test-' + walletKind, name: walletKind === 'rabby' ? 'Rabby Wallet' : walletKind === 'phantom' ? 'Phantom' : 'Test Wallet', icon: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%237084ff%22/%3E%3C/svg%3E', rdns: walletKind === 'rabby' ? 'io.rabby' : walletKind === 'phantom' ? 'app.phantom' : 'io.example.wallet' };
       const announce = () => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', { detail: Object.freeze({ info, provider }) }));
       window.addEventListener('eip6963:requestProvider', announce);
       announce();
