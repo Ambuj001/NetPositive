@@ -31,7 +31,12 @@ contract VoucherEscrowV2Test is Test {
     bytes32 constant REF = keccak256("order-1");
 
     event Settled(
-        bytes32 indexed id, VoucherEscrowV2.Status status, uint256 toFulfiller, uint256 toDepositor, uint256 feeKept
+        bytes32 indexed id,
+        VoucherEscrowV2.Status status,
+        uint256 toFulfiller,
+        uint256 toDepositor,
+        uint256 feeKept,
+        uint256 bondToFulfiller
     );
 
     function setUp() public {
@@ -41,7 +46,7 @@ contract VoucherEscrowV2Test is Test {
             owner, arbiter, guardian, treasury, reserve, FEE_BPS, RESERVE_SHARE_BPS, REVIEW, FULFILL
         );
         vm.prank(owner);
-        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, 100_000_000_000);
+        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, 100_000_000_000, 0);
         usdc.mint(depositor, 1_000_000_000_000);
         vm.prank(depositor);
         usdc.approve(address(escrow), type(uint256).max);
@@ -160,7 +165,7 @@ contract VoucherEscrowV2Test is Test {
 
     function test_deposit_enforcesTotalCap() public {
         vm.prank(owner);
-        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, AMOUNT + FEE);
+        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, AMOUNT + FEE, 0);
         bytes32 id = _deposit();
         vm.prank(depositor);
         vm.expectRevert(VoucherEscrowV2.CapExceeded.selector);
@@ -176,7 +181,7 @@ contract VoucherEscrowV2Test is Test {
     function test_deposit_rejectsFeeOnTransferToken() public {
         FeeOnTransferToken tax = new FeeOnTransferToken();
         vm.prank(owner);
-        escrow.setToken(address(tax), true, 1, type(uint128).max, type(uint256).max);
+        escrow.setToken(address(tax), true, 1, type(uint128).max, type(uint256).max, 0);
         tax.mint(depositor, 1e24);
         vm.startPrank(depositor);
         tax.approve(address(escrow), type(uint256).max);
@@ -360,7 +365,7 @@ contract VoucherEscrowV2Test is Test {
     function test_release_paysFulfillerAndKeepsFee() public {
         bytes32 id = _delivered();
         vm.expectEmit(true, false, false, true);
-        emit Settled(id, VoucherEscrowV2.Status.Released, AMOUNT, 0, FEE);
+        emit Settled(id, VoucherEscrowV2.Status.Released, AMOUNT, 0, FEE, 0);
         vm.prank(depositor);
         escrow.release(id);
 
@@ -616,6 +621,127 @@ contract VoucherEscrowV2Test is Test {
         assertEq(usdc.balanceOf(depositor), before + AMOUNT + FEE);
     }
 
+    // ───────────────────────── dispute stake ───────────────────────
+
+    uint128 constant BOND = 1_000_000; // 1 USDC
+
+    function _bondedDispute() internal returns (bytes32 id, uint256 depositorBefore) {
+        vm.prank(owner);
+        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, 100_000_000_000, BOND);
+        depositorBefore = usdc.balanceOf(depositor);
+        id = _disputed();
+    }
+
+    function test_bond_lockedOnDispute() public {
+        (bytes32 id, uint256 before) = _bondedDispute();
+        assertEq(escrow.getEscrow(id).bond, BOND);
+        assertEq(before - usdc.balanceOf(depositor), AMOUNT + FEE + BOND);
+        assertEq(escrow.totalLocked(address(usdc)), AMOUNT + FEE + BOND);
+        _assertSolvent();
+    }
+
+    function test_bond_notTakenWithoutDispute() public {
+        vm.prank(owner);
+        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, 100_000_000_000, BOND);
+        uint256 before = usdc.balanceOf(depositor);
+        bytes32 id = _delivered();
+        assertEq(before - usdc.balanceOf(depositor), AMOUNT + FEE);
+        vm.prank(depositor);
+        escrow.release(id);
+        assertEq(usdc.balanceOf(fulfiller), AMOUNT);
+        assertEq(escrow.totalLocked(address(usdc)), 0);
+        _assertSolvent();
+    }
+
+    function test_bond_disputeRevertsWithoutAllowance() public {
+        vm.prank(owner);
+        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, 100_000_000_000, BOND);
+        bytes32 id = _delivered();
+        vm.startPrank(depositor);
+        usdc.approve(address(escrow), 0);
+        vm.expectRevert();
+        escrow.dispute(id, 0);
+        vm.stopPrank();
+        assertEq(uint8(_status(id)), uint8(VoucherEscrowV2.Status.Delivered));
+        assertEq(escrow.totalLocked(address(usdc)), AMOUNT + FEE);
+    }
+
+    function test_bond_returnedWhenDepositorWins() public {
+        (bytes32 id, uint256 before) = _bondedDispute();
+        vm.prank(arbiter);
+        escrow.resolve(id, 0);
+        assertEq(usdc.balanceOf(depositor), before);
+        assertEq(usdc.balanceOf(fulfiller), 0);
+        _assertSolvent();
+    }
+
+    function test_bond_forfeitedToFulfillerWhenDepositorLoses() public {
+        (bytes32 id, uint256 before) = _bondedDispute();
+        vm.expectEmit(true, false, false, true);
+        emit Settled(id, VoucherEscrowV2.Status.Resolved, AMOUNT + BOND, 0, FEE, BOND);
+        vm.prank(arbiter);
+        escrow.resolve(id, AMOUNT);
+        assertEq(usdc.balanceOf(fulfiller), AMOUNT + BOND);
+        assertEq(before - usdc.balanceOf(depositor), AMOUNT + FEE + BOND);
+        assertEq(escrow.accruedFees(address(usdc)), FEE);
+        _assertSolvent();
+    }
+
+    function test_bond_splitInProportion() public {
+        (bytes32 id,) = _bondedDispute();
+        uint256 toFulfiller = AMOUNT / 2;
+        vm.prank(arbiter);
+        escrow.resolve(id, toFulfiller);
+        assertEq(usdc.balanceOf(fulfiller), toFulfiller + (uint256(BOND) * toFulfiller) / AMOUNT);
+        assertEq(escrow.totalLocked(address(usdc)), 0);
+        _assertSolvent();
+    }
+
+    function test_bond_returnedOnReleaseConcedeAndStaleDispute() public {
+        (bytes32 id, uint256 before) = _bondedDispute();
+        vm.prank(depositor);
+        escrow.release(id); // the depositor withdraws the dispute by paying
+        assertEq(usdc.balanceOf(fulfiller), AMOUNT);
+        assertEq(before - usdc.balanceOf(depositor), AMOUNT + FEE);
+
+        vm.prank(depositor);
+        bytes32 id2 = escrow.deposit(keccak256("order-2"), address(usdc), AMOUNT, TTL, type(uint256).max);
+        vm.prank(depositor);
+        escrow.assign(id2, fulfiller);
+        vm.prank(fulfiller);
+        escrow.markDelivered(id2, 0);
+        vm.prank(depositor);
+        escrow.dispute(id2, 0);
+        uint256 mid = usdc.balanceOf(depositor);
+        vm.prank(fulfiller);
+        escrow.concede(id2);
+        assertEq(usdc.balanceOf(depositor) - mid, AMOUNT + FEE + BOND);
+
+        vm.prank(depositor);
+        bytes32 id3 = escrow.deposit(keccak256("order-3"), address(usdc), AMOUNT, TTL, type(uint256).max);
+        vm.prank(depositor);
+        escrow.assign(id3, fulfiller);
+        vm.prank(fulfiller);
+        escrow.markDelivered(id3, 0);
+        vm.prank(depositor);
+        escrow.dispute(id3, 0);
+        mid = usdc.balanceOf(depositor);
+        vm.warp(block.timestamp + 30 days);
+        escrow.refundStaleDispute(id3);
+        assertEq(usdc.balanceOf(depositor) - mid, AMOUNT + FEE + BOND);
+        _assertSolvent();
+    }
+
+    function test_bond_changeDoesNotTouchLiveEscrows() public {
+        bytes32 id = _delivered(); // deposited with no bond configured
+        vm.prank(owner);
+        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, 100_000_000_000, BOND);
+        uint256 before = usdc.balanceOf(depositor);
+        vm.prank(depositor);
+        escrow.dispute(id, 0);
+        assertEq(usdc.balanceOf(depositor), before);
+    }
+
     // ─────────────────────── snapshots and admin ───────────────────
 
     function test_parameterChangesDoNotTouchLiveEscrows() public {
@@ -623,7 +749,7 @@ contract VoucherEscrowV2Test is Test {
         vm.startPrank(owner);
         escrow.setFee(500, 0);
         escrow.setWindows(7 days, 7 days);
-        escrow.setToken(address(usdc), false, 0, 0, 0);
+        escrow.setToken(address(usdc), false, 0, 0, 0, 0);
         vm.stopPrank();
 
         VoucherEscrowV2.Escrow memory e = escrow.getEscrow(id);
@@ -653,7 +779,7 @@ contract VoucherEscrowV2Test is Test {
         vm.expectRevert(err);
         escrow.setWindows(REVIEW, FULFILL);
         vm.expectRevert(err);
-        escrow.setToken(address(usdc), true, 1, 2, 3);
+        escrow.setToken(address(usdc), true, 1, 2, 3, 0);
         vm.expectRevert(err);
         escrow.sweepExcess(address(usdc), stranger);
         vm.expectRevert(err);
@@ -676,9 +802,9 @@ contract VoucherEscrowV2Test is Test {
         vm.expectRevert(VoucherEscrowV2.ZeroAddress.selector);
         escrow.setArbiter(address(0));
         vm.expectRevert(VoucherEscrowV2.InvalidTokenConfig.selector);
-        escrow.setToken(address(0xdead), true, 1, 2, 3); // not a contract
+        escrow.setToken(address(0xdead), true, 1, 2, 3, 0); // not a contract
         vm.expectRevert(VoucherEscrowV2.InvalidTokenConfig.selector);
-        escrow.setToken(address(usdc), true, 5, 2, 3);
+        escrow.setToken(address(usdc), true, 5, 2, 3, 0);
         vm.expectRevert(VoucherEscrowV2.RenounceDisabled.selector);
         escrow.renounceOwnership();
         vm.stopPrank();

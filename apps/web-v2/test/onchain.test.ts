@@ -9,10 +9,10 @@ const BUYER = "0x" + "44".repeat(20);
 const USDC = "0x3600000000000000000000000000000000000000";
 const word = (v: bigint | number | string) => (typeof v === "string" ? v.replace(/^0x/, "") : BigInt(v).toString(16)).padStart(64, "0");
 
-/** getEscrow return data: depositor, openUntil, epoch, fulfiller, deadline, status, token, reviewWindow, fulfillWindow, amount, fee. */
+/** getEscrow return data: depositor, openUntil, epoch, fulfiller, deadline, status, token, reviewWindow, fulfillWindow, amount, fee, bond. */
 const record = (o: Partial<{ depositor: string; openUntil: number; epoch: number; fulfiller: string; deadline: number; status: number; amount: bigint; fee: bigint }> = {}) =>
   "0x" +
-  [o.depositor ?? SPENDER, o.openUntil ?? 1_800_000_000, o.epoch ?? 0, o.fulfiller ?? "0x" + "00".repeat(20), o.deadline ?? 1_800_000_000, o.status ?? 1, USDC, 3600, 1800, o.amount ?? 5_370_000n, o.fee ?? 53_700n].map(word).join("");
+  [o.depositor ?? SPENDER, o.openUntil ?? 1_800_000_000, o.epoch ?? 0, o.fulfiller ?? "0x" + "00".repeat(20), o.deadline ?? 1_800_000_000, o.status ?? 1, USDC, 3600, 1800, o.amount ?? 5_370_000n, o.fee ?? 53_700n, 1_000_000n].map(word).join("");
 
 test("escrow read: calldata is getEscrow's selector + the escrow id", () => {
   assert.equal(encodeGetEscrow(ID), "0xf023b811" + "ab".repeat(32));
@@ -20,7 +20,7 @@ test("escrow read: calldata is getEscrow's selector + the escrow id", () => {
   assert.throws(() => encodeGetEscrow("0x1234"), /32-byte/);
 });
 
-test("escrow read: decodes the 11 words of getEscrow in order, and rejects short returns", () => {
+test("escrow read: decodes the 12 words of getEscrow in order, and rejects short returns", () => {
   assert.deepEqual(decodeGetEscrow(record({ fulfiller: BUYER, epoch: 2, deadline: 1_800_000_500, status: 2 })), {
     depositor: SPENDER,
     openUntil: 1_800_000_000,
@@ -33,6 +33,7 @@ test("escrow read: decodes the 11 words of getEscrow in order, and rejects short
     fulfillWindow: 1800,
     amount: 5_370_000n,
     fee: 53_700n,
+    bond: 1_000_000n,
   });
   // No buyer bound: the zero address reads as null, not as a wallet.
   assert.equal(decodeGetEscrow(record()).fulfiller, null);

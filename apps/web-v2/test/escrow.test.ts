@@ -115,7 +115,7 @@ test("lock terms: anything beyond rounding stops before the wallet is asked", ()
 /* -------------------------------------------- what each step does on-chain */
 
 const NOW = 1_800_000_000;
-const rec = (o: Partial<EscrowRecord> = {}): EscrowRecord => ({ depositor: SPENDER, openUntil: NOW + 3600, epoch: 0, fulfiller: null, deadline: NOW + 3600, status: 1, token: USDC, reviewWindow: 3600, fulfillWindow: 1800, amount: 5_370_000n, fee: 53_700n, ...o });
+const rec = (o: Partial<EscrowRecord> = {}): EscrowRecord => ({ depositor: SPENDER, openUntil: NOW + 3600, epoch: 0, fulfiller: null, deadline: NOW + 3600, status: 1, token: USDC, reviewWindow: 3600, fulfillWindow: 1800, amount: 5_370_000n, fee: 53_700n, bond: 1_000_000n, ...o });
 const permit = { validUntil: NOW + 600, signature: "0x" + "9a".repeat(65) };
 const why = (p: ReturnType<typeof planStep>) => (p.do === "stop" ? p.why : p.do);
 
@@ -170,7 +170,7 @@ test("dispute: only the spender, only after delivery; skipped when already dispu
 
 /* ------------------------------------------------------- against a wallet */
 
-const getEscrowReturn = (e: EscrowRecord) => "0x" + [e.depositor, e.openUntil, e.epoch, e.fulfiller ?? "0x" + "00".repeat(20), e.deadline, e.status, e.token, e.reviewWindow, e.fulfillWindow, e.amount, e.fee].map(word).join("");
+const getEscrowReturn = (e: EscrowRecord) => "0x" + [e.depositor, e.openUntil, e.epoch, e.fulfiller ?? "0x" + "00".repeat(20), e.deadline, e.status, e.token, e.reviewWindow, e.fulfillWindow, e.amount, e.fee, e.bond].map(word).join("");
 
 function wallet(opts: { chain?: string; escrow?: EscrowRecord; balance?: bigint; allowance?: bigint }) {
   const sent: { to: string; data: string; from: string; value: string }[] = [];

@@ -26,6 +26,8 @@ export type EscrowRecord = {
   amount: bigint;
   /** Locked on top of `amount`. */
   fee: bigint;
+  /** Stake the spender locks on top to open a dispute. Held only while disputed. */
+  bond: bigint;
 };
 export type OnchainEscrow = EscrowRecord & { block: number };
 
@@ -44,7 +46,7 @@ export function encodeGetEscrow(escrowId: string) {
 /** Decode the 11 words of `getEscrow`: depositor, openUntil, epoch, fulfiller, deadline, status, token, reviewWindow, fulfillWindow, amount, fee. */
 export function decodeGetEscrow(hex: string): EscrowRecord {
   const h = typeof hex === "string" ? hex.replace(/^0x/i, "") : "";
-  if (h.length < 64 * 11) throw new Error("The contract returned no escrow data (wrong address, or not this contract)");
+  if (h.length < 64 * 12) throw new Error("The contract returned no escrow data (wrong address, or not this contract)");
   const word = (i: number) => h.slice(i * 64, i * 64 + 64);
   const addr = (i: number) => `0x${word(i).slice(24)}`.toLowerCase();
   const big = (i: number) => BigInt(`0x${word(i)}`);
@@ -62,6 +64,7 @@ export function decodeGetEscrow(hex: string): EscrowRecord {
     fulfillWindow: num(8),
     amount: big(9),
     fee: big(10),
+    bond: big(11),
   };
 }
 

@@ -48,7 +48,7 @@ const schema = z.object({
 
   // Dispute: the person raising it stakes this much USDC (same escrow contract). "0" turns the stake off.
   // Judged right -> stake returned. Judged wrong -> stake goes to the other party and the account is banned.
-  // Local mock only. VoucherEscrowV2 cannot hold a stake, so this must stay "0" when ESCROW_MODE=chain.
+  // Local mock only. On-chain the stake is the escrow contract's own disputeBond, so this must stay "0" when ESCROW_MODE=chain.
   DISPUTE_BOND_USDC: z.string().regex(/^\d+(\.\d{1,6})?$/, 'Decimal string, e.g. "1" or "0.5"').default('0'),
   DISPUTE_MAX_EVIDENCE_PER_PARTY: z.coerce.number().int().min(0).max(10).default(4),
   DISPUTE_MAX_IMAGE_BYTES: z.coerce.number().int().min(10_000).max(700_000).default(500_000),
@@ -154,7 +154,7 @@ if (config.ESCROW_MODE === 'chain') {
     process.exit(1);
   }
   if (Number(config.DISPUTE_BOND_USDC) !== 0) {
-    console.error('DISPUTE_BOND_USDC must be 0 when ESCROW_MODE=chain: the V2 escrow cannot hold a dispute stake.');
+    console.error('DISPUTE_BOND_USDC must be 0 when ESCROW_MODE=chain: the dispute stake is set in the escrow contract (disputeBond).');
     process.exit(1);
   }
   if (config.ESCROW_ARBITER_PRIVATE_KEY && config.ESCROW_ARBITER_PRIVATE_KEY === config.ESCROW_KEEPER_PRIVATE_KEY) {

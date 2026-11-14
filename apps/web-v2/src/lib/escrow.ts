@@ -247,6 +247,13 @@ export async function escrowStep(request: Rpc, step: EscrowStep, a: StepArgs): P
           : step === "cancel"
             ? encodeCancel(a.escrowId)
             : encodeDispute(a.escrowId, a.hash);
+  // Opening a dispute locks the order's dispute stake inside the same transaction, so the escrow needs an allowance for it.
+  // The stake comes back unless the dispute is decided against the spender.
+  if (step === "dispute" && record.bond > 0n) {
+    await assertUsdc(request, a.from, record.bond);
+    const allowed = await usdcAllowance(request, a.from, a.escrow).catch(() => 0n);
+    if (allowed < record.bond) await send(request, { from: a.from, to: ARC_USDC, data: encodeApprove(a.escrow, record.bond) }, "stake approval");
+  }
   return send(request, { from: a.from, to: a.escrow, data }, STEP_NAME[step]);
 }
 

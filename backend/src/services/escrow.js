@@ -14,7 +14,7 @@ import { HttpError } from '../lib/errors.js';
  * transactions from their wallets; the routes verify them here afterwards.
  */
 export const ESCROW_ABI = parseAbi([
-  'struct Escrow { address depositor; uint64 openUntil; uint32 epoch; address fulfiller; uint64 deadline; uint8 status; address token; uint32 reviewWindow; uint32 fulfillWindow; uint128 amount; uint128 fee; }',
+  'struct Escrow { address depositor; uint64 openUntil; uint32 epoch; address fulfiller; uint64 deadline; uint8 status; address token; uint32 reviewWindow; uint32 fulfillWindow; uint128 amount; uint128 fee; uint128 bond; }',
   'function getEscrow(bytes32 id) view returns (Escrow)',
   'function escrows(bytes32 id) view returns (address depositor, uint256 amount, uint8 status)',
   'function escrowId(address depositor, bytes32 ref) pure returns (bytes32)',
@@ -90,6 +90,7 @@ export async function readEscrow(id) {
     token: e.token.toLowerCase(),
     amount: e.amount,
     fee: e.fee,
+    bond: e.bond, // dispute stake the depositor must approve and lock to dispute
     epoch: Number(e.epoch),
     openUntil: Number(e.openUntil),
     deadline: Number(e.deadline),
@@ -183,11 +184,12 @@ export async function settleOnChain({ requestId, depositor, kind, to }) {
 }
 
 // ---------- Dispute stake: mock mode only ----------
-// VoucherEscrowV2 never pays an escrow to a third party, so a stake cannot live in it. The stake flow is kept for the
-// local mock until an on-chain bond exists; config refuses a non-zero stake when ESCROW_MODE=chain.
+// On-chain the stake is part of VoucherEscrowV2 itself: dispute() locks the token's disputeBond from the spender and
+// the contract returns or forfeits it when the dispute ends. This server never touches it. The functions below only
+// simulate that for the local mock; config refuses DISPUTE_BOND_USDC when ESCROW_MODE=chain (the contract sets it).
 
 const mockOnly = () => {
-  if (!isMock) throw new HttpError(501, 'bond_unavailable', 'Dispute stakes are not available with the V2 escrow');
+  if (!isMock) throw new HttpError(501, 'bond_unavailable', 'On-chain, the dispute stake is handled by the escrow contract itself');
 };
 
 /**

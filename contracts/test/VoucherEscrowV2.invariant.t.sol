@@ -156,7 +156,7 @@ contract VoucherEscrowV2InvariantTest is Test {
         usdc = new MockUSDC();
         escrow = new VoucherEscrowV2(owner, arbiter, makeAddr("guardian"), treasury, reserve, 100, 5_000, 1 hours, 2 hours);
         vm.prank(owner);
-        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, type(uint256).max);
+        escrow.setToken(address(usdc), true, 1_000_000, 10_000_000_000, type(uint256).max, 750_000);
         handler = new Handler(escrow, usdc, arbiter);
         targetContract(address(handler));
     }
@@ -172,10 +172,11 @@ contract VoucherEscrowV2InvariantTest is Test {
         uint256 n = handler.idCount();
         for (uint256 i = 0; i < n; i++) {
             VoucherEscrowV2.Escrow memory e = escrow.getEscrow(handler.ids(i));
-            if (
-                e.status == VoucherEscrowV2.Status.Funded || e.status == VoucherEscrowV2.Status.Delivered
-                    || e.status == VoucherEscrowV2.Status.Disputed
-            ) sum += uint256(e.amount) + e.fee;
+            if (e.status == VoucherEscrowV2.Status.Funded || e.status == VoucherEscrowV2.Status.Delivered) {
+                sum += uint256(e.amount) + e.fee;
+            } else if (e.status == VoucherEscrowV2.Status.Disputed) {
+                sum += uint256(e.amount) + e.fee + e.bond; // the stake is held only while disputed
+            }
         }
         assertEq(sum, escrow.totalLocked(address(usdc)));
     }

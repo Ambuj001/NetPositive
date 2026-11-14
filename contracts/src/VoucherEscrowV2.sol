@@ -28,6 +28,9 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 ///   Disputed           resolve by arbiter, release by depositor, concede by fulfiller,
 ///                      or refundStaleDispute after DISPUTE_TIMEOUT (so funds can never be stuck)
 ///
+/// Dispute stake: to dispute, the depositor locks the token's `disputeBond` on top. If the arbiter rules for the
+/// fulfiller the stake goes to the fulfiller (in proportion, on a split); in every other ending it returns to the depositor.
+///
 /// No single key can pay an escrow to an arbitrary address: funds only ever go to the escrow's own
 /// depositor or the fulfiller the depositor named. Fee, windows and limits are copied into each escrow
 /// at deposit, so later parameter changes never touch live escrows.
@@ -58,6 +61,7 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         uint32 fulfillWindow;
         uint128 amount; // paid to the fulfiller on release
         uint128 fee; // locked on top of `amount`
+        uint128 bond; // stake the depositor must add to dispute; held only while Disputed
     }
 
     struct TokenConfig {
@@ -65,6 +69,7 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         uint128 minAmount;
         uint128 maxAmount; // per escrow
         uint256 cap; // total locked across all live escrows, fees included
+        uint128 disputeBond; // stake required to dispute an escrow in this token (0 = none)
     }
 
     uint256 public constant BPS = 10_000;
@@ -135,9 +140,18 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     event Assigned(bytes32 indexed id, address indexed fulfiller, uint64 deliverBy);
     event Unassigned(bytes32 indexed id, address indexed fulfiller);
     event Delivered(bytes32 indexed id, address indexed fulfiller, bytes32 evidence, uint64 reviewEnds);
-    event Disputed(bytes32 indexed id, bytes32 reason, uint64 timeoutAt);
+    event Disputed(bytes32 indexed id, bytes32 reason, uint256 bond, uint64 timeoutAt);
     /// @dev Emitted once per escrow when it ends. `status` is Released, Refunded or Resolved.
-    event Settled(bytes32 indexed id, Status status, uint256 toFulfiller, uint256 toDepositor, uint256 feeKept);
+    /// `toFulfiller` and `toDepositor` are what each received in total; `bondToFulfiller` is the forfeited stake
+    /// included in `toFulfiller`.
+    event Settled(
+        bytes32 indexed id,
+        Status status,
+        uint256 toFulfiller,
+        uint256 toDepositor,
+        uint256 feeKept,
+        uint256 bondToFulfiller
+    );
     event FeesWithdrawn(address indexed token, uint256 toTreasury, uint256 toReserve);
     event ExcessSwept(address indexed token, address indexed to, uint256 amount);
     event ArbiterUpdated(address indexed arbiter);
@@ -145,7 +159,9 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     event FeeRecipientsUpdated(address indexed treasury, address indexed reserve);
     event FeeUpdated(uint16 feeBps, uint16 reserveShareBps);
     event WindowsUpdated(uint32 reviewWindow, uint32 fulfillWindow);
-    event TokenConfigured(address indexed token, bool enabled, uint128 minAmount, uint128 maxAmount, uint256 cap);
+    event TokenConfigured(
+        address indexed token, bool enabled, uint128 minAmount, uint128 maxAmount, uint256 cap, uint128 disputeBond
+    );
 
     constructor(
         address owner_,
@@ -258,6 +274,7 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         e.amount = uint128(amount);
         // forge-lint: disable-next-line(unsafe-typecast)
         e.fee = uint128(fee);
+        e.bond = cfg.disputeBond;
         emit Deposited(id, msg.sender, token, ref, amount, fee, openUntil);
 
         // Fee-on-transfer and other short-paying tokens are rejected: the escrow must receive exactly `total`.
@@ -361,15 +378,25 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         _settle(id, e, Status.Refunded, 0);
     }
 
-    /// @notice The depositor contests a delivery. Only the arbiter, or the two parties, can end it.
-    function dispute(bytes32 id, bytes32 reason) external {
+    /// @notice The depositor contests a delivery and locks the dispute stake (approve it first).
+    /// Only the arbiter, or the two parties, can end a dispute.
+    function dispute(bytes32 id, bytes32 reason) external nonReentrant {
         Escrow storage e = _escrows[id];
         if (msg.sender != e.depositor) revert NotDepositor();
         if (e.status != Status.Delivered) revert WrongStatus();
         uint64 timeoutAt = uint64(block.timestamp) + DISPUTE_TIMEOUT;
+        uint256 bond = e.bond;
+        address token = e.token;
         e.status = Status.Disputed;
         e.deadline = timeoutAt;
-        emit Disputed(id, reason, timeoutAt);
+        emit Disputed(id, reason, bond, timeoutAt);
+
+        if (bond != 0) {
+            totalLocked[token] += bond;
+            uint256 beforeBal = IERC20(token).balanceOf(address(this));
+            IERC20(token).safeTransferFrom(msg.sender, address(this), bond);
+            if (IERC20(token).balanceOf(address(this)) - beforeBal != bond) revert ShortTransfer();
+        }
     }
 
     /// @notice The fulfiller gives the money back after marking delivered.
@@ -397,22 +424,26 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
         _settle(id, e, Status.Refunded, 0);
     }
 
-    /// @dev The only place escrowed funds leave. Pays `toFulfiller` to the fulfiller, keeps the matching
-    /// share of the fee, and returns everything else to the depositor.
+    /// @dev The only place escrowed funds leave. Pays `toFulfiller` of the amount to the fulfiller, keeps the matching
+    /// share of the fee, and returns everything else to the depositor. A dispute stake is held only while Disputed:
+    /// on an arbiter ruling the fulfiller gets the same share of it as of the amount; otherwise it goes back.
     function _settle(bytes32 id, Escrow storage e, Status status, uint256 toFulfiller) private {
         uint256 amount = e.amount;
         uint256 fee = e.fee;
         address token = e.token;
+        uint256 bond = e.status == Status.Disputed ? e.bond : 0;
         uint256 feeKept = (fee * toFulfiller) / amount;
-        uint256 toDepositor = (amount - toFulfiller) + (fee - feeKept);
+        uint256 bondToFulfiller = status == Status.Resolved ? (bond * toFulfiller) / amount : 0;
+        uint256 fulfillerTotal = toFulfiller + bondToFulfiller;
+        uint256 depositorTotal = (amount - toFulfiller) + (fee - feeKept) + (bond - bondToFulfiller);
 
         e.status = status;
-        totalLocked[token] -= amount + fee;
+        totalLocked[token] -= amount + fee + bond;
         if (feeKept != 0) accruedFees[token] += feeKept;
-        emit Settled(id, status, toFulfiller, toDepositor, feeKept);
+        emit Settled(id, status, fulfillerTotal, depositorTotal, feeKept, bondToFulfiller);
 
-        if (toFulfiller != 0) IERC20(token).safeTransfer(e.fulfiller, toFulfiller);
-        if (toDepositor != 0) IERC20(token).safeTransfer(e.depositor, toDepositor);
+        if (fulfillerTotal != 0) IERC20(token).safeTransfer(e.fulfiller, fulfillerTotal);
+        if (depositorTotal != 0) IERC20(token).safeTransfer(e.depositor, depositorTotal);
     }
 
     // ────────────────────────────── fees ─────────────────────────────
@@ -473,16 +504,21 @@ contract VoucherEscrowV2 is Ownable2Step, Pausable, ReentrancyGuard, EIP712 {
     }
 
     /// @notice Allow or disallow a token for new deposits and set its limits.
-    function setToken(address token, bool enabled, uint128 minAmount, uint128 maxAmount, uint256 cap)
-        external
-        onlyOwner
-    {
+    /// `disputeBond` applies to deposits made after the call.
+    function setToken(
+        address token,
+        bool enabled,
+        uint128 minAmount,
+        uint128 maxAmount,
+        uint256 cap,
+        uint128 disputeBond
+    ) external onlyOwner {
         if (token == address(0)) revert ZeroAddress();
         if (enabled && (token.code.length == 0 || maxAmount == 0 || minAmount > maxAmount)) {
             revert InvalidTokenConfig();
         }
-        tokenConfig[token] = TokenConfig(enabled, minAmount, maxAmount, cap);
-        emit TokenConfigured(token, enabled, minAmount, maxAmount, cap);
+        tokenConfig[token] = TokenConfig(enabled, minAmount, maxAmount, cap, disputeBond);
+        emit TokenConfigured(token, enabled, minAmount, maxAmount, cap, disputeBond);
     }
 
     /// @dev Ownership can be handed over (two steps) but never dropped.

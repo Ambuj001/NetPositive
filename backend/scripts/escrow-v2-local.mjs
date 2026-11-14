@@ -66,7 +66,8 @@ const onEscrow = (a, fn, args) => write(a, escrow, ESCROW.abi, fn, args);
 const onUsdc = (a, fn, args) => write(a, usdc, USDC.abi, fn, args);
 const bal = (a) => pub.readContract({ address: usdc, abi: USDC.abi, functionName: 'balanceOf', args: [a.address ?? a] });
 const chainEscrow = (id) => pub.readContract({ address: escrow, abi: ESCROW.abi, functionName: 'getEscrow', args: [id] });
-await onEscrow(owner, 'setToken', [usdc, true, 1_000n, 1_000_000_000n, 100_000_000_000n]);
+const BOND = 500_000n; // dispute stake
+await onEscrow(owner, 'setToken', [usdc, true, 1_000n, 1_000_000_000n, 100_000_000_000n, BOND]);
 await onUsdc(owner, 'mint', [spender.address, 10_000_000_000n]);
 await onUsdc(spender, 'approve', [escrow, 2n ** 255n]);
 const warp = async (seconds) => { await testClient.increaseTime({ seconds }); await testClient.mine({ blocks: 1 }); };
@@ -314,8 +315,11 @@ try {
     r = await api('POST', `/requests/${d.id}/dispute`, { token: tB, body: { category: 'code_is_valid', reason: 'The code is fine, I checked it' } });
     assert.equal(r.status, 403); assert.equal(r.body.error, 'buyer_dispute_unavailable');
     r = await api('POST', `/requests/${d.id}/dispute/bond`, { token: tS });
-    assert.equal(r.body.bond.required, false);
+    assert.equal(r.body.bond.required, false); assert.equal(r.body.bond.onchain, true);
+    assert.equal(r.body.bond.amountBaseUnits, String(BOND), 'the server reports the stake the contract will lock');
+    const beforeStake = await bal(spender);
     await onEscrow(spender, 'dispute', [d.escrowId, keccak256(stringToHex('already used'))]);
+    assert.equal(beforeStake - (await bal(spender)), BOND, 'dispute() locks the stake');
     r = await api('POST', `/requests/${d.id}/dispute`, { token: tS, body: { category: 'already_redeemed', reason: 'The code was already used when I tried it' } });
     assert.equal(r.status, 200, r.text); assert.equal(r.body.request.status, 'disputed');
   });
@@ -326,11 +330,11 @@ try {
     assert.equal(await statusOf(d.id), 'disputed');
     assert.equal(await bal(buyer), before);
   });
-  await check('admin rules for the spender: the arbiter refunds everything, fee included', async () => {
+  await check('admin rules for the spender: the arbiter refunds everything, fee and stake included', async () => {
     const before = await bal(spender);
     const r = await api('POST', `/requests/${d.id}/resolve`, { token: tA, body: { verdict: 'disputer_right' } });
     assert.equal(r.status, 200, r.text); assert.equal(r.body.request.status, 'refunded');
-    assert.equal((await bal(spender)) - before, AMOUNT_BASE + FEE_BASE);
+    assert.equal((await bal(spender)) - before, AMOUNT_BASE + FEE_BASE + BOND);
     assert.equal(Number((await chainEscrow(d.escrowId)).status), 6); // Resolved
   });
   await check('the arbiter key has no power over an escrow that is not disputed', async () => {
@@ -341,7 +345,7 @@ try {
     await onEscrow(spender, 'release', [req.escrowId]);
     await sweep();
   });
-  await check('admin rules for the buyer: the arbiter pays the buyer the full amount (and the spender is banned for a false dispute)', async () => {
+  await check('admin rules for the buyer: the arbiter pays the buyer the amount plus the forfeited stake (and the spender is banned)', async () => {
     const req = await fundedOrder();
     await delivered(req);
     await onEscrow(spender, 'dispute', [req.escrowId, zeroHash]);
@@ -349,7 +353,7 @@ try {
     const before = await bal(buyer);
     const r = await api('POST', `/requests/${req.id}/resolve`, { token: tA, body: { verdict: 'disputer_wrong' } });
     assert.equal(r.status, 200, r.text); assert.equal(r.body.request.status, 'released');
-    assert.equal((await bal(buyer)) - before, AMOUNT_BASE);
+    assert.equal((await bal(buyer)) - before, AMOUNT_BASE + BOND);
   });
 
   console.log('\n== 6. Books balance ==');

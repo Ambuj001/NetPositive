@@ -48,11 +48,13 @@ contract DeployEscrowV2 is Script {
         uint128 minAmount = uint128(vm.envOr("USDC_MIN", uint256(1_000_000)));
         uint128 maxAmount = uint128(vm.envOr("USDC_MAX", uint256(250_000_000)));
         uint256 cap = vm.envOr("USDC_CAP", uint256(5_000_000_000));
+        // Stake the spender adds to open a dispute: 1 USDC. Lost to the buyer if the arbiter rules against the spender.
+        uint128 disputeBond = uint128(vm.envOr("USDC_DISPUTE_BOND", uint256(1_000_000)));
 
         console2.log("VoucherEscrowV2:", address(escrow));
         console2.log("chain id:", block.chainid);
         console2.log("owner:", owner);
         console2.log("Next: the owner must send this call to the escrow to enable USDC:");
-        console2.logBytes(abi.encodeCall(VoucherEscrowV2.setToken, (ARC_USDC, true, minAmount, maxAmount, cap)));
+        console2.logBytes(abi.encodeCall(VoucherEscrowV2.setToken, (ARC_USDC, true, minAmount, maxAmount, cap, disputeBond)));
     }
 }

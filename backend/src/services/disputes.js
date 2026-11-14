@@ -11,7 +11,8 @@ import { HttpError, notFound, forbidden, conflict, badRequest } from '../lib/err
  *
  *   On-chain (VoucherEscrowV2) only the spender can dispute: they send dispute() from their wallet after delivery, which
  *   freezes the escrow until the arbiter rules, and then raise it here with the reason. The buyer does not need one: they
- *   are paid when the review window ends unless the spender disputes. There is no stake on-chain.
+ *   are paid when the review window ends unless the spender disputes. The stake is the contract's disputeBond: dispute()
+ *   locks it from the spender, and the contract pays it to the buyer if the arbiter rules against the spender.
  *
  *   Local mock only: either party can raise one while the request is `code_submitted`, and the person raising it can be
  *   asked to stake DISPUTE_BOND_USDC (kept so the stake flow stays tested until an on-chain bond exists).
@@ -79,6 +80,11 @@ const otherParty = (data, actor) => (actor === spenderOf(data) ? buyerOf(data) :
 export async function getBondTerms(id, actor) {
   const current = await getRequest(id);
   assertCanDispute(current, actor);
+  if (!isMock) {
+    // The contract takes the stake inside dispute(); the wallet only has to approve it first.
+    const onchain = await readEscrow(current.escrowId);
+    return { required: false, onchain: true, token: 'USDC', amountBaseUnits: onchain.bond.toString(), escrowContract: config.ESCROW_CONTRACT_ADDRESS, how: 'USDC.approve(escrowContract, amountBaseUnits), then escrow.dispute(escrowId, reason). The contract locks the stake itself.' };
+  }
   const base = { required: bondEnabled(), amountUsdc: config.DISPUTE_BOND_USDC, token: 'USDC' };
   if (!bondEnabled()) return base;
 
