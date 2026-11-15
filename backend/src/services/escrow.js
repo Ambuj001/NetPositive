@@ -20,6 +20,12 @@ export const ESCROW_ABI = parseAbi([
   'function escrowId(address depositor, bytes32 ref) pure returns (bytes32)',
   'function quoteFee(uint256 amount) view returns (uint256)',
   'function arbiter() view returns (address)',
+  'function feeBps() view returns (uint16)',
+  'function reviewWindow() view returns (uint32)',
+  'function fulfillWindow() view returns (uint32)',
+  'function paused() view returns (bool)',
+  'function totalLocked(address token) view returns (uint256)',
+  'function tokenConfig(address token) view returns (bool enabled, uint128 minAmount, uint128 maxAmount, uint256 cap, uint128 disputeBond)',
   'function deposit(bytes32 ref, address token, uint256 amount, uint64 ttl, uint256 maxTotal) returns (bytes32)',
   'function assign(bytes32 id, address fulfiller)',
   'function accept(bytes32 id, uint64 validUntil, bytes signature)',
@@ -74,6 +80,40 @@ export async function quoteFee(amountBaseUnits) {
   const amount = BigInt(amountBaseUnits);
   if (isMock) return (amount * BigInt(config.ESCROW_MOCK_FEE_BPS)) / 10_000n;
   return publicClient.readContract({ address: config.ESCROW_CONTRACT_ADDRESS, abi: ESCROW_ABI, functionName: 'quoteFee', args: [amount] });
+}
+
+let termsCache = null;
+
+/**
+ * What the contract charges and allows for a deposit made now. Read from the chain (cached for 30 seconds), so the
+ * app never shows a fee or limit the contract would not honour. In mock mode the numbers are stand-ins.
+ */
+export async function escrowTerms() {
+  const base = { version: 2, mode: config.ESCROW_MODE, chainId: config.ARC_CHAIN_ID, token: config.USDC_ADDRESS, orderTtlSeconds: config.ESCROW_ORDER_TTL_SECONDS };
+  if (isMock) {
+    return { ...base, contract: null, feeBps: config.ESCROW_MOCK_FEE_BPS, disputeBondBaseUnits: '0', minBaseUnits: '1', maxBaseUnits: '1000000000000', capBaseUnits: '1000000000000', lockedBaseUnits: '0', reviewWindowSeconds: config.REVIEW_WINDOW_MINUTES * 60, fulfillWindowSeconds: config.FULFIL_WINDOW_MINUTES * 60, paused: false };
+  }
+  if (termsCache && termsCache.at > Date.now() - 30_000) return termsCache.value;
+  const read = (functionName, args = []) => publicClient.readContract({ address: config.ESCROW_CONTRACT_ADDRESS, abi: ESCROW_ABI, functionName, args });
+  const [feeBps, reviewWindow, fulfillWindow, paused, locked, token] = await Promise.all([
+    read('feeBps'), read('reviewWindow'), read('fulfillWindow'), read('paused'), read('totalLocked', [config.USDC_ADDRESS]), read('tokenConfig', [config.USDC_ADDRESS]),
+  ]);
+  const [enabled, minAmount, maxAmount, cap, disputeBond] = token;
+  const value = {
+    ...base,
+    contract: config.ESCROW_CONTRACT_ADDRESS,
+    feeBps: Number(feeBps),
+    disputeBondBaseUnits: disputeBond.toString(),
+    minBaseUnits: minAmount.toString(),
+    maxBaseUnits: maxAmount.toString(),
+    capBaseUnits: cap.toString(),
+    lockedBaseUnits: locked.toString(),
+    reviewWindowSeconds: Number(reviewWindow),
+    fulfillWindowSeconds: Number(fulfillWindow),
+    paused: Boolean(paused) || !enabled, // a disabled token takes no deposits either
+  };
+  termsCache = { at: Date.now(), value };
+  return value;
 }
 
 /**

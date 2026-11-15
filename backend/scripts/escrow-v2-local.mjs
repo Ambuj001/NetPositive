@@ -194,6 +194,16 @@ try {
     assert.equal(r.status, 200, r.text); assert.equal(r.body.request.status, 'open');
   });
 
+  await check('GET /escrow/terms reports the contract\'s fee, limits, stake and windows', async () => {
+    const r = await api('GET', '/escrow/terms');
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual({ ...r.body, lockedBaseUnits: 'x' }, { version: 2, mode: 'chain', chainId: CHAIN_ID, token: usdc, orderTtlSeconds: TTL, contract: escrow, feeBps: FEE_BPS, disputeBondBaseUnits: String(BOND), minBaseUnits: '1000', maxBaseUnits: '1000000000', capBaseUnits: '100000000000', lockedBaseUnits: 'x', reviewWindowSeconds: REVIEW, fulfillWindowSeconds: FULFILL, paused: false });
+    assert.ok(BigInt(r.body.lockedBaseUnits) > 0n, 'the live deposits are counted');
+    const h = await fetch(BASE + '/health');
+    assert.equal(h.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(h.headers.get('x-frame-options'), 'DENY');
+  });
+
   console.log('\n== 2. Happy path: the parties move the money, the server only records it ==');
   await check('submit-code is refused until the buyer is bound on-chain', async () => {
     assert.equal((await api('POST', `/requests/${a.id}/accept`, { token: tB })).status, 200);

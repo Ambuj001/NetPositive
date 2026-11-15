@@ -47,6 +47,7 @@ jobs:
       - run: npm run world:bypass:test
       - run: npm run cards:test
       - run: npm run test:rates
+      - run: npm run hardening:test
 
   contracts:
     name: Contracts and backend on a local chain
@@ -69,3 +70,16 @@ jobs:
         run: |
           npm ci
           npm run chain:v2:local
+
+  chatbot:
+    name: Chatbot
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chatbot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v

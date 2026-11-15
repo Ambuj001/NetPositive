@@ -13,10 +13,19 @@ import vaultRoutes from './routes/vault.js';
 import buyIntentRoutes from './routes/buyIntents.js';
 import internalRoutes from './routes/internal.js';
 import ratesRoutes from './routes/rates.js';
+import escrowRoutes from './routes/escrow.js';
+import { securityHeaders, rateLimit, requestLog } from './middleware/security.js';
 
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
+  if (config.TRUST_PROXY) app.set('trust proxy', config.TRUST_PROXY);
+  app.use(securityHeaders);
+  app.use(requestLog);
+  // A flood guard for everything, and a tighter one for anything that writes or signs in.
+  app.use(rateLimit({ limit: config.RATE_LIMIT_PER_MINUTE, key: 'all' }));
+  const writes = rateLimit({ limit: config.RATE_LIMIT_WRITES_PER_MINUTE, key: 'write' });
+  app.use((req, res, next) => (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS' || req.path.startsWith('/internal') ? next() : writes(req, res, next)));
   app.use(cors({ origin: config.CORS_ORIGINS.length ? config.CORS_ORIGINS : false }));
   app.use(express.json({ limit: '256kb' }));
 
@@ -31,6 +40,7 @@ export function createApp() {
   app.use('/vault', vaultRoutes);
   app.use('/internal', internalRoutes);
   app.use('/rates', ratesRoutes);
+  app.use('/escrow', escrowRoutes);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found', 'Route not found')));
 

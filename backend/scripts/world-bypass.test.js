@@ -20,7 +20,7 @@ const baseEnv = {
   const boot = (extra) => spawnSync(process.execPath, ['-e', "import('./src/config.js').then(()=>console.log('STARTED'))"], {
     env: { ...process.env, DOTENV_CONFIG_PATH: '/dev/null', ...baseEnv, ...extra }, encoding: 'utf8', cwd: fileURLToPath(new URL('..', import.meta.url)),
   });
-  const prodNode = boot({ NODE_ENV: 'production', WORLD_ID_DEV_BYPASS: 'true', WORLD_ID_ENV: 'production', ESCROW_MODE: 'chain', ESCROW_CONTRACT_ADDRESS: '0x' + '11'.repeat(20), ESCROW_KEEPER_PRIVATE_KEY: '0x' + '22'.repeat(32) });
+  const prodNode = boot({ NODE_ENV: 'production', CORS_ORIGINS: 'https://app.example.com', WORLD_ID_DEV_BYPASS: 'true', WORLD_ID_ENV: 'production', ESCROW_MODE: 'chain', ESCROW_CONTRACT_ADDRESS: '0x' + '11'.repeat(20), ESCROW_KEEPER_PRIVATE_KEY: '0x' + '22'.repeat(32) });
   assert.notEqual(prodNode.status, 0, 'NODE_ENV=production must refuse the bypass');
   assert.match(prodNode.stderr, /not allowed in production/);
   const prodWorld = boot({ NODE_ENV: 'development', WORLD_ID_DEV_BYPASS: 'true', WORLD_ID_ENV: 'production' });

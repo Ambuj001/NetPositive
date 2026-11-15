@@ -34,6 +34,13 @@ MAX_TURNS = 50
 MAX_SESSIONS = 500
 USER_RE = re.compile(r"[A-Za-z0-9_.\-]{1,64}")  # always used with fullmatch: "$" would also accept a trailing newline
 ORIGIN_RE = re.compile(r"^(chrome-extension|moz-extension)://[a-z0-9\-]+$|^https?://(localhost|127\.0\.0\.1)(:\d+)?$")
+# Deployed web app origins, comma-separated (for example "https://app.example.com"). Exact match, https only.
+EXTRA_ORIGINS = {o.strip().rstrip("/") for o in os.environ.get("CHATBOT_CORS_ORIGINS", "").split(",") if o.strip().startswith("https://")}
+
+
+def origin_allowed(origin):
+    """True for browser extensions, local development, and the origins listed in CHATBOT_CORS_ORIGINS."""
+    return bool(origin) and (bool(ORIGIN_RE.match(origin)) or origin.rstrip("/") in EXTRA_ORIGINS)
 
 # Endpoints that read or change one user's data (or spend LLM budget on their behalf).
 PROTECTED = {"/portfolio", "/portfolio/add", "/portfolio/remove", "/recommend", "/plan", "/request/fulfil", "/chat"}
@@ -139,7 +146,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _cors(self):
         origin = self.headers.get("Origin", "")
-        if ORIGIN_RE.match(origin):
+        if origin_allowed(origin):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
             self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -223,11 +230,17 @@ class Handler(BaseHTTPRequestHandler):
         self._handle("POST")
 
 
+class _Server(ThreadingHTTPServer):
+    # The default backlog of 5 resets connections as soon as a handful of people connect at the same moment.
+    request_queue_size = 128
+    daemon_threads = True
+
+
 def make_server(host="127.0.0.1", port=8787, jwt_secret=None, insecure_dev=False):
     """Fail closed: a server needs either the backend's JWT secret or an explicit insecure_dev=True."""
     if not insecure_dev and not (isinstance(jwt_secret, str) and len(jwt_secret) >= auth.MIN_SECRET_LEN):
         raise ValueError(f"jwt_secret (>= {auth.MIN_SECRET_LEN} chars) is required unless insecure_dev=True")
-    srv = ThreadingHTTPServer((host, port), Handler)
+    srv = _Server((host, port), Handler)
     srv.jwt_secret, srv.insecure_dev = jwt_secret, bool(insecure_dev)
     return srv
 
@@ -239,6 +252,10 @@ if __name__ == "__main__":
     dev = os.environ.get("CHATBOT_AUTH", "").lower() == "off"
     if not dev and len(secret) < auth.MIN_SECRET_LEN:
         raise SystemExit("Set JWT_SECRET (the backend's secret, >= 32 chars) or, for local development only, CHATBOT_AUTH=off")
-    srv = make_server("127.0.0.1", port, jwt_secret=secret, insecure_dev=dev)
-    print(f"NetPositive API on http://127.0.0.1:{port}" + ("  [AUTH OFF: development only]" if dev else "  [auth: backend login token required]"), flush=True)
+    # 127.0.0.1 by default. A container platform needs CHATBOT_HOST=0.0.0.0; that is refused with auth off.
+    host = os.environ.get("CHATBOT_HOST", "127.0.0.1")
+    if dev and host not in ("127.0.0.1", "localhost"):
+        raise SystemExit("CHATBOT_AUTH=off is for local development only and cannot be combined with CHATBOT_HOST")
+    srv = make_server(host, port, jwt_secret=secret, insecure_dev=dev)
+    print(f"NetPositive API on http://{host}:{port}" + ("  [AUTH OFF: development only]" if dev else "  [auth: backend login token required]"), flush=True)
     srv.serve_forever()

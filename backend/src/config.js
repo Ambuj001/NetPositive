@@ -43,6 +43,19 @@ const schema = z.object({
   CRON_SECRET: z.string().optional().default(''),
   SWEEP_INTERVAL_SECONDS: z.coerce.number().int().min(0).default(60),
 
+  // Behind a load balancer or platform proxy, set how many proxies to trust (usually 1) so rate limits and logs see the
+  // real client address instead of the proxy's.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  // Requests per minute per client address. Unset: on in production (300 reads, 60 writes and sign-ins), off elsewhere
+  // so local test runs are not throttled. 0 turns a limit off.
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(0).optional(),
+  RATE_LIMIT_WRITES_PER_MINUTE: z.coerce.number().int().min(0).optional(),
+  // One JSON line per request (no bodies or tokens). Unset: on in production.
+  REQUEST_LOG: z.enum(['true', 'false']).optional(),
+  // A new order's INR/USDC pair must be within this many percent of the live USD/INR rate. Unset: 15 in production,
+  // off elsewhere. 0 turns the check off. If no live rate is available the order is allowed and the gap is logged.
+  RATE_MAX_DEVIATION_PCT: z.coerce.number().min(0).max(100).optional(),
+
   FULFIL_WINDOW_MINUTES: z.coerce.number().positive().default(30),
   REVIEW_WINDOW_MINUTES: z.coerce.number().positive().default(60),
 
@@ -116,8 +129,13 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+const prod = parsed.data.NODE_ENV === 'production';
 export const config = {
   ...parsed.data,
+  RATE_LIMIT_PER_MINUTE: parsed.data.RATE_LIMIT_PER_MINUTE ?? (prod ? 300 : 0),
+  RATE_LIMIT_WRITES_PER_MINUTE: parsed.data.RATE_LIMIT_WRITES_PER_MINUTE ?? (prod ? 60 : 0),
+  REQUEST_LOG: parsed.data.REQUEST_LOG ? parsed.data.REQUEST_LOG === 'true' : prod,
+  RATE_MAX_DEVIATION_PCT: parsed.data.RATE_MAX_DEVIATION_PCT ?? (prod ? 15 : 0),
   WORLD_ID_ENV: parsed.data.WORLD_ID_ENV ?? (parsed.data.NODE_ENV === 'production' ? 'production' : 'staging'),
 };
 
@@ -133,6 +151,10 @@ if (config.NODE_ENV === 'production') {
   }
   if (config.WORLD_ID_ENV !== 'production') {
     console.error('WORLD_ID_ENV must be production when NODE_ENV=production.');
+    process.exit(1);
+  }
+  if (!config.CORS_ORIGINS.length || config.CORS_ORIGINS.some((o) => !o.startsWith('https://'))) {
+    console.error('CORS_ORIGINS must list the https:// origin(s) of the web app when NODE_ENV=production.');
     process.exit(1);
   }
 }

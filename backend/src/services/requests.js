@@ -5,6 +5,7 @@ import { escrowRefFor, escrowIdOf, quoteFee, verifyDeposit, readEscrow, settleOn
 import { encrypt, decrypt } from '../lib/crypto.js';
 import { HttpError, notFound, forbidden, conflict, badRequest } from '../lib/errors.js';
 import { assertSealedAcceptable } from './vault.js';
+import { getForex } from '../rates/service.js';
 import { READY_TYPES, READY_DEFAULT_SECONDS, READY_MAX_SECONDS, readyDomain, readyTypedData } from '../lib/ready.js';
 
 /**
@@ -124,11 +125,36 @@ export async function listMine(address) {
 
 // ---------- Requester actions ----------
 
+/**
+ * The INR and USDC amounts of an order are typed by the spender. Refuse a pair that is far from the live USD/INR rate:
+ * it is almost always a slip of the finger (Rs 10,000 for 1 USDC), and otherwise an attempt to mislead the buyer.
+ * The two parties still choose their own rate inside the band.
+ */
+async function assertRateSane(amountInr, amountUsdc) {
+  const maxPct = config.RATE_MAX_DEVIATION_PCT;
+  if (!maxPct) return;
+  let market;
+  try {
+    market = (await getForex()).rate;
+  } catch (err) {
+    console.error('[rate-check] no live USD/INR rate, order allowed unchecked:', err.message);
+    return;
+  }
+  const implied = amountInr / Number(amountUsdc);
+  const deviation = Math.abs(implied - market) / market * 100;
+  if (deviation > maxPct) {
+    throw badRequest('rate_out_of_range', `This order prices 1 USDC at Rs ${implied.toFixed(2)}, but the market is about Rs ${market.toFixed(2)}. Orders must be within ${maxPct}% of the market rate.`, {
+      impliedRate: Number(implied.toFixed(4)), marketRate: market, maxDeviationPct: maxPct,
+    });
+  }
+}
+
 export async function createRequest(requester, { brand, amountInr, amountUsdc }) {
   const ref = col.requests.doc();
   // amountUsdc is what the buyer receives. The escrow pulls the fee on top of it.
   const amount = parseUnits(amountUsdc, config.USDC_DECIMALS);
   if (amount <= 0n) throw new HttpError(400, 'invalid_amount', 'amountUsdc must be > 0');
+  await assertRateSane(amountInr, amountUsdc);
   const fee = await quoteFee(amount);
   const amountUsdcBaseUnits = amount.toString();
   const escrowRef = escrowRefFor(ref.id);
