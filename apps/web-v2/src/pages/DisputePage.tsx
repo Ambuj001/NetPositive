@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowUpRight, CircleAlert, ImagePlus, LoaderCircle, PenLine, ShieldAlert, Wallet } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Aurora, BrandMark, Button, Pill, cx } from "../components/ui";
+import { AppHead, AppPage, BrandMark, Button, Pill, cx } from "../components/ui";
 import { STATUS, api, brandIdFromApi, type ApiRequest } from "../lib/api";
 import { brand } from "../lib/data";
 import {
@@ -33,12 +33,16 @@ const field = "w-full rounded-2xl bg-fg/[0.03] px-3.5 text-[14px] text-fg ring-1
 export default function DisputePage() {
   const { id } = useParams();
   return (
-    <div className="relative pt-10 md:pt-14 pb-16">
-      <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-2xl px-6">
-        {id ? <OrderDispute id={id} /> : <DisputeList />}
-      </div>
-    </div>
+    <AppPage>
+      {/* One dispute reads as a single column of text and forms, so it keeps a readable width inside the shared frame. */}
+      {id ? (
+        <div className="max-w-3xl">
+          <OrderDispute id={id} />
+        </div>
+      ) : (
+        <DisputeList />
+      )}
+    </AppPage>
   );
 }
 
@@ -76,14 +80,18 @@ function DisputeList() {
   const listTerms = useTerms().terms;
   return (
     <>
-      <div className="label">Disputes</div>
-      <h1 className="text-gradient mt-2 font-display text-4xl font-semibold tracking-[-0.03em]">Disputes</h1>
-      <p className="mt-2 text-[14px] text-mute">Something wrong with a voucher code? If you locked the USDC, you can freeze the escrow from your wallet, explain what happened and add screenshots. The arbiter then decides. {stakeNotice(listTerms ? listTerms.disputeBond : null, usdcShort)}{" "}
-        <Link to="/docs#disputes" className="link text-fg">
-          How disputes work
-        </Link>
-      </p>
-      <div className="mt-6">
+      <AppHead
+        title="Disputes"
+        sub={
+          <>
+            Something wrong with a voucher code? As the voucher buyer you can freeze the escrow from your wallet, explain what happened and add screenshots. The arbiter then decides. {stakeNotice(listTerms ? listTerms.disputeBond : null, usdcShort)}{" "}
+            <Link to="/docs#disputes" className="link text-fg">
+              How disputes work
+            </Link>
+          </>
+        }
+      />
+      <div className="mt-5">
         <SignedIn>{(token) => <Orders token={token} />}</SignedIn>
       </div>
     </>
@@ -116,18 +124,18 @@ function Orders({ token }: { token: string }) {
   if (!rows) return <div className="flex items-center gap-2 text-[13px] text-mute"><LoaderCircle className="size-4 animate-spin" /> Loading your orders…</div>;
   if (!rows.length)
     return (
-      <div className="hairline rounded-[22px] bg-surface/70 p-6 text-[14px] text-mute backdrop-blur-xl">
+      <div className="hairline rounded-[18px] bg-surface/70 px-5 py-4 text-[13.5px] text-mute backdrop-blur-xl">
         Nothing to dispute right now. An order shows up here once its voucher code has been submitted. <Link to="/track" className="text-brand-ink hover:underline">See your orders</Link>
       </div>
     );
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 lg:grid-cols-2">
       {rows.map((r) => {
         const b = brand(brandIdFromApi(r.brand));
         const st = STATUS[r.status];
         return (
-          <Link key={r.id} to={`/dispute/${encodeURIComponent(r.id)}`} className="hairline flex items-center gap-3 rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl transition hover:bg-surface">
-            <BrandMark id={brandIdFromApi(r.brand)} size={40} />
+          <Link key={r.id} to={`/dispute/${encodeURIComponent(r.id)}`} className="hairline flex items-center gap-3 rounded-[18px] bg-surface/70 p-3.5 backdrop-blur-xl transition hover:bg-surface">
+            <BrandMark id={brandIdFromApi(r.brand)} size={36} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[14.5px] font-medium">{b.name} {inr(r.amountInr)}</span>
               <span className="block truncate font-mono text-[11px] text-dim">{r.id}</span>
@@ -179,8 +187,8 @@ function OrderDispute({ id }: { id: string }) {
       {!req && !error && <div className="mt-6 flex items-center gap-2 text-[13px] text-mute"><LoaderCircle className="size-4 animate-spin" /> Loading…</div>}
       {req && b && (
         <>
-          <div className="mt-5 flex items-center gap-3">
-            <BrandMark id={brandIdFromApi(req.brand)} size={48} />
+          <div className="mt-4 flex items-center gap-3">
+            <BrandMark id={brandIdFromApi(req.brand)} size={44} />
             <div className="min-w-0 flex-1">
               <h1 className="truncate font-display text-2xl font-semibold tracking-tight">{b.name} {inr(req.amountInr)}</h1>
               <div className="truncate font-mono text-[11px] text-dim">{req.id}</div>
@@ -188,7 +196,7 @@ function OrderDispute({ id }: { id: string }) {
             <Pill tone={hasDispute(req) ? "rose" : "mute"}>{STATUS[req.status].label}</Pill>
           </div>
 
-          <div className="hairline mt-6 rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
+          <div className="hairline mt-5 rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
             <SignedIn>
               {(token) =>
                 screen?.kind === "raise" ? (

@@ -50,7 +50,7 @@ export const DOC_SECTIONS: DocSection[] = [
           ]}
         />
         <P>
-          The buyer keeps the reward points from their card. The spender pays a fee on top of the amount (see <A to="/docs#fees">Fees</A>). The rate, in rupees per USDC, is set by the spender when they post the order.
+          The USDC buyer keeps the reward points from their card. The voucher buyer pays a fee on top of the amount (see <A to="/docs#fees">Fees</A>). The rate, in rupees per USDC, is set by the voucher buyer when they post the order.
         </P>
         <P>
           NetPositive is the website, a server that keeps the order book, and the escrow contract. The server never holds or moves the USDC: each person sends their own transactions from their own wallet.
@@ -76,7 +76,7 @@ export const DOC_SECTIONS: DocSection[] = [
         </P>
         <P>Phantom can sign in but cannot add Arc, so it cannot lock USDC or show a payout. Use another wallet to trade.</P>
         <P>
-          The spender's wallet also has to produce the same signature every time it signs the same message, because that is how the voucher key is rebuilt (see <A to="/docs#vouchers">Voucher codes</A>). Ordinary wallets do. Some smart-contract and passkey wallets do not; the app tells you if yours cannot be used.
+          The voucher buyer's wallet also has to produce the same signature every time it signs the same message, because that is how the voucher key is rebuilt (see <A to="/docs#vouchers">Voucher codes</A>). Ordinary wallets do. Some smart-contract and passkey wallets do not; the app tells you if yours cannot be used.
         </P>
 
         <H3>2. The Arc network</H3>
@@ -101,7 +101,7 @@ export const DOC_SECTIONS: DocSection[] = [
               <strong className="font-medium text-fg">Spender:</strong> the order amount, the fee, and a little extra for gas.
             </>,
             <>
-              <strong className="font-medium text-fg">Buyer:</strong> a small amount for gas. The buyer sends two transactions per order.
+              <strong className="font-medium text-fg">Buyer:</strong> a small amount for gas. The USDC buyer sends two transactions per order.
             </>,
           ]}
         />
@@ -135,7 +135,7 @@ export const DOC_SECTIONS: DocSection[] = [
     id: "spending",
     group: "Using it",
     title: "Spending USDC",
-    summary: "The spender's steps, and what each one costs.",
+    summary: "The voucher buyer's steps, and what each one costs.",
     body: (v) => (
       <>
         <P>You hold USDC and want a gift voucher. Each step below says whether your wallet sends a transaction, signs for free, or you only click.</P>
@@ -147,7 +147,7 @@ export const DOC_SECTIONS: DocSection[] = [
               kind: "click",
               body: (
                 <>
-                  Choose the store, the voucher value in rupees, and the rate. The server checks your rate against the live USD/INR rate and rejects one that is far off. It then shows the fee and the total, both read from the contract. Orders are from {v.min} to {v.max} USDC to the buyer.
+                  Choose the store, the voucher value in rupees, and the rate. The server checks your rate against the live USD/INR rate and rejects one that is far off. It then shows the fee and the total, both read from the contract. Orders are from {v.min} to {v.max} USDC to the USDC buyer.
                 </>
               ),
             },
@@ -156,27 +156,27 @@ export const DOC_SECTIONS: DocSection[] = [
               kind: "tx",
               body: "Your wallet sends two transactions: one that approves the total, and one that deposits the amount plus the fee into the escrow. When the deposit confirms, the order is public.",
             },
-            { title: "Wait for a buyer", kind: "wait", body: "Until a buyer is bound on-chain you can cancel from your wallet (a transaction) and get everything back, fee included." },
+            { title: "Wait for a USDC buyer", kind: "wait", body: "Until a USDC buyer is bound on-chain you can cancel from your wallet (a transaction) and get everything back, fee included." },
             {
               title: "Press Ready",
               kind: "sign",
-              body: "When a buyer accepts, you sign a message that names that buyer. It is free. The first time, the app also asks you to sign your voucher key so the buyer can seal the code to you. A Ready signature expires after a while; if the buyer was slow, press Ready again.",
+              body: "When a USDC buyer accepts, you sign a message that names that USDC buyer. It is free. The first time, the app also asks you to sign your voucher key so the USDC buyer can seal the code to you. A Ready signature expires after a while; if the USDC buyer was slow, press Ready again.",
             },
-            { title: "Wait for the voucher", kind: "wait", body: `The buyer binds themselves to your order, buys the voucher and delivers the code. Once bound, they have ${v.fulfil} to deliver.` },
+            { title: "Wait for the voucher", kind: "wait", body: `The USDC buyer binds themselves to your order, buys the voucher and delivers the code. Once bound, they have ${v.fulfil} to deliver.` },
             { title: "Open and check the code", kind: "sign", body: "Sign once to unlock your voucher key, then check the voucher at the store: right brand, right value, not already used." },
             {
               title: "Release, or dispute",
               kind: "tx",
               body: (
                 <>
-                  If the voucher is good, release the USDC to the buyer. If it is not, open a dispute (see <A to="/docs#disputes">Disputes</A>). Both are sent from your wallet.
+                  If the voucher is good, release the USDC to the USDC buyer. If it is not, open a dispute (see <A to="/docs#disputes">Disputes</A>). Both are sent from your wallet.
                 </>
               ),
             },
           ]}
         />
         <Callout tone="danger" title={`You have ${v.review} to check the voucher`}>
-          The clock starts when the buyer marks the order delivered. If you neither release nor dispute in that time, the buyer is paid. A buyer can mark an order delivered without sending a working code, so do not leave a delivered order unchecked.
+          The clock starts when the USDC buyer marks the order delivered. If you neither release nor dispute in that time, the USDC buyer is paid. A USDC buyer can mark an order delivered without sending a working code, so do not leave a delivered order unchecked.
         </Callout>
       </>
     ),
@@ -186,13 +186,13 @@ export const DOC_SECTIONS: DocSection[] = [
   {
     id: "buying",
     group: "Using it",
-    title: "Earning USDC as a buyer",
-    summary: "The buyer's steps, and the one thing not to do early.",
+    title: "Earning USDC as a USDC buyer",
+    summary: "The USDC buyer's steps, and the one thing not to do early.",
     body: (v) => (
       <>
         <P>You have a card and want USDC in your own wallet. You pay for a voucher in rupees and are paid in USDC by the escrow.</P>
         <Callout tone="danger" title="Do not buy the voucher before your bind transaction confirms">
-          Accepting an order on the site does not reserve the USDC for you. Only the on-chain bind does (step 4). Until it confirms, the spender can still cancel and take the USDC back, and you would be left holding a voucher. The order page tells you when it is safe to buy.
+          Accepting an order on the site does not reserve the USDC for you. Only the on-chain bind does (step 4). Until it confirms, the voucher buyer can still cancel and take the USDC back, and you would be left holding a voucher. The order page tells you when it is safe to buy.
         </Callout>
         <Steps
           steps={[
@@ -202,28 +202,28 @@ export const DOC_SECTIONS: DocSection[] = [
               kind: "click",
               body: "Open an order from the market. Its page reads the escrow straight from the contract through a public Arc node and compares it with what our server says. If the check does not pass, do not proceed.",
             },
-            { title: "Accept", kind: "click", body: "Tells the spender you want this order. No wallet prompt. Nothing is bound yet." },
+            { title: "Accept", kind: "click", body: "Tells the voucher buyer you want this order. No wallet prompt. Nothing is bound yet." },
             {
               title: "Bind yourself to the order",
               kind: "tx",
-              body: "When the spender has pressed Ready, send their signature to the contract from your wallet. Once this confirms, the escrow can only pay you or refund the spender.",
+              body: "When the voucher buyer has pressed Ready, send their signature to the contract from your wallet. Once this confirms, the escrow can only pay you or refund the voucher buyer.",
             },
             {
               title: "Buy the voucher",
               kind: "outside",
               body: `Pay with your card on the store or your bank's voucher portal, for exactly the brand and value in the order. You have ${v.fulfil} from the bind to deliver.`,
             },
-            { title: "Mark delivered", kind: "tx", body: "Tell the contract the voucher is delivered. This starts the spender's review window." },
-            { title: "Submit the code", kind: "click", body: "Paste the code and PIN. Your browser seals them so only the spender can open them, then sends the sealed box to the server." },
+            { title: "Mark delivered", kind: "tx", body: "Tell the contract the voucher is delivered. This starts the voucher buyer's review window." },
+            { title: "Submit the code", kind: "click", body: "Paste the code and PIN. Your browser seals them so only the voucher buyer can open them, then sends the sealed box to the server." },
             {
               title: "Get paid",
               kind: "wait",
-              body: `The USDC goes to your wallet when the spender releases it. If they do nothing for ${v.review} and do not dispute, you are paid anyway.`,
+              body: `The USDC goes to your wallet when the voucher buyer releases it. If they do nothing for ${v.review} and do not dispute, you are paid anyway.`,
             },
           ]}
         />
         <P>
-          If you miss the delivery deadline, the spender is refunded and you are not paid, even if you bought the voucher. The contract lets a bound buyer step away so the order reopens for someone else, but the site has no button for that yet; if you cannot complete an order, the deadline ends it.
+          If you miss the delivery deadline, the voucher buyer is refunded and you are not paid, even if you bought the voucher. The contract lets a bound buyer step away so the order reopens for someone else, but the site has no button for that yet; if you cannot complete an order, the deadline ends it.
         </P>
         <P>Buying costs you no fee. You pay only gas for the two transactions.</P>
       </>
@@ -235,13 +235,13 @@ export const DOC_SECTIONS: DocSection[] = [
     id: "fees",
     group: "The rules",
     title: "Fees",
-    summary: "Charged on top, kept only when the buyer is paid.",
+    summary: "Charged on top, kept only when the USDC buyer is paid.",
     body: (v) => (
       <>
         <P>
-          The fee is {v.fee} and is charged on top of the amount, to the spender. For 100 USDC to the buyer, the spender locks {v.exampleTotal} USDC: 100 for the buyer and {v.exampleFee} as the fee. The buyer receives the full 100.
+          The fee is {v.fee} and is charged on top of the amount, to the voucher buyer. For 100 USDC to the USDC buyer, the voucher buyer locks {v.exampleTotal} USDC: 100 for the USDC buyer and {v.exampleFee} as the fee. The USDC buyer receives the full 100.
         </P>
-        <P>The fee is kept only when the buyer is paid. If the order ends in a refund, the fee comes back with it.</P>
+        <P>The fee is kept only when the USDC buyer is paid. If the order ends in a refund, the fee comes back with it.</P>
         <Table
           head={["How the order ends", "Buyer receives", "Spender gets back", "Fee kept"]}
           rows={[
@@ -271,12 +271,12 @@ export const DOC_SECTIONS: DocSection[] = [
           minWidth={600}
           head={["Situation", "What happens", "Who can trigger it"]}
           rows={[
-            [<>Nobody takes the order before it expires{v.orderOpen ? ` (${v.orderOpen} after it is locked)` : ""}</>, "Full refund to the spender", "Anyone"],
-            ["The spender changes their mind before a buyer is bound", "Cancel, full refund", "Spender"],
-            [`The bound buyer does not deliver within ${v.fulfil}`, "Full refund to the spender", "Anyone"],
-            ["The bound buyer steps away (a contract call; the site has no button for it yet)", "The order is open again", "Buyer"],
-            [`The spender neither releases nor disputes within ${v.review} of delivery`, "The buyer is paid", "Anyone"],
-            [`A dispute is not decided within ${days}`, "Full refund to the spender", "Anyone"],
+            [<>Nobody takes the order before it expires{v.orderOpen ? ` (${v.orderOpen} after it is locked)` : ""}</>, "Full refund to the voucher buyer", "Anyone"],
+            ["The voucher buyer changes their mind before a USDC buyer is bound", "Cancel, full refund", "Voucher buyer"],
+            [`The bound USDC buyer does not deliver within ${v.fulfil}`, "Full refund to the voucher buyer", "Anyone"],
+            ["The bound USDC buyer steps away (the \u201cStep away\u201d button on the order page)", "The order is open again", "USDC buyer"],
+            [`The voucher buyer neither releases nor disputes within ${v.review} of delivery`, "The USDC buyer is paid", "Anyone"],
+            [`A dispute is not decided within ${days}`, "Full refund to the voucher buyer", "Anyone"],
           ]}
         />
         <P>
@@ -296,14 +296,14 @@ export const DOC_SECTIONS: DocSection[] = [
     body: (v, { worldIdOn }) => (
       <>
         <P>
-          Only the spender can open a dispute, and only after the buyer has marked the order delivered and before the review window ({v.review}) ends. It is a transaction from the spender's wallet.
+          Only the voucher buyer can open a dispute, and only after the USDC buyer has marked the order delivered and before the review window ({v.review}) ends. It is a transaction from the voucher buyer's wallet.
         </P>
         <P>Opening a dispute does two things:</P>
         <Ul
           items={[
             v.hasStake ? (
               <>
-                It locks a <strong className="font-medium text-fg">stake of {v.stake} USDC</strong> from the spender, in the same contract.
+                It locks a <strong className="font-medium text-fg">stake of {v.stake} USDC</strong> from the voucher buyer, in the same contract.
               </>
             ) : (
               <>Right now no stake is required to open one.</>
@@ -311,27 +311,27 @@ export const DOC_SECTIONS: DocSection[] = [
             <>It freezes the order. Nobody is paid until it is decided.</>,
           ]}
         />
-        <P>Both people can add a written response and screenshots. A person acting as arbiter then decides how much of the amount goes to the buyer. There are three outcomes:</P>
+        <P>Both people can add a written response and screenshots. A person acting as arbiter then decides how much of the amount goes to the USDC buyer. There are three outcomes:</P>
         <Table
           head={["Decision", "The amount", "The fee", "The stake"]}
           rows={[
-            ["The spender was right", "Refunded to the spender", "Refunded", "Returned to the spender"],
-            ["The spender was wrong", "Paid to the buyer", "Kept", "Paid to the buyer"],
+            ["The voucher buyer was right", "Refunded to the voucher buyer", "Refunded", "Returned to the voucher buyer"],
+            ["The voucher buyer was wrong", "Paid to the USDC buyer", "Kept", "Paid to the USDC buyer"],
             ["Split", "Shared between them", "Kept in proportion", "Follows the same proportion"],
           ]}
         />
-        <P>A dispute can also end without a ruling: the spender can release after all, or the buyer can concede with a call to the contract. In both cases the stake goes back to the spender.</P>
+        <P>A dispute can also end without a ruling: the voucher buyer can release after all, or the USDC buyer can concede with a call to the contract. In both cases the stake goes back to the voucher buyer.</P>
         <Callout tone="warn" title="A false dispute gets the account banned">
-          If the arbiter rules that the spender was wrong, the spender loses the stake and their NetPositive account is banned.{" "}
+          If the arbiter rules that the voucher buyer was wrong, the voucher buyer loses the stake and their NetPositive account is banned.{" "}
           {worldIdOn
             ? "Because accounts are tied to World ID, a new wallet does not get around it."
             : "While World ID is switched on, accounts are tied to one person, so a new wallet does not get around it. While it is off, the ban applies to the wallet."}
         </Callout>
         <P>
-          If the arbiter never decides, anyone can refund the spender after {days}. That fallback is in the contract and does not need us.
+          If the arbiter never decides, anyone can refund the voucher buyer after {days}. That fallback is in the contract and does not need us.
         </P>
         <P>
-          The arbiter is a person on the team. You are trusting them to judge fairly. They can only split an order that the spender has put in dispute; they cannot touch any other order. Screenshots you upload can be seen by the two people in the order and by the arbiter. The written reason is part of the order's record, which anyone with the order's link can read, so do not put a voucher code in it.
+          The arbiter is a person on the team. You are trusting them to judge fairly. They can only split an order that the voucher buyer has put in dispute; they cannot touch any other order. Screenshots you upload can be seen by the two people in the order and by the arbiter. The written reason is part of the order's record, which anyone with the order's link can read, so do not put a voucher code in it.
         </P>
       </>
     ),
@@ -349,7 +349,7 @@ export const DOC_SECTIONS: DocSection[] = [
         <Ul
           items={[
             <>
-              <strong className="font-medium text-fg">Two destinations only.</strong> USDC in an order can go to the buyer the spender named, or back to the spender. No owner, arbiter or server key can send it anywhere else.
+              <strong className="font-medium text-fg">Two destinations only.</strong> USDC in an order can go to the USDC buyer the voucher buyer named, or back to the voucher buyer. No owner, arbiter or server key can send it anywhere else.
             </>,
             <>
               <strong className="font-medium text-fg">Terms are fixed when you lock.</strong> The fee, the time windows and the dispute stake are copied into the order. Later changes apply to new orders only.
@@ -377,7 +377,7 @@ export const DOC_SECTIONS: DocSection[] = [
               `Change the fee (up to ${CONTRACT_CONSTANTS.maxFeePercent}), time windows, order limits, dispute stake, arbiter, guardian and fee recipients, for future orders. Pause and unpause new deposits. Recover tokens sent to the contract by mistake.`,
               "Touch any order. Change the code.",
             ],
-            ["Arbiter", "Split an order the spender has put in dispute.", "Act on any order that is not disputed."],
+            ["Arbiter", "Split an order the voucher buyer has put in dispute.", "Act on any order that is not disputed."],
             ["Guardian", "Pause new deposits.", "Unpause, or anything else."],
             ["Server (keeper)", "Send the timeout calls that anyone may send, and pay their gas.", "Anything else. It has no role in the contract."],
           ]}
@@ -392,11 +392,11 @@ export const DOC_SECTIONS: DocSection[] = [
           items={[
             <>Switch the World ID requirement on or off. On, every trader must prove they are one person with World ID. Off, any signed-in wallet can trade, and one person can use many wallets.</>,
             <>See how many orders are in each state, the open disputes, and the health of the server.</>,
-            <>Decide disputes, through the server's admin API (the site has no button for it yet). The ruling is carried out by the arbiter, so it can only split an order the spender has put in dispute.</>,
+            <>Decide disputes, through the server's admin API (the site has no button for it yet). The ruling is carried out by the arbiter, so it can only split an order the voucher buyer has put in dispute.</>,
           ]}
         />
         <P>
-          It cannot move or redirect anyone's USDC: the contract only pays the buyer the spender named, or the spender. It cannot change the contract's fee, order limits, time windows or dispute stake, or pause deposits, from the app. Those are changed only from the owner wallet on the contract, as in the table above.
+          It cannot move or redirect anyone's USDC: the contract only pays the USDC buyer the voucher buyer named, or the voucher buyer. It cannot change the contract's fee, order limits, time windows or dispute stake, or pause deposits, from the app. Those are changed only from the owner wallet on the contract, as in the table above.
         </P>
 
         <H3>Launch limits</H3>
@@ -410,7 +410,7 @@ export const DOC_SECTIONS: DocSection[] = [
         <P>You do not have to take the site's word for where the money is.</P>
         <Ul
           items={[
-            <>Every order page has an on-chain check. It reads the order's record from the contract through a public Arc node, in your browser, and compares it with what our server says: the state, the bound buyer, the amount and the current deadline.</>,
+            <>Every order page has an on-chain check. It reads the order's record from the contract through a public Arc node in your browser (or, if that is blocked, through your wallet's own node), and compares it with what our server says: the state, the bound USDC buyer, the amount and the current deadline. Only if neither can be reached does the page fall back to our server's reading, and it says so.</>,
             <>
               Each wallet step on the order page links to its transaction on the explorer. Open it and confirm it went to the escrow contract, <A to={CONTRACT_URL}>{LIVE.contract.slice(0, 10)}…{LIVE.contract.slice(-6)}</A>.
             </>,
@@ -429,10 +429,10 @@ export const DOC_SECTIONS: DocSection[] = [
               <strong className="font-medium text-fg">One owner wallet.</strong> If that wallet were lost or stolen, settings for new orders could be changed and the arbiter replaced. Existing orders that are not in dispute would still be safe.
             </>,
             <>
-              <strong className="font-medium text-fg">A buyer can mark an order delivered without delivering.</strong> The spender must then dispute inside the review window ({v.review}), or the buyer is paid. There is no buyer deposit to discourage this yet.
+              <strong className="font-medium text-fg">A USDC buyer can mark an order delivered without delivering.</strong> The voucher buyer must then dispute inside the review window ({v.review}), or the USDC buyer is paid. There is no USDC buyer deposit to discourage this yet.
             </>,
             <>
-              <strong className="font-medium text-fg">The spender checks the voucher, not the system.</strong> Nothing proves automatically that a code works, has the right value, or has not been used.
+              <strong className="font-medium text-fg">The voucher buyer checks the voucher, not the system.</strong> Nothing proves automatically that a code works, has the right value, or has not been used.
             </>,
             <>
               <strong className="font-medium text-fg">The arbiter is trusted</strong> to judge disputed orders fairly.
@@ -457,9 +457,9 @@ export const DOC_SECTIONS: DocSection[] = [
         <P>A voucher code is as good as cash, so the server is built never to see one.</P>
         <Ul
           items={[
-            <>The spender signs a fixed message with their wallet. Their browser turns that signature into a private key and a matching public key. Only the public key is sent to the server. The private key is not stored anywhere: the wallet rebuilds it whenever the same message is signed again.</>,
-            <>The buyer's browser fetches the spender's public key, checks that the spender's wallet really signed it, and locks the code to it. The server receives and stores only the locked box.</>,
-            <>The spender's browser unlocks the box. The box is tied to that one order and those two people, so it cannot be copied onto another order.</>,
+            <>The voucher buyer signs a fixed message with their wallet. Their browser turns that signature into a private key and a matching public key. Only the public key is sent to the server. The private key is not stored anywhere: the wallet rebuilds it whenever the same message is signed again.</>,
+            <>The USDC buyer's browser fetches the voucher buyer's public key, checks that the voucher buyer's wallet really signed it, and locks the code to it. The server receives and stores only the locked box.</>,
+            <>The voucher buyer's browser unlocks the box. The box is tied to that one order and those two people, so it cannot be copied onto another order.</>,
           ]}
         />
         <P>The result: a leaked database or a leaked server key does not expose voucher codes.</P>
@@ -469,7 +469,7 @@ export const DOC_SECTIONS: DocSection[] = [
             <>A fake or tampered copy of this website could read a code in your browser. Only use the real site.</>,
             <>Anyone who gets you to sign the voucher-key message on another site can rebuild your key. Sign it only here.</>,
             <>If you lose access to the wallet, you lose access to codes sealed to it. There is no recovery option yet.</>,
-            <>The server cannot check that a sealed box contains a working code. The spender has to check.</>,
+            <>The server cannot check that a sealed box contains a working code. The voucher buyer has to check.</>,
             <>For disputes, the site can be set up so codes are also sealed to a separate key held by the team, which lets the arbiter read the code in question. Whoever holds that key could read sealed codes.</>,
           ]}
         />
@@ -509,15 +509,15 @@ export const DOC_SECTIONS: DocSection[] = [
           minWidth={560}
           head={["Who", "Call", "When"]}
           rows={[
-            ["Spender", <code className="font-mono text-[13px]">cancel(id)</code>, "Before a buyer is bound"],
-            ["Spender", <code className="font-mono text-[13px]">release(id)</code>, "After delivery, to pay the buyer"],
+            ["Spender", <code className="font-mono text-[13px]">cancel(id)</code>, "Before a USDC buyer is bound"],
+            ["Spender", <code className="font-mono text-[13px]">release(id)</code>, "After delivery, to pay the USDC buyer"],
             ["Buyer", <code className="font-mono text-[13px]">claim(id)</code>, `After delivery, once the review window (${v.review}) has ended with no dispute`],
-            ["Anyone", <code className="font-mono text-[13px]">refundExpired(id)</code>, "The order expired with no buyer, or the bound buyer missed the delivery deadline"],
+            ["Anyone", <code className="font-mono text-[13px]">refundExpired(id)</code>, "The order expired with no USDC buyer, or the bound buyer missed the delivery deadline"],
             ["Anyone", <code className="font-mono text-[13px]">refundStaleDispute(id)</code>, `A dispute has been open for ${days}`],
           ]}
         />
         <P>
-          Be honest with yourself about how practical this is today: the contract's source is not yet verified on the explorer, so the explorer may not offer a form for these calls, and you would need a tool that can call a contract by its function signature. Without the server the buyer also cannot deliver a sealed code through the site. The guarantee is that the money can always be moved out by the two people involved, not that it is convenient.
+          Be honest with yourself about how practical this is today: the contract's source is not yet verified on the explorer, so the explorer may not offer a form for these calls, and you would need a tool that can call a contract by its function signature. Without the server the USDC buyer also cannot deliver a sealed code through the site. The guarantee is that the money can always be moved out by the two people involved, not that it is convenient.
         </P>
 
         <H3>Where is my money?</H3>
@@ -537,7 +537,7 @@ export const DOC_SECTIONS: DocSection[] = [
 
         <H3>I lost access to my wallet mid-order</H3>
         <P>
-          Nobody else can act for you, including us. The timeouts still apply: an order nobody completes is refunded to the spender's address, and a delivered order nobody disputes is paid to the buyer's address.
+          Nobody else can act for you, including us. The timeouts still apply: an order nobody completes is refunded to the voucher buyer's address, and a delivered order nobody disputes is paid to the USDC buyer's address.
         </P>
       </>
     ),

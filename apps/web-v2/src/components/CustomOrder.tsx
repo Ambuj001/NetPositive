@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, ChevronDown, CreditCard } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronDown, CreditCard } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AMOUNTS, PLACES, ReviewModal, amountLabel } from "../pages/Spend";
@@ -35,7 +35,7 @@ export function CustomOrder() {
   const [typedLimit, setLimit] = useState<number | null>(null);
   const limit = typedLimit ?? market.rate ?? 0;
   const [review, setReview] = useState(false);
-  const [calcOpen, setCalcOpen] = useState(true);
+  const [calcOpen, setCalcOpen] = useState(false);
 
   const place = PLACES.find((p) => p.id === placeId) ?? PLACES[0];
   const rate = type === "limit" ? limit : market.rate;
@@ -79,60 +79,58 @@ export function CustomOrder() {
 
   return (
     <Ticket title="Create an order">
-      <p className="mt-1 text-[12.5px] leading-relaxed text-mute">Prefer to set it up yourself? Pick the store, amount and rate.</p>
-      <TypeTabs type={type} setType={setType} />
-      <VoucherPicker value={placeId} onChange={(id) => setPlaceId(id as typeof placeId)} />
-      <AmountField label="Voucher value" value={amount} onChange={setAmount} />
-      {type === "limit" ? (
-        <LimitField label="Your rate" value={limit} onChange={setLimit} />
-      ) : (
-        <p className={cx("mt-3 text-[11.5px]", market.rate === null && !market.loading ? "text-amber-ink" : "text-dim")}>
-          {market.rate !== null ? `Live P2P rate: ₹${market.rate.toFixed(2)} / USDC.` : market.loading ? "Loading the live rate…" : "The live rate isn't available right now. Use a Limit order to set your own rate."}
-        </p>
-      )}
-      {terms && <p className="mt-1.5 text-[11.5px] text-dim">{limitsLine(terms)}</p>}
+      <p className="mt-1 text-[12.5px] leading-relaxed text-mute">Pick the store, amount and rate. You review everything before any USDC is locked.</p>
+      {/* Inputs on the left, the live summary and the button on the right (stacked on narrow screens). */}
+      <div className="mt-4 grid gap-x-6 gap-y-5 md:grid-cols-2">
+        <div className="min-w-0">
+          <TypeTabs type={type} setType={setType} />
+          <VoucherPicker value={placeId} onChange={(id) => setPlaceId(id as typeof placeId)} />
+          <AmountField label="Voucher value" value={amount} onChange={setAmount} />
+          {type === "limit" ? (
+            <LimitField label="Your rate" value={limit} onChange={setLimit} />
+          ) : (
+            <p className={cx("mt-2.5 text-[11.5px]", market.rate === null && !market.loading ? "text-amber-ink" : "text-dim")}>
+              {market.rate !== null ? `Live P2P rate: ₹${market.rate.toFixed(2)} / USDC.` : market.loading ? "Loading the live rate…" : "The live rate isn't available right now. Use a Limit order to set your own rate."}
+            </p>
+          )}
+          {terms && <p className="mt-1 text-[11.5px] text-dim">{limitsLine(terms)}</p>}
+        </div>
+
+        <div className="min-w-0 md:border-l md:border-fg/[0.07] md:pl-6">
+          <div className="text-[12.5px] text-mute">You get a voucher worth</div>
+          <div className="mt-1.5 flex items-baseline gap-2">
+            <motion.span key={amount} initial={{ opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="font-display text-[34px] leading-none font-semibold tracking-tight text-brand-ink tabular">
+              {inr(validAmount ? amount : 0)}
+            </motion.span>
+            <span className="text-[12px] text-dim">{place.label}</span>
+          </div>
+          <div className="mt-3 space-y-1.5 border-b border-fg/[0.07] pb-2.5 text-[12.5px]">
+            <Line k="USDC buyer receives" v={`${usdt(q.buyerReceives)} USDC`} />
+            <Line k={`Fee · ${feeLabel}`} v={`${usdt(q.fee)} USDC`} />
+            <Line k="Effective rate" v={ready ? `₹${(amount / q.sellerLocks).toFixed(2)} / USDC` : "—"} />
+          </div>
+          <div className="mt-2.5 flex justify-between text-[13.5px]">
+            <span className="text-mute">Total USDC you lock</span>
+            <span className="font-semibold tabular">{usdt(q.sellerLocks)}</span>
+          </div>
+          <Button className="mt-4 w-full" size="md" disabled={!ready} onClick={startReview} icon={<ArrowRight className="size-4" />}>
+            {address ? "Review order" : "Connect to review"}
+          </Button>
+          <p className={cx("mt-2 text-center text-[11.5px]", blocked || noMarketRate ? "text-amber-ink" : "text-dim")} role={blocked ? "alert" : undefined}>{hint}</p>
+          <Calc open={calcOpen} setOpen={setCalcOpen}>
+            <div className="space-y-1.5 text-[12.5px]">
+              <Line k="Voucher value" v={inr(validAmount ? amount : 0)} />
+              <Line k={`USDC including ${feePercent(feeBps)} fee`} v={usdt(q.sellerLocks)} />
+            </div>
+            <Rate value={ready ? amount / q.sellerLocks : null} />
+            <p className="mt-1.5 text-[11px] text-dim">Voucher value ÷ total USDC, including the fee.</p>
+          </Calc>
+        </div>
+      </div>
 
       {/* Buy requests (Firestore `buyIntents`) that match the store and amount entered above: same amount, and the same
           voucher or no voucher. It follows the inputs live. */}
       <RecommendedBuyers amount={validAmount ? amount : 0} brandId={place.api} brandName={place.label} className="mt-5" onPick={startReview} pickDisabled={!ready || !!lock.phase} />
-
-      <Divider />
-
-      <div className="text-[12.5px] text-mute">You get a voucher worth</div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <motion.span key={amount} initial={{ opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="font-display text-[42px] leading-none font-semibold tracking-tight text-brand-ink tabular">
-          {inr(validAmount ? amount : 0)}
-        </motion.span>
-        <span className="text-[12px] text-dim">{place.label}</span>
-      </div>
-      <div className="mt-4 space-y-2 border-b border-fg/[0.07] pb-3 text-[12.5px]">
-        <Line k="Buyer receives" v={`${usdt(q.buyerReceives)} USDC`} />
-        <Line k={`Spender fee · ${feeLabel}`} v={`${usdt(q.fee)} USDC`} />
-      </div>
-      <div className="mt-3 flex justify-between text-[13px]">
-        <span className="text-mute">Total USDC you lock</span>
-        <span className="font-semibold tabular">{usdt(q.sellerLocks)}</span>
-      </div>
-
-      <Calc open={calcOpen} setOpen={setCalcOpen}>
-        <div className="space-y-1.5 text-[12.5px]">
-          <Line k="Voucher value" v={inr(validAmount ? amount : 0)} />
-          <Line k={`USDC including ${feePercent(feeBps)} fee`} v={usdt(q.sellerLocks)} />
-        </div>
-        <Rate value={ready ? amount / q.sellerLocks : null} />
-        <p className="mt-1.5 text-[11px] text-dim">Voucher value ÷ total USDC, including the fee.</p>
-      </Calc>
-
-      <Button
-        className="mt-5 w-full"
-        size="lg"
-        disabled={!ready}
-        onClick={startReview}
-        icon={<ArrowRight className="size-4" />}
-      >
-        {address ? "Review order" : "Connect to review"}
-      </Button>
-      <p className={cx("mt-3 text-center text-[11.5px]", blocked || noMarketRate ? "text-amber-ink" : "text-dim")} role={blocked ? "alert" : undefined}>{hint}</p>
       <CardsLink />
 
       <ReviewModal
@@ -166,10 +164,10 @@ export function CustomOrder() {
 
 function Ticket({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="hairline relative overflow-hidden rounded-[26px] bg-surface/85 p-6 backdrop-blur-xl">
+    <div className="hairline relative overflow-hidden rounded-[22px] bg-surface/85 p-5 backdrop-blur-xl">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(0,0,255,0.12), transparent)" }} />
       <div className="relative flex items-center justify-between">
-        <h2 className="font-display text-[22px] font-semibold tracking-tight">{title}</h2>
+        <h2 className="font-display text-[20px] font-semibold tracking-tight">{title}</h2>
         <span className="grid size-8 place-items-center rounded-full bg-[#2775ca] font-display text-[13px] font-bold text-white" aria-hidden>
           $
         </span>
@@ -181,7 +179,7 @@ function Ticket({ title, children }: { title: string; children: ReactNode }) {
 
 function TypeTabs({ type, setType }: { type: OrderType; setType: (t: OrderType) => void }) {
   return (
-    <div className="mt-5 grid grid-cols-2 rounded-2xl bg-fg/[0.03] p-1 ring-1 ring-fg/[0.07]" role="tablist" aria-label="Order type">
+    <div className="grid grid-cols-2 rounded-2xl bg-fg/[0.03] p-1 ring-1 ring-fg/[0.07]" role="tablist" aria-label="Order type">
       {(["market", "limit"] as const).map((t) => (
         <button key={t} type="button" role="tab" aria-selected={type === t} onClick={() => setType(t)} className={cx("relative h-9 rounded-xl text-[13px] capitalize transition", type === t ? "text-fg" : "text-mute hover:text-fg")}>
           {type === t && <motion.span layoutId="type-mint" className="absolute inset-0 rounded-xl bg-fg/[0.08] ring-1 ring-fg/10" />}
@@ -196,14 +194,14 @@ function VoucherPicker({ value, onChange }: { value: string; onChange: (id: stri
   const [open, setOpen] = useState(false);
   const current = PLACES.find((p) => p.id === value) ?? PLACES[0];
   return (
-    <div className="relative mt-5">
-      <div className="mb-2 text-[12.5px] text-mute">Store</div>
+    <div className="relative mt-4">
+      <div className="mb-1.5 text-[12.5px] text-mute">Store</div>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex h-12 w-full items-center gap-3 rounded-2xl bg-fg/[0.03] px-3 text-left ring-1 ring-fg/10 transition hover:ring-fg/20"
+        className="flex h-11 w-full items-center gap-3 rounded-2xl bg-fg/[0.03] px-3 text-left ring-1 ring-fg/10 transition hover:ring-fg/20"
       >
         <BrandMark id={current.id} size={28} />
         <span className="flex-1 text-[14px]">{current.label}</span>
@@ -238,10 +236,10 @@ function VoucherPicker({ value, onChange }: { value: string; onChange: (id: stri
 
 function AmountField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
-    <div className="mt-5">
-      <div className="mb-2 text-[12.5px] text-mute">{label}</div>
-      <label className="flex items-baseline gap-2 rounded-2xl bg-fg/[0.03] px-4 py-3 ring-1 ring-fg/10 transition focus-within:ring-brand/45">
-        <span className="font-display text-3xl text-mute">₹</span>
+    <div className="mt-4">
+      <div className="mb-1.5 text-[12.5px] text-mute">{label}</div>
+      <label className="flex items-baseline gap-2 rounded-2xl bg-fg/[0.03] px-4 py-2.5 ring-1 ring-fg/10 transition focus-within:ring-brand/45">
+        <span className="font-display text-2xl text-mute">₹</span>
         <input
           type="number"
           inputMode="numeric"
@@ -249,12 +247,12 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
           max={MAX_INR}
           value={value || ""}
           onChange={(e) => onChange(Math.max(0, Math.min(MAX_INR, parseInt(e.target.value || "0", 10) || 0)))}
-          className="w-full min-w-0 bg-transparent font-display text-[40px] leading-none font-semibold tracking-tight outline-none tabular"
+          className="w-full min-w-0 bg-transparent font-display text-[34px] leading-none font-semibold tracking-tight outline-none tabular"
           aria-label={`${label} in rupees`}
         />
         <span className="text-[12px] text-dim">INR</span>
       </label>
-      <div className="mt-2.5 grid grid-cols-5 gap-1.5">
+      <div className="mt-2 grid grid-cols-5 gap-1.5">
         {AMOUNTS.map((a) => (
           <button
             key={a.label}
@@ -272,7 +270,7 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
 
 function LimitField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
-    <div className="mt-5 flex items-center justify-between rounded-xl bg-fg/[0.03] px-3.5 py-2.5 ring-1 ring-fg/[0.07]">
+    <div className="mt-3 flex items-center justify-between rounded-xl bg-fg/[0.03] px-3.5 py-2.5 ring-1 ring-fg/[0.07]">
       <span className="text-[12.5px] text-mute">{label}</span>
       <span className="flex items-center gap-1 text-[14px] tabular">
         ₹
@@ -283,21 +281,11 @@ function LimitField({ label, value, onChange }: { label: string; value: number; 
   );
 }
 
-function Divider() {
-  return (
-    <div className="relative my-6 h-px bg-fg/[0.07]">
-      <span className="absolute top-1/2 left-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-surface text-dim ring-1 ring-fg/10">
-        <ArrowDownLeft className="size-3.5" />
-      </span>
-    </div>
-  );
-}
-
 function Calc({ open, setOpen, children }: { open: boolean; setOpen: (o: boolean) => void; children: ReactNode }) {
   return (
-    <section className="mt-5 rounded-2xl bg-fg/[0.02] ring-1 ring-fg/[0.07]">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center justify-between px-4 py-3 text-[13px] font-medium">
-        Net effective rate
+    <section className="mt-3 rounded-2xl bg-fg/[0.02] ring-1 ring-fg/[0.07]">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center justify-between px-4 py-2.5 text-[12.5px] font-medium">
+        How the rate is worked out
         <ChevronDown className={cx("size-4 text-dim transition", open && "rotate-180")} />
       </button>
       <AnimatePresence initial={false}>
@@ -331,7 +319,7 @@ function Line({ k, v }: { k: string; v: string }) {
 
 function CardsLink() {
   return (
-    <Link to="/cards" className="mt-5 flex items-center justify-between border-t border-fg/[0.07] pt-4 text-[13px] text-mute transition hover:text-fg">
+    <Link to="/cards" className="mt-4 flex items-center justify-between border-t border-fg/[0.07] pt-3 text-[13px] text-mute transition hover:text-fg">
       <span className="flex items-center gap-2.5">
         <CreditCard className="size-4" /> My cards
       </span>

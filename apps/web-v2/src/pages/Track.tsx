@@ -1,7 +1,7 @@
 import { ArrowRight, ArrowUpRight, Clock, LoaderCircle, PenLine, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { BrandMark, Button, cx } from "../components/ui";
+import { AppHead, AppPage, BrandMark, Button, cx } from "../components/ui";
 import { api, brandIdFromApi, isFinal, STATUS, type ApiRequest } from "../lib/api";
 import { ARC } from "../lib/chain";
 import { brand } from "../lib/data";
@@ -81,15 +81,12 @@ function TrackList() {
   const yourMove = live ? [...live.asCryptoSpender.map((r) => ({ r, role: "spender" as Role })), ...live.asCryptoBuyer.map((r) => ({ r, role: "buyer" as Role }))].filter(({ r, role }) => !isFinal(r.status) && orderView({ req: r, role, chain: { kind: "server-only" }, now: Date.now(), signedIn: true }).actor === "you").length : 0;
 
   return (
-    <div className="relative pt-6 pb-12 md:pt-8">
-      <div className="relative mx-auto max-w-[1200px] px-4 md:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-[26px] leading-tight font-semibold tracking-[-0.02em]">Your orders</h1>
-            <p className="mt-1 text-[13px] text-mute">{live ? (yourMove > 0 ? `${yourMove} need${yourMove === 1 ? "s" : ""} your move.` : "Nothing needs your move right now.") : "Orders you created or are filling."}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {token ? (
+    <AppPage>
+        <AppHead
+          title="Your orders"
+          sub={live ? (yourMove > 0 ? `${yourMove} need${yourMove === 1 ? "s" : ""} your move.` : "Nothing needs your move right now.") : "Orders you created or are filling."}
+          right={
+            token ? (
               <button onClick={() => void load()} className="flex h-9 items-center gap-2 rounded-full px-3.5 text-[12.5px] text-mute ring-1 ring-fg/10 hover:text-fg">
                 <RefreshCw className={cx("size-3.5", state === "loading" && "animate-spin")} /> {at ? `Updated ${new Date(at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", second: "2-digit" })}` : "Refresh"}
               </button>
@@ -97,9 +94,9 @@ function TrackList() {
               <Button size="sm" variant="outline" onClick={() => void signIn()} disabled={signingIn || !address} icon={signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <PenLine className="size-3.5" />}>
                 {signingIn ? "Check your wallet…" : "Sign in to load your orders"}
               </Button>
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
 
         {(state === "offline" || state === "error") && (
           <div className="mt-4 rounded-2xl bg-amber/[0.06] px-4 py-3 text-[13px] text-amber-ink ring-1 ring-amber/25">
@@ -138,8 +135,7 @@ function TrackList() {
             </Button>
           </div>
         )}
-      </div>
-    </div>
+    </AppPage>
   );
 }
 

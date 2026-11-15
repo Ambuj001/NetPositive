@@ -43,7 +43,7 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
       if (!accepted) return;
       const { request } = accepted;
       saveRoute(req.id, { cardId: chosen.cardId, cardLabel: chosen.cardLabel, channelId: chosen.channel.id, channelName: chosen.channel.name, issuer: cards.find((c) => c.id === chosen.cardId)?.issuer });
-      toast({ title: "Order accepted", body: "Don't buy the voucher yet. Wait for the spender's Ready, then confirm the order from your wallet.", tone: "amber" });
+      toast({ title: "Order accepted", body: "Don't buy the voucher yet. Wait for the voucher buyer's Ready, then confirm the order from your wallet.", tone: "amber" });
       onAccepted(request);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't accept this order.");

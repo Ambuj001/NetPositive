@@ -121,7 +121,7 @@ export function sourceText(source: EscrowSource, chainName = "Arc"): { short: st
     case "server":
       return {
         short: "Read through NetPositive's server",
-        detail: `Read through NetPositive's server, because your browser couldn't reach a ${chainName} node. Open the contract in the explorer to check it independently.`,
+        detail: `Read through NetPositive's server, because your browser couldn't reach any ${chainName} node. Open the contract in the explorer to check it independently.`,
         independent: false,
       };
   }

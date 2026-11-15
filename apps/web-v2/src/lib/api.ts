@@ -13,6 +13,7 @@
  * Data model: requests/{id}. See backend/README.md.
  */
 import { ARC } from "./chain";
+import { setTxRelay } from "./escrow";
 import type { Card } from "./engine";
 import { parseTerms, retryAfterSeconds, serverErrorText, type EscrowTerms } from "./terms";
 
@@ -20,6 +21,8 @@ import { parseTerms, retryAfterSeconds, serverErrorText, type EscrowTerms } from
 // VITE_BACKEND_URL (set in .env.production) wins over the older VITE_API_URL, so a stale value left in a hosting
 // dashboard cannot point a new build at a backend that no longer exists.
 const BASE = ((import.meta.env.VITE_BACKEND_URL as string | undefined) || (import.meta.env.VITE_API_URL as string | undefined) || "/api").replace(/\/$/, "");
+// Read-only relay for browsers and wallets that cannot reach an Arc node themselves (see backend routes/escrow.js).
+setTxRelay(`${BASE.startsWith("/") && typeof location !== "undefined" ? location.origin + BASE : BASE}/escrow/rpc`);
 
 export const API_URL = BASE;
 

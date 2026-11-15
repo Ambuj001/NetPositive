@@ -151,7 +151,7 @@ function Nav() {
 
   return (
     <header className={cx("sticky top-0 z-50 bg-canvas/90 backdrop-blur-xl transition-[border-color] duration-300", scrolled ? "border-b border-line" : "border-b border-transparent")}>
-      <nav className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-6 px-5 md:px-8">
+      <nav className={cx("mx-auto flex h-16 items-center justify-between gap-6 px-4 md:px-8", inApp ? "max-w-[1320px] 2xl:max-w-[1480px]" : "max-w-[1200px]")}>
         <Logo />
         <div className="hidden items-center gap-1 md:flex">
           {inApp && address

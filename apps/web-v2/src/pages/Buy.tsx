@@ -73,10 +73,10 @@ export function BuyView() {
 
   return (
     <div className="relative">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
         {/* ---------------------------------------------------- order book */}
         <div className="min-w-0 space-y-4">
-          <section className="hairline rounded-[24px] bg-surface/70 p-5 backdrop-blur-xl md:p-6">
+          <section className="hairline rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl md:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <h1 className="text-[17px] font-semibold tracking-tight">Available orders</h1>
@@ -89,32 +89,34 @@ export function BuyView() {
               </label>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
               {featured.map((o) => {
                 const b = brand(o.brandId);
                 return (
                   <button
                     key={o.brandId}
                     onClick={() => setQ(b.name)}
-                    className="group relative rounded-2xl bg-fg/[0.025] p-4 text-left ring-1 ring-fg/[0.07] transition hover:bg-fg/[0.05] hover:ring-fg/15"
+                    className="group relative flex items-center gap-2.5 rounded-xl bg-fg/[0.025] px-3 py-2.5 text-left ring-1 ring-fg/[0.07] transition hover:bg-fg/[0.05] hover:ring-fg/15"
                   >
-                    <ArrowUpRight className="absolute top-4 right-4 size-3.5 text-dim transition group-hover:text-fg" />
-                    <BrandMark id={o.brandId} size={30} />
-                    <div className="mt-4 text-[14px] font-medium">{b.name}</div>
-                    <div className="text-[11.5px] text-dim">{b.category}</div>
+                    <BrandMark id={o.brandId} size={26} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-medium">{b.name}</span>
+                      <span className="block truncate text-[11px] text-dim">{b.category}</span>
+                    </span>
+                    <ArrowUpRight className="size-3.5 shrink-0 text-dim transition group-hover:text-fg" />
                   </button>
                 );
               })}
             </div>
 
-            <div className="mt-6 overflow-x-auto">
+            <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[520px] text-[13.5px]">
                 <thead>
                   <tr className="border-b border-fg/[0.06] text-left text-[11.5px] text-dim">
-                    <th className="pb-3 font-normal">Store · from wallet</th>
-                    <th className="pb-3 text-right font-normal">Value</th>
-                    <th className="pb-3 text-right font-normal">You receive</th>
-                    <th className="pb-3 text-right font-normal">Rate / USDC</th>
+                    <th className="pb-2 font-normal">Store · from voucher buyer</th>
+                    <th className="pb-2 text-right font-normal">Value</th>
+                    <th className="pb-2 text-right font-normal">You receive</th>
+                    <th className="pb-2 text-right font-normal">Rate / USDC</th>
                     <th className="w-10 pb-3" />
                   </tr>
                 </thead>
@@ -133,9 +135,9 @@ export function BuyView() {
                           onClick={() => go(o)}
                           className={cx("group cursor-pointer border-b border-fg/[0.05] transition last:border-0 hover:bg-fg/[0.03]", isMatch && "bg-brand/[0.035]")}
                         >
-                          <td className="py-3.5">
+                          <td className="py-2.5">
                             <span className="flex items-center gap-3">
-                              <BrandMark id={o.brandId} size={30} />
+                              <BrandMark id={o.brandId} size={26} />
                               <span className="min-w-0">
                                 <span className="flex items-center gap-2">
                                   <span className="font-medium">{b.name}</span>
@@ -151,12 +153,12 @@ export function BuyView() {
                               </span>
                             </span>
                           </td>
-                          <td className="py-3.5 text-right text-mute tabular">{inr(o.amount)}</td>
-                          <td className="py-3.5 text-right tabular">
+                          <td className="py-2.5 text-right text-mute tabular">{inr(o.amount)}</td>
+                          <td className="py-2.5 text-right tabular">
                             <span className="font-medium">{usdt(quote(o.amount, o.rate).buyerReceives)}</span> <span className="text-[10px] text-dim">USDC</span>
                           </td>
-                          <td className="py-3.5 text-right text-mute tabular">₹{o.rate.toFixed(2)}</td>
-                          <td className="py-3.5 text-right">
+                          <td className="py-2.5 text-right text-mute tabular">₹{o.rate.toFixed(2)}</td>
+                          <td className="py-2.5 text-right">
                             <ArrowUpRight className="ml-auto size-3.5 text-dim transition group-hover:text-brand-ink" />
                           </td>
                         </motion.tr>
@@ -167,7 +169,7 @@ export function BuyView() {
               </table>
               {rows.length === 0 && <div className="py-10 text-center text-[13px] text-mute">{open.length ? "No orders match your search." : source === "offline" ? "The order book can't be reached right now." : source === "loading" ? "Loading orders…" : "No open orders right now."}</div>}
             </div>
-            <p className="mt-4 text-[11.5px] text-dim">Whole vouchers. No partial fills.</p>
+            <p className="mt-3 text-[11.5px] text-dim">Whole vouchers. No partial fills.</p>
           </section>
 
           <AssistantBar
@@ -189,23 +191,23 @@ export function BuyView() {
                   return `Set your spend to ${inr(n)}. ${matchOrders(pool, n).length} whole order(s) match.`;
                 }
               }
-              if (/fee/i.test(t)) return `Buying is free. The spender pays a ${feePercent(feeBps)} fee${feeEstimated ? " (estimated; the server couldn't be asked just now)" : ""} on top of the USDC they lock. You pay only the voucher price on your own card, and any card rewards stay yours.`;
+              if (/fee/i.test(t)) return `Buying is free. The voucher buyer pays a ${feePercent(feeBps)} fee${feeEstimated ? " (estimated; the server couldn't be asked just now)" : ""} on top of the USDC they lock. You pay only the voucher price on your own card, and any card rewards stay yours.`;
               return null;
             }}
           />
         </div>
 
         {/* ---------------------------------------------------- buy panel */}
-        <aside className="lg:sticky lg:top-28 lg:self-start">
-          <div className="hairline rounded-[24px] bg-surface/80 p-6 backdrop-blur-xl">
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="hairline rounded-[22px] bg-surface/80 p-5 backdrop-blur-xl">
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-[22px] font-semibold tracking-tight">Buy USDC</h2>
+              <h2 className="font-display text-[20px] font-semibold tracking-tight">Buy USDC</h2>
               <span className="grid size-8 place-items-center rounded-full bg-[#2775ca] font-display text-[13px] font-bold text-white" aria-hidden>
                 $
               </span>
             </div>
 
-            <div className="mt-5 flex gap-6 border-b border-fg/[0.07] text-[13px]">
+            <div className="mt-3 flex gap-6 border-b border-fg/[0.07] text-[13px]">
               {(["market", "limit"] as const).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={cx("relative pb-3 capitalize transition", tab === t ? "text-fg" : "text-mute hover:text-fg")}>
                   {t}
@@ -214,15 +216,15 @@ export function BuyView() {
               ))}
             </div>
 
-            <div className="mt-5 text-[12.5px] text-mute">You spend</div>
-            <div className="mt-2 flex items-baseline gap-2" aria-live="polite">
-              <span className="font-display text-3xl text-mute">₹</span>
-              <span className="w-full min-w-0 font-display text-[44px] leading-none font-semibold tracking-tight tabular" aria-label={`Amount to spend: ${spend} rupees`}>
+            <div className="mt-4 text-[12.5px] text-mute">You spend</div>
+            <div className="mt-1.5 flex items-baseline gap-2" aria-live="polite">
+              <span className="font-display text-2xl text-mute">₹</span>
+              <span className="w-full min-w-0 font-display text-[36px] leading-none font-semibold tracking-tight tabular" aria-label={`Amount to spend: ${spend} rupees`}>
                 {spend.toLocaleString("en-IN")}
               </span>
               <span className="text-[12px] text-dim">INR</span>
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Amount to spend">
+            <div className="mt-3 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Amount to spend">
               {PRESETS.map((p) => (
                 <button
                   key={p}
@@ -237,7 +239,7 @@ export function BuyView() {
               ))}
             </div>
 
-            <div className="mt-5">
+            <div className="mt-4">
               <div className="text-[12.5px] text-mute">Voucher you hold (pick one)</div>
               <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Voucher you hold">
                 {[{ id: "none", n: open.length }, ...voucherOptions].map(({ id, n }) => {

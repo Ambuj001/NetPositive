@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, ChevronDown, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Aurora, BrandMark, cx } from "../components/ui";
+import { AppHead, AppPage, BrandMark, cx } from "../components/ui";
 import { BRANDS, brand, type Order } from "../lib/data";
 import { bestReward, inr, quote, round2, usdt } from "../lib/engine";
 import { useOrderBook, type Source } from "../lib/orderbook";
@@ -55,28 +55,27 @@ export default function Market() {
   };
 
   return (
-    <div className="relative pt-10 md:pt-14 pb-14">
-      <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-[1200px] px-5 md:px-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div>
-            <div className="label">Marketplace</div>
-            <h1 className="text-gradient mt-3 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Find your next match.</h1>
-            <p className="mt-3 text-[15px] text-mute">Voucher requests, ranked by your estimated cash-value rate.</p>
-            {cardsAreExamples && (
-              <p className="mt-2 text-[12.5px] text-amber-ink">
-                Rewards here are worked out from example cards, not yours. <Link to="/cards" className="underline">Add your cards</Link> for real numbers.
-              </p>
-            )}
-          </div>
-          <SourceTag source={source} onRetry={reload} />
-        </motion.div>
+    <AppPage>
+        <AppHead
+          title="Market"
+          sub={
+            <>
+              Voucher orders, ranked by what they are worth on your cards.
+              {cardsAreExamples && (
+                <span className="text-amber-ink">
+                  {" "}Worked out from example cards, not yours. <Link to="/cards" className="underline">Add your cards</Link> for real numbers.
+                </span>
+              )}
+            </>
+          }
+          right={<SourceTag source={source} onRetry={reload} />}
+        />
 
         {/* search + sort */}
-        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-fg/[0.03] px-4 ring-1 ring-fg/10 transition focus-within:ring-brand/45">
             <Search className="size-4 text-dim" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or spenders" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or spenders" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or wallets" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or wallets" />
           </label>
           <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-fg/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-fg/10 transition focus-within:ring-brand/45">
             <SlidersHorizontal className="size-4 text-dim" />
@@ -106,16 +105,16 @@ export default function Market() {
         </div>
 
         {/* order table */}
-        <div className="hairline mt-6 overflow-hidden rounded-[24px] bg-surface/70 backdrop-blur-xl">
+        <div className="hairline mt-4 overflow-hidden rounded-[22px] bg-surface/70 backdrop-blur-xl">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-[13.5px]">
               <thead>
                 <tr className="border-b border-fg/[0.06] bg-fg/[0.015] text-left text-[11.5px] text-dim">
-                  <th className="px-6 py-4 font-normal">Voucher</th>
-                  <th className="px-4 py-4 font-normal">Value</th>
-                  <th className="px-4 py-4 font-normal">You receive</th>
-                  <th className="px-4 py-4 font-normal">Net rate</th>
-                  <th className="w-14 px-6 py-4" />
+                  <th className="px-5 py-2.5 font-normal">Voucher</th>
+                  <th className="px-4 py-2.5 font-normal">Value</th>
+                  <th className="px-4 py-2.5 font-normal">You receive</th>
+                  <th className="px-4 py-2.5 font-normal">Net rate</th>
+                  <th className="w-14 px-5 py-2.5" />
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +132,7 @@ export default function Market() {
                       aria-label={`Open ${brand(o.brandId).name} ${inr(o.amount)} order`}
                       className="group cursor-pointer border-b border-fg/[0.05] transition outline-none last:border-0 hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04]"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-2.5">
                         <span className="flex items-center gap-3.5">
                           <BrandMark id={o.brandId} size={38} />
                           <span>
@@ -142,15 +141,15 @@ export default function Market() {
                           </span>
                         </span>
                       </td>
-                      <td className="px-4 py-4 tabular">{inr(o.amount)}</td>
-                      <td className="px-4 py-4 tabular">
+                      <td className="px-4 py-2.5 tabular">{inr(o.amount)}</td>
+                      <td className="px-4 py-2.5 tabular">
                         {usdt(receive)} <span className="text-[10px] text-dim">USDC</span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-2.5">
                         <span className="block font-medium text-brand-ink tabular">{net === null ? "—" : `₹${net.toFixed(2)}`}</span>
                         <span className="block text-[11px] text-dim">{route ? `${route.cardLabel} · ${route.channel.name}` : "Add a card to rank"}</span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-5 py-2.5 text-right">
                         <ArrowUpRight className="ml-auto size-4 text-dim transition group-hover:text-brand-ink" />
                       </td>
                     </motion.tr>
@@ -159,10 +158,9 @@ export default function Market() {
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <div className="py-14 text-center text-[13.5px] text-mute">{source === "loading" ? "Loading orders…" : source === "offline" ? "The order book can't be reached right now, so there is nothing to show." : "No vouchers match your search."}</div>}
+          {rows.length === 0 && <div className="py-8 text-center text-[13.5px] text-mute">{source === "loading" ? "Loading orders…" : source === "offline" ? "The order book can't be reached right now, so there is nothing to show." : "No vouchers match your search."}</div>}
         </div>
-      </div>
-    </div>
+    </AppPage>
   );
 }
 

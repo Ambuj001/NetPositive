@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { BuyOnPortal } from "../components/BuyOnPortal";
 import { OnchainProof } from "../components/OnchainProof";
 import { PickRoute } from "../components/PickRoute";
-import { Aurora, BrandMark, Button, Pill, Row, cx } from "../components/ui";
+import { AppPage, BrandMark, Button, Pill, Row, cx } from "../components/ui";
 import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest } from "../lib/api";
 import { ARC } from "../lib/chain";
 import { brand } from "../lib/data";
@@ -104,9 +104,7 @@ export default function TrackDetail({ id }: { id: string }) {
   }, [id, settled, fetchOrder]);
 
   return (
-    <div className="relative pt-6 pb-16 md:pt-8">
-      <Aurora className="h-[30vh] opacity-30" />
-      <div className="relative mx-auto max-w-[1200px] px-4 md:px-8">
+    <AppPage>
         <Link to="/track" className="inline-flex items-center gap-1.5 text-[12.5px] text-mute hover:text-fg">
           <ArrowLeft className="size-3.5" /> All orders
         </Link>
@@ -119,8 +117,7 @@ export default function TrackDetail({ id }: { id: string }) {
         {load.kind === "offline" && <Missing id={id} title="The NetPositive backend isn't reachable" body="Orders are read from the server, so there is nothing to show right now. Try again in a moment." retry={() => void fetchOrder(true)} />}
         {load.kind === "error" && <Missing id={id} title="Couldn't load this order" body={load.message} retry={() => void fetchOrder(true)} />}
         {load.kind === "ready" && <Detail req={load.req} stale={load.stale} updatedAt={load.at} refreshing={refreshing} refetch={fetchOrder} onApplied={applyRequest} />}
-      </div>
-    </div>
+    </AppPage>
   );
 }
 
@@ -348,7 +345,7 @@ function NowCard({ req, role, v, chain, onArc, hasWallet, openWallet, onUpdated,
         </div>
       )}
 
-      {v.actions.length > 0 && (
+      {v.actions.some((x) => x !== "fill") && (
         <div className="mt-4 space-y-3 border-t border-fg/[0.06] pt-4">
           {A.has("ready") && <ReadyAction {...common} viewer={fullAddress} walletRequest={walletRequest} again={v.ready !== "none"} />}
           {A.has("bind") && <BindAction req={req} onDone={onChainDone} />}

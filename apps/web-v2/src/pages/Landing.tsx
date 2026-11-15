@@ -233,25 +233,25 @@ type HowStep = { icon: PixelName; title: string; line: string; tags: string[]; d
 const how = (v: DisplayTerms, feeTag: string, worldOn: boolean): HowStep[] => [
   {
     icon: "lock",
-    title: "A spender locks USDC in escrow",
+    title: "A voucher buyer locks USDC in escrow",
     line: "Someone who wants to shop posts an order: a store, a voucher amount and a rate. Their USDC goes into the escrow contract on Arc, and you can check it there yourself.",
     tags: ["Arc escrow", feeTag, `${v.min} to ${v.max} USDC per order`],
     detail: [
-      "The spender's wallet sends two transactions: approve USDC, then deposit the amount plus the fee into the escrow contract.",
-      "From then on the contract can only pay the buyer the spender names, or refund the spender. No key held by NetPositive can send it anywhere else.",
-      "If no one takes the order in time, it expires and the spender gets everything back, fee included.",
+      "The voucher buyer's wallet sends two transactions: approve USDC, then deposit the amount plus the fee into the escrow contract.",
+      "From then on the contract can only pay the USDC buyer the voucher buyer names, or refund the voucher buyer. No key held by NetPositive can send it anywhere else.",
+      "If no one takes the order in time, it expires and the voucher buyer gets everything back, fee included.",
     ],
   },
   {
     icon: "human",
     title: "You accept, then bind yourself on-chain",
     line: worldOn
-      ? "Only people who passed World ID's one-person check can accept. When the spender presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them."
-      : "Accept with your signed-in wallet (plus World ID's one-person check when it is switched on). When the spender presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them.",
+      ? "Only people who passed World ID's one-person check can accept. When the voucher buyer presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them."
+      : "Accept with your signed-in wallet (plus World ID's one-person check when it is switched on). When the voucher buyer presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them.",
     tags: worldOn ? ["World ID", "One human, one account", "One wallet transaction"] : ["Signed-in wallet", "One wallet transaction"],
     detail: [
       "The order book ranks every open order by what it's worth to each card holder after their card's rewards.",
-      "Do not buy the voucher before your on-chain confirmation has gone through. Until then the spender can still cancel.",
+      "Do not buy the voucher before your on-chain confirmation has gone through. Until then the voucher buyer can still cancel.",
       worldOn
         ? "A banned person can't come back on a fresh wallet: the World ID check is bound to the first wallet."
         : "When World ID is switched on, a banned person can't come back on a fresh wallet: the check is bound to the first wallet.",
@@ -260,23 +260,23 @@ const how = (v: DisplayTerms, feeTag: string, worldOn: boolean): HowStep[] => [
   {
     icon: "sealed",
     title: "Buy the voucher and send the code sealed",
-    line: "Pay for the voucher on your card, mark it delivered from your wallet, then paste the code. It is encrypted in your browser to the spender's key. The server never sees it.",
+    line: "Pay for the voucher on your card, mark it delivered from your wallet, then paste the code. It is encrypted in your browser to the voucher buyer's key. The server never sees it.",
     tags: ["Client-side encryption", `${v.fulfil} to deliver`],
     detail: [
-      "The code is locked in your browser so that only the spender's wallet can open it. NetPositive stores only the locked box.",
-      `You have ${v.fulfil} from your on-chain confirmation to deliver. Miss it and the spender is refunded.`,
+      "The code is locked in your browser so that only the voucher buyer's wallet can open it. NetPositive stores only the locked box.",
+      `You have ${v.fulfil} from your on-chain confirmation to deliver. Miss it and the voucher buyer is refunded.`,
     ],
   },
   {
     icon: "clock",
     title: "Escrow pays your wallet",
-    line: `The spender checks the voucher and releases the USDC to the wallet you connected. If they neither release nor dispute within ${v.review}, you are paid anyway.`,
+    line: `The voucher buyer checks the voucher and releases the USDC to the wallet you connected. If they neither release nor dispute within ${v.review}, you are paid anyway.`,
     tags: [`${v.review} review window`, v.hasStake ? `${v.stake} USDC dispute stake` : "Disputes"],
     detail: [
       v.hasStake
-        ? `If the voucher is bad, the spender can open a dispute by locking a ${v.stake} USDC stake. The escrow freezes until an arbiter decides.`
-        : "If the voucher is bad, the spender can open a dispute. The escrow freezes until an arbiter decides.",
-      "If the spender was right they are refunded. If they were wrong, you receive the USDC and their stake, and their account is banned.",
+        ? `If the voucher is bad, the voucher buyer can open a dispute by locking a ${v.stake} USDC stake. The escrow freezes until an arbiter decides.`
+        : "If the voucher is bad, the voucher buyer can open a dispute. The escrow freezes until an arbiter decides.",
+      "If the voucher buyer was right they are refunded. If they were wrong, you receive the USDC and their stake, and their account is banned.",
       <>
         The full rules are in the{" "}
         <Link to="/docs#disputes" className="link font-medium text-fg">
@@ -297,7 +297,7 @@ function HowItWorks() {
   const HOW = how(v, feeTag, worldOn);
   return (
     <section id="how" className={cx(wrap, "scroll-mt-24 py-20 md:py-28")}>
-      <SectionHead eyebrow="How it works" title="From your card to USDC in your wallet, in four steps" sub={`Seen from the buyer's side. Every step is enforced by the escrow contract${worldOn ? ", World ID" : ""} or encryption, not by trusting the other person.`} />
+      <SectionHead eyebrow="How it works" title="From your card to USDC in your wallet, in four steps" sub={`Seen from the USDC buyer's side. Every step is enforced by the escrow contract${worldOn ? ", World ID" : ""} or encryption, not by trusting the other person.`} />
       <div className="mt-12 space-y-3">
         {HOW.map((h, i) => {
           const isOpen = open === i;
@@ -502,13 +502,13 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
 type TrustItem = { icon: PixelName; title: string; body: string; to?: string; href?: string };
 
 const trust = (v: DisplayTerms, worldOn: boolean): TrustItem[] => [
-  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the escrow contract and can only go to the buyer the spender named, or back to the spender. You send every transaction from your own wallet.", to: "/docs#safety" },
+  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the escrow contract and can only go to the USDC buyer the voucher buyer named, or back to the voucher buyer. You send every transaction from your own wallet.", to: "/docs#safety" },
   worldOn
     ? { icon: "human", title: "World ID humans", body: "One-person check once per person. One account each, and a ban follows the person, not the wallet.", href: "https://world.org/world-id" }
     : { icon: "human", title: "World ID, when switched on", body: "When the one-person check is on, each person gets one account and a ban follows the person, not the wallet. While it is off, any signed-in wallet can trade.", href: "https://world.org/world-id" },
-  { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the spender's key. The server stores only the locked box.", to: "/docs#vouchers" },
-  { icon: "clock", title: "Review window", body: `After delivery the spender has ${v.review} to release or dispute. If they do neither, the buyer is paid.`, to: "/docs#time-limits" },
-  { icon: "scale", title: "Disputes with limits", body: "Only the spender can dispute, and only inside the review window. The arbiter can split that one escrow and nothing else; if nobody rules in 30 days, the USDC returns to the spender.", to: "/docs#disputes" },
+  { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the voucher buyer's key. The server stores only the locked box.", to: "/docs#vouchers" },
+  { icon: "clock", title: "Review window", body: `After delivery the voucher buyer has ${v.review} to release or dispute. If they do neither, the USDC buyer is paid.`, to: "/docs#time-limits" },
+  { icon: "scale", title: "Disputes with limits", body: "Only the voucher buyer can dispute, and only inside the review window. The arbiter can split that one escrow and nothing else; if nobody rules in 30 days, the USDC returns to the voucher buyer.", to: "/docs#disputes" },
   { icon: "shield", title: "Check the escrow yourself", body: "Before you spend a rupee, the app reads the deposit straight from the contract on Arc, not from our server.", to: "/docs#safety" },
 ];
 
@@ -550,7 +550,7 @@ function Trust() {
       <div className="mt-4 rounded-2xl bg-amber/10 p-5 ring-1 ring-amber/35 md:p-6">
         <h3 className="text-[16px] font-semibold text-amber-ink">What is not solved yet</h3>
         <p className="mt-1.5 max-w-[860px] text-[14.5px] leading-relaxed text-fg/80">
-          The escrow contract has not been audited, and its settings are controlled by a single owner wallet for now. A dispute is decided by an arbiter on the team. Nothing checks a voucher automatically, so the spender has to check it in time. Until an audit, orders are limited to {v.max} USDC each and {v.cap} USDC in total{v.live ? "" : " (launch values)"}.{" "}
+          The escrow contract has not been audited, and its settings are controlled by a single owner wallet for now. A dispute is decided by an arbiter on the team. Nothing checks a voucher automatically, so the voucher buyer has to check it in time. Until an audit, orders are limited to {v.max} USDC each and {v.cap} USDC in total{v.live ? "" : " (launch values)"}.{" "}
           <Link to="/docs#safety" className="link font-medium text-fg">
             Read the known limits
           </Link>
@@ -588,7 +588,7 @@ const faqs = (v: DisplayTerms, worldOn: boolean): { q: string; a: ReactNode }[] 
       },
   {
     q: "What if the voucher doesn't work?",
-    a: `Don't release. Open a dispute before the review window ends (${v.review} after delivery), with screenshots${v.hasStake ? ` and a ${v.stake} USDC stake` : ""}. The escrow is frozen until an arbiter decides. If you were right, the USDC, the fee and the stake come back to you. If the arbiter finds the voucher was fine, the buyer is paid, receives your stake, and your account is banned.`,
+    a: `Don't release. Open a dispute before the review window ends (${v.review} after delivery), with screenshots${v.hasStake ? ` and a ${v.stake} USDC stake` : ""}. The escrow is frozen until an arbiter decides. If you were right, the USDC, the fee and the stake come back to you. If the arbiter finds the voucher was fine, the USDC buyer is paid, receives your stake, and your account is banned.`,
   },
   {
     q: "Is the contract audited?",
@@ -604,7 +604,7 @@ const faqs = (v: DisplayTerms, worldOn: boolean): { q: string; a: ReactNode }[] 
   },
   {
     q: "How is the rate decided?",
-    a: "The spender sets it when posting. The live rates above show where P2P and order books are, and the order book shows each card holder what an order is worth after their card's rewards.",
+    a: "The voucher buyer sets it when posting. The live rates above show where P2P and order books are, and the order book shows each card holder what an order is worth after their card's rewards.",
   },
 ];
 

@@ -20,7 +20,7 @@ export const hasDispute = (r: DisputeRequest) => r.status === "disputed" || !!r.
 
 /** Why the buyer has no "raise a dispute" button. */
 export const BUYER_CANNOT_DISPUTE =
-  "Only the spender can open a dispute. You don't need one: you are paid automatically when the review window ends, unless the spender disputes first. If they do, you can give your side here.";
+  "Only the voucher buyer can open a dispute. You don't need one: you are paid automatically when the review window ends, unless the voucher buyer disputes first. If they do, you can give your side here.";
 
 export type Screen = { kind: "raise" } | { kind: "view" } | { kind: "none"; why: string };
 
@@ -31,7 +31,7 @@ export function screenFor(r: DisputeRequest, viewer: string | null | undefined, 
   if (r.status === "code_submitted") {
     if (role === "buyer") return { kind: "none", why: BUYER_CANNOT_DISPUTE };
     if (r.reviewDeadline && Date.parse(r.reviewDeadline) < now) {
-      return { kind: "none", why: "The review window has closed, so the USDC is being released to the buyer." };
+      return { kind: "none", why: "The review window has closed, so the USDC is being released to the USDC buyer." };
     }
     return { kind: "raise" };
   }

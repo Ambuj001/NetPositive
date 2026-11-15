@@ -23,7 +23,7 @@ export function clearVaultSession() {
 
 export type SealResult = { legacy: true } | { legacy: false; sealed: SealedEnvelope };
 
-const SPENDER_VAULT_MISSING = "The spender hasn't set up their vault yet. Ask them to open this order and unlock it. The code stays on this page until then.";
+const SPENDER_VAULT_MISSING = "The voucher buyer hasn't set up their vault yet. Ask them to open this order and unlock it. The code stays on this page until then.";
 
 function same(a: string, b: string) {
   return a.toLowerCase() === b.toLowerCase();
@@ -112,10 +112,10 @@ export async function sealVoucher(opts: {
   try {
     who = recoverSigner(keyBindingMessage(key.address, key.publicKey), key.signature);
   } catch {
-    throw new Error("The spender's vault key failed its signature check. The code was not sent.");
+    throw new Error("The voucher buyer's vault key failed its signature check. The code was not sent.");
   }
   if (!same(who, opts.spender)) {
-    throw new Error("The spender's vault key isn't signed by their wallet. The code was not sent.");
+    throw new Error("The voucher buyer's vault key isn't signed by their wallet. The code was not sent.");
   }
 
   const recipients = [key.publicKey, ...(cfg.adminPublicKey ? [cfg.adminPublicKey] : [])];

@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, Bot, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CustomOrder } from "../components/CustomOrder";
-import { Aurora, cx } from "../components/ui";
+import { AppPage, AppHead, cx } from "../components/ui";
 import { useOrderBook } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 import { BuyView } from "./Buy";
@@ -24,54 +24,51 @@ export default function TradeHub() {
   const { fullAddress } = useApp();
 
   return (
-    <div className="relative pt-10 md:pt-14 pb-12">
-      <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-[1200px] px-5 md:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-gradient font-display text-4xl font-semibold tracking-[-0.03em]">Trade</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-[13px] text-mute">India · INR</span>
-            <Link to="/track" className="flex h-10 items-center gap-2.5 rounded-full bg-fg/[0.03] pr-1.5 pl-4 text-[13px] ring-1 ring-fg/10 transition hover:bg-fg/[0.06]">
-              My orders <ArrowUpRight className="mr-2 size-3.5 text-mute" />
+    <AppPage>
+      <AppHead
+        title="Trade"
+        sub={mode === "buy" ? "Buy USDC by filling a voucher order with your card. Your card rewards stay yours." : "Choose a voucher and pay for it with USDC. A USDC buyer buys it for you."}
+        right={
+          <>
+            <span className="text-[12.5px] text-mute">India · INR</span>
+            <Link to="/track" className="flex h-9 items-center gap-2 rounded-full bg-fg/[0.03] px-3.5 text-[12.5px] ring-1 ring-fg/10 transition hover:bg-fg/[0.06]">
+              My orders <ArrowUpRight className="size-3.5 text-mute" />
             </Link>
-          </div>
+          </>
+        }
+      >
+        <div className="flex rounded-full bg-fg/[0.03] p-1 ring-1 ring-fg/[0.08]" role="tablist" aria-label="Trade mode">
+          {(
+            [
+              ["buy", "Buy USDC", <ArrowDownLeft key="i" className="size-3.5" />],
+              ["sell", "Pay with USDC", <ArrowUpRight key="i" className="size-3.5" />],
+            ] as const
+          ).map(([m, label, icon]) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => setMode(m)}
+              className={cx("relative flex h-8 items-center gap-2 rounded-full px-3.5 text-[12.5px] font-medium transition", mode === m ? "text-white" : "text-mute hover:text-fg")}
+            >
+              {mode === m && <motion.span layoutId="trade-mode" className="absolute inset-0 rounded-full bg-fg" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+              <span className="relative flex items-center gap-2">
+                {icon} {label}
+              </span>
+            </button>
+          ))}
         </div>
+      </AppHead>
 
-        <div className="mt-7 flex flex-wrap items-center gap-4">
-          <div className="flex rounded-full bg-fg/[0.03] p-1 ring-1 ring-fg/[0.08]" role="tablist" aria-label="Trade mode">
-            {(
-              [
-                ["buy", "Buy", <ArrowDownLeft key="i" className="size-3.5" />],
-                ["sell", "Pay with crypto", <ArrowUpRight key="i" className="size-3.5" />],
-              ] as const
-            ).map(([m, label, icon]) => (
-              <button
-                key={m}
-                type="button"
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => setMode(m)}
-                className={cx("relative flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition", mode === m ? "text-white" : "text-mute hover:text-fg")}
-              >
-                {mode === m && <motion.span layoutId="trade-mode" className="absolute inset-0 rounded-full bg-fg" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
-                <span className="relative flex items-center gap-2">
-                  {icon} {label}
-                </span>
-              </button>
-            ))}
-          </div>
-          <span className="text-[13.5px] text-mute">{mode === "buy" ? "Buy USDC. Keep your card rewards." : "Choose a voucher. Pay with USDC."}</span>
-        </div>
-
-        <div className="mt-6">
-          <AnimatePresence mode="wait">
-            <motion.div key={mode} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }}>
-              {mode === "buy" ? <BuyView /> : <PayWithCrypto key={fullAddress} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      <div className="mt-5">
+        <AnimatePresence mode="wait">
+          <motion.div key={mode} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+            {mode === "buy" ? <BuyView /> : <PayWithCrypto key={fullAddress} />}
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </div>
+    </AppPage>
   );
 }
 
@@ -80,13 +77,18 @@ function PayWithCrypto() {
   const [chatOpen, setChatOpen] = useState(true);
   const [session, setSession] = useState(0);
 
+  // The order form is the primary action, so it takes the wide column; the assistant sits beside it on wide screens
+  // and below it on narrow ones.
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
       <div className="min-w-0">
+        <CustomOrder />
+      </div>
+      <aside className="min-w-0 lg:sticky lg:top-24">
         {chatOpen ? (
           <SpendChat key={session} book={orders} onRestart={() => setSession((s) => s + 1)} onClose={() => setChatOpen(false)} />
         ) : (
-          <button type="button" onClick={() => setChatOpen(true)} className="hairline flex w-full items-center gap-3 rounded-[24px] bg-surface/70 p-5 text-left backdrop-blur-xl transition hover:bg-surface">
+          <button type="button" onClick={() => setChatOpen(true)} className="hairline flex w-full items-center gap-3 rounded-[22px] bg-surface/70 p-4 text-left backdrop-blur-xl transition hover:bg-surface">
             <span className="grid size-10 place-items-center rounded-2xl bg-brand/10 text-brand-ink ring-1 ring-fg/10">
               <Bot className="size-5" />
             </span>
@@ -97,9 +99,6 @@ function PayWithCrypto() {
             <Sparkles className="size-4 text-mute" />
           </button>
         )}
-      </div>
-      <aside className="lg:sticky lg:top-28 lg:self-start">
-        <CustomOrder />
       </aside>
     </div>
   );

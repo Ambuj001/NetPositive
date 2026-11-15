@@ -368,3 +368,36 @@ export function Marquee({ children, className, speed = 40 }: { children: ReactNo
     </div>
   );
 }
+
+/* --------------------------------------------------------- in-app page frame */
+
+/**
+ * The frame every in-app page (Trade, Market, My cards, Orders, Disputes) uses, so they share one width, one top
+ * offset under the nav and one rhythm: 24/32 px from the nav, 20 px between the head and the content.
+ */
+export const APP_WIDTH = "max-w-[1320px] 2xl:max-w-[1480px]";
+
+export function AppPage({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className="relative pt-5 pb-12 md:pt-7">
+      <Aurora className="h-[220px] opacity-25" />
+      <div className={cx("relative mx-auto w-full px-4 md:px-8", APP_WIDTH, className)}>{children}</div>
+    </div>
+  );
+}
+
+/** One compact page head: title (and an optional line under it) on the left, controls on the right. */
+export function AppHead({ title, sub, right, children }: { title: ReactNode; sub?: ReactNode; right?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 className="font-display text-[24px] leading-tight font-semibold tracking-[-0.02em] md:text-[28px]">{title}</h1>
+          {children}
+        </div>
+        {sub && <div className="mt-1 max-w-[72ch] text-[13.5px] leading-relaxed text-mute">{sub}</div>}
+      </div>
+      {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
+    </div>
+  );
+}

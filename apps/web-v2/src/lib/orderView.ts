@@ -189,7 +189,7 @@ export function orderView(input: ViewInput): OrderView {
 
   // Read-only for anyone who isn't a party.
   if (role === "observer") {
-    v.notes.unshift({ tone: "mute", text: input.viewer ? `Your connected wallet (${input.viewer.slice(0, 6)}…${input.viewer.slice(-4)}) isn't part of this order, so this page is read-only. To act on it, switch to the wallet that created or accepted it.` : "You're viewing this order as a guest. Connect the wallet that created or accepted it to act on it." });
+    v.notes.unshift({ tone: "mute", text: v.actions.includes("fill") ? "You're not part of this order yet. To take it as the USDC buyer, pick how to buy the voucher below." : input.viewer ? `Your connected wallet (${input.viewer.slice(0, 6)}…${input.viewer.slice(-4)}) isn't part of this order, so this page is read-only. To act on it, switch to the wallet that created or accepted it.` : "You're viewing this order as a guest. Connect the wallet that created or accepted it to act on it." });
   }
   v.needsSignIn = role !== "observer" && !input.signedIn && v.actions.some((a) => SERVER_ACTIONS.has(a));
   return v;

@@ -11,6 +11,10 @@ import {
   encodeDispute,
   encodeMarkDelivered,
   encodeRelease,
+  encodeConcede,
+  encodeStep,
+  encodeUnassign,
+  assertAccount,
   escrowStep,
   lockTerms,
   lockUsdc,
@@ -106,7 +110,7 @@ test("lock terms: anything beyond rounding stops before the wallet is asked", ()
   // A cheaper total is also a surprise.
   assert.throws(() => lockTerms(shown, { amountUsdcBaseUnits: "5370000", feeUsdcBaseUnits: "0", totalUsdcBaseUnits: "5370000" }), /reviewed 5\.42/);
   // The buyer's amount is not what was asked for.
-  assert.throws(() => lockTerms(shown, { amountUsdcBaseUnits: "5360000", feeUsdcBaseUnits: "53600", totalUsdcBaseUnits: "5413600" }), /would pay the buyer 5\.36 USDC, not the 5\.37/);
+  assert.throws(() => lockTerms(shown, { amountUsdcBaseUnits: "5360000", feeUsdcBaseUnits: "53600", totalUsdcBaseUnits: "5413600" }), /would pay the USDC buyer 5\.36 USDC, not the 5\.37/);
   // Numbers that don't add up, or an old server that sends no fee or total.
   assert.throws(() => lockTerms(shown, { amountUsdcBaseUnits: "5370000", feeUsdcBaseUnits: "53700", totalUsdcBaseUnits: "5370000" }), /don't add up/);
   assert.throws(() => lockTerms(shown, { amountUsdcBaseUnits: "5370000" }), /didn't say what fee and total/);
@@ -368,4 +372,76 @@ test("send: declining in the wallet is not retried", async () => {
   };
   await assert.rejects(lockUsdc(request, terms), /rejected/);
   assert.equal(prompts, 1);
+});
+
+/* ------------------------------------------------ step away, give it back, account and balance checks */
+
+test("unassign and concede: selectors match the contract and the calldata is one id word", () => {
+  assert.equal(SELECTORS.unassign, selector("unassign(bytes32)"));
+  assert.equal(SELECTORS.unassign, "0x349420fc");
+  assert.equal(SELECTORS.concede, selector("concede(bytes32)"));
+  assert.equal(SELECTORS.concede, "0xdb31b6b5");
+  assert.equal(encodeUnassign(ID), "0x349420fc" + word(ID));
+  assert.equal(encodeConcede(ID), "0xdb31b6b5" + word(ID));
+  assert.equal(encodeStep("unassign", ID), encodeUnassign(ID));
+  assert.equal(encodeStep("concede", ID), encodeConcede(ID));
+  assert.equal(encodeStep("release", ID), encodeRelease(ID));
+  assert.throws(() => encodeUnassign("0x12"), /32-byte/);
+  assert.throws(() => encodeStep("accept", ID), /Ready permit is missing/);
+});
+
+test("unassign: only the bound USDC buyer, only while Funded; skipped once nobody is bound", () => {
+  assert.equal(planStep("unassign", rec({ fulfiller: BUYER }), BUYER, NOW).do, "send");
+  assert.equal(planStep("unassign", rec(), BUYER, NOW).do, "skip");
+  assert.match(why(planStep("unassign", rec({ fulfiller: BUYER, status: 2 }), BUYER, NOW)), /before the voucher is marked delivered/);
+  assert.match(why(planStep("unassign", rec({ fulfiller: BUYER }), SPENDER, NOW)), /not the USDC buyer bound/);
+});
+
+test("concede: only the bound USDC buyer, after delivery or during a dispute; skipped once refunded", () => {
+  assert.equal(planStep("concede", rec({ fulfiller: BUYER, status: 2 }), BUYER, NOW).do, "send");
+  assert.equal(planStep("concede", rec({ fulfiller: BUYER, status: 3 }), BUYER, NOW).do, "send");
+  assert.equal(planStep("concede", rec({ fulfiller: BUYER, status: 5 }), BUYER, NOW).do, "skip");
+  assert.match(why(planStep("concede", rec({ fulfiller: BUYER }), BUYER, NOW)), /isn't marked delivered yet.*step away instead/);
+  assert.match(why(planStep("concede", rec({ fulfiller: BUYER, status: 4 }), BUYER, NOW)), /already been settled/);
+  assert.match(why(planStep("concede", rec({ fulfiller: BUYER, status: 2 }), SPENDER, NOW)), /Only the USDC buyer/);
+});
+
+test("edge cases say what happened and that nothing was sent", () => {
+  // Release before a USDC buyer is bound.
+  assert.match(why(planStep("release", rec(), SPENDER, NOW)), /No USDC buyer is bound.*Nothing was sent/);
+  // Marking delivered (and so sending the code) before binding.
+  assert.match(why(planStep("markDelivered", rec(), BUYER, NOW)), /not the USDC buyer bound.*Nothing was sent/);
+  // Order expired on-chain before binding.
+  assert.match(why(planStep("accept", rec({ openUntil: NOW - 1 }), BUYER, NOW, permit)), /expired on-chain.*Nothing was sent; don't buy the voucher/);
+});
+
+test("steps: unassign and concede go through the same send path", async () => {
+  const bound = wallet({ balance: 1_000_000n, escrow: rec({ fulfiller: BUYER }) });
+  await escrowStep(bound.request, "unassign", { from: BUYER, escrow: ESCROW, escrowId: ID });
+  assert.equal(bound.sent[0].data, encodeUnassign(ID));
+  assert.ok(bound.sent[0].gas && bound.sent[0].maxFeePerGas); // gas limit and fees like every other step
+  const delivered = wallet({ balance: 1_000_000n, escrow: rec({ fulfiller: BUYER, status: 2 }) });
+  await escrowStep(delivered.request, "concede", { from: BUYER, escrow: ESCROW, escrowId: ID });
+  assert.equal(delivered.sent[0].data, encodeConcede(ID));
+  // A revert is reported in words and nothing is sent.
+  const reverting = wallet({ balance: 1_000_000n, escrow: rec({ fulfiller: BUYER, status: 2 }), estimate: Object.assign(new Error("execution reverted"), { data: selector("NotFulfiller()") }) });
+  await assert.rejects(escrowStep(reverting.request, "concede", { from: BUYER, escrow: ESCROW, escrowId: ID }), /give-back transaction would fail.*Nothing was sent/);
+  assert.equal(reverting.sent.length, 0);
+});
+
+test("the wallet's active account must be the one the step is for", async () => {
+  const other = "0x" + "77".repeat(20);
+  const req = (accounts: unknown) => async ({ method }: { method: string }) => (method === "eth_accounts" ? accounts : null);
+  await assert.rejects(assertAccount(req([other]), BUYER), /active account is 0x7777…7777, but this step is for 0x4444…4444.*Nothing was sent/);
+  await assertAccount(req([BUYER.toUpperCase().replace("0X", "0x")]), BUYER); // case doesn't matter
+  await assertAccount(req([]), BUYER); // a wallet that won't say is left to the contract
+  await assertAccount(async () => { throw new Error("unsupported"); }, BUYER);
+});
+
+test("not enough USDC: says how much is missing and that nothing was sent; wrong network likewise", async () => {
+  const poor = wallet({ balance: 1_000n, escrow: rec({ fulfiller: BUYER, status: 2 }) });
+  await assert.rejects(escrowStep(poor.request, "release", { from: SPENDER, escrow: ESCROW, escrowId: ID }), /has 0\.00 USDC.*about 0\.0017 USDC short\. Nothing was sent/);
+  const elsewhere = wallet({ chain: "0x1", balance: 1_000_000n, escrow: rec({ fulfiller: BUYER, status: 2 }) });
+  await assert.rejects(escrowStep(elsewhere.request, "release", { from: SPENDER, escrow: ESCROW, escrowId: ID }));
+  assert.equal(elsewhere.sent.length, 0);
 });

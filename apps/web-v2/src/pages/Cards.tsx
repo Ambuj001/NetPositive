@@ -3,7 +3,7 @@ import { ArrowUpRight, Check, CreditCard, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CardPicker } from "../components/CardPicker";
-import { Aurora, Button, cx } from "../components/ui";
+import { AppHead, AppPage, Button, cx } from "../components/ui";
 import { inr, routesFor, type Card } from "../lib/engine";
 import { useApp } from "../lib/store";
 
@@ -56,21 +56,19 @@ export default function Cards() {
   };
 
   return (
-    <div className="relative pt-10 md:pt-14 pb-14">
-      <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-[1200px] px-5 md:px-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div>
-            <div className="label">Your portfolio</div>
-            <h1 className="text-gradient mt-3 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Make every card count.</h1>
-          </div>
-          <Button variant="amber" onClick={() => setAdding(true)} icon={<Plus className="size-4" />}>
-            Add card
-          </Button>
-        </motion.div>
+    <AppPage>
+        <AppHead
+          title="My cards"
+          sub="Your cards' reward rates decide which voucher orders are worth the most to you. Only reward profiles are saved, never card numbers."
+          right={
+            <Button size="sm" variant="amber" onClick={() => setAdding(true)} icon={<Plus className="size-3.5" />}>
+              Add card
+            </Button>
+          }
+        />
 
         {fullAddress && !token && (
-          <div className="mt-8 flex flex-col gap-3 rounded-2xl bg-amber/[0.07] p-4 ring-1 ring-amber/30 sm:flex-row sm:items-center">
+          <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-amber/[0.07] p-3.5 ring-1 ring-amber/30 sm:flex-row sm:items-center">
             <p className="flex-1 text-[13.5px] leading-relaxed text-fg/85">You're connected but not signed in. Sign in (one free signature) to load the cards saved on your account and to save new ones. Until then you see example cards.</p>
             <Button variant="amber" size="sm" onClick={() => void signIn()} disabled={signingIn}>
               {signingIn ? "Check your wallet…" : "Sign in"}
@@ -78,9 +76,9 @@ export default function Cards() {
           </div>
         )}
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           {/* card stack */}
-          <section className="hairline rounded-[26px] bg-surface/70 p-6 backdrop-blur-xl">
+          <section className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-[16px] font-semibold">{cardsAreExamples ? "Example cards" : "My cards"}</h2>
               <span className="text-[12px] text-dim">{cardsAreExamples ? "none saved yet" : `${cards.length} saved`}</span>
@@ -90,7 +88,7 @@ export default function Cards() {
                 These are example cards, not yours. Their reward rates are illustrative. Add your own cards to see real routes; the examples go away as soon as you add or change one.
               </p>
             )}
-            <div className="mt-5 space-y-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {cards.map((c, i) => {
                 const on = c.id === card?.id;
                 return (
@@ -103,24 +101,24 @@ export default function Cards() {
                     whileHover={{ y: -4 }}
                     transition={{ duration: 0.25 }}
                     className={cx(
-                      "relative mx-auto block aspect-[1.75] w-full max-w-[420px] overflow-hidden rounded-[20px] p-6 text-left shadow-[0_30px_70px_-30px_rgba(12,13,15,0.14)] ring-1 transition",
+                      "relative block aspect-[1.75] w-full overflow-hidden rounded-[16px] p-4 text-left shadow-[0_30px_70px_-30px_rgba(12,13,15,0.14)] ring-1 transition",
                       on ? "ring-2 ring-brand/70 ring-offset-4 ring-offset-ink-2" : "ring-fg/10 opacity-80 hover:opacity-100",
                     )}
                     style={{ background: FACES[i % FACES.length] }}
                   >
                     <span className="absolute inset-0 bg-[linear-gradient(115deg,transparent_30%,rgba(12,13,15,0.09)_45%,transparent_60%)]" />
-                    <CreditCard className="absolute top-6 right-6 size-6 text-fg/45" />
-                    <span className="absolute bottom-6 left-6">
+                    <CreditCard className="absolute top-4 right-4 size-5 text-fg/45" />
+                    <span className="absolute right-10 bottom-4 left-4">
                       <span className="block font-mono text-[11px] tracking-[0.25em] text-fg/55 uppercase">{c.issuer}</span>
-                      <span className="mt-1.5 block font-display text-[26px] font-semibold tracking-tight text-white">{c.name}</span>
+                      <span className="mt-1 block truncate font-display text-[19px] font-semibold tracking-tight text-white">{c.name}</span>
                       <span className="mt-1 block text-[11.5px] text-fg/45">{c.last || "Reward profile"}</span>
                     </span>
-                    {on && <Check className="absolute right-6 bottom-6 size-5 text-brand-ink" />}
+                    {on && <Check className="absolute right-4 bottom-4 size-5 text-brand-ink" />}
                   </motion.button>
                 );
               })}
               {!cards.length && (
-                <div className="grid place-items-center rounded-2xl border border-dashed border-fg/15 py-14 text-center">
+                <div className="grid place-items-center rounded-2xl border border-dashed border-fg/15 py-8 text-center sm:col-span-2">
                   <CreditCard className="size-6 text-dim" />
                   <div className="mt-3 text-[15px] font-medium">Your portfolio starts here.</div>
                   <Button className="mt-4" size="sm" variant="outline" onClick={() => setAdding(true)} icon={<Plus className="size-3.5" />}>
@@ -134,8 +132,8 @@ export default function Cards() {
           {/* details */}
           <AnimatePresence mode="wait">
             {card && (
-              <motion.div key={card.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="space-y-5">
-                <section className="hairline rounded-[26px] bg-surface/70 p-6 backdrop-blur-xl">
+              <motion.div key={card.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="space-y-4 lg:sticky lg:top-24">
+                <section className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
                   <div className="flex items-center justify-between">
                     <h2 className="text-[16px] font-semibold">
                       {card.issuer} {card.name}
@@ -144,11 +142,11 @@ export default function Cards() {
                       <Trash2 className="size-4" />
                     </button>
                   </div>
-                  <div className="mt-7 flex items-baseline gap-3">
-                    <span className="font-display text-[52px] leading-none font-semibold tracking-tight tabular">{card.pointsPer}</span>
+                  <div className="mt-4 flex items-baseline gap-3">
+                    <span className="font-display text-[40px] leading-none font-semibold tracking-tight tabular">{card.pointsPer}</span>
                     <span className="text-[13px] text-mute">points per {inr(card.spendUnit)}</span>
                   </div>
-                  <div className="mt-6 grid grid-cols-2 border-t border-fg/[0.07] pt-5">
+                  <div className="mt-4 grid grid-cols-2 border-t border-fg/[0.07] pt-3.5">
                     <div>
                       <div className="text-[12px] text-dim">Cash value</div>
                       <div className="mt-1 text-[16px] font-medium tabular">{inr(card.statementValue, 2)} / point</div>
@@ -160,7 +158,7 @@ export default function Cards() {
                   </div>
                 </section>
 
-                <section className="hairline rounded-[26px] bg-surface/70 p-6 backdrop-blur-xl">
+                <section className="hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
                   <div className="flex items-center justify-between">
                     <h2 className="text-[16px] font-semibold">On a ₹10,000 voucher</h2>
                     <div className="flex rounded-xl bg-fg/[0.03] p-1 ring-1 ring-fg/[0.07]" aria-label="Reward value">
@@ -173,7 +171,7 @@ export default function Cards() {
                   </div>
                   <div className="mt-4 divide-y divide-fg/[0.06] border-t border-fg/[0.06]">
                     {routes.map((r) => (
-                      <div key={r.channel.id} className="flex items-center justify-between py-3.5">
+                      <div key={r.channel.id} className="flex items-center justify-between py-2.5">
                         <div>
                           <div className="text-[14px] font-medium">{r.channel.name}</div>
                           <div className="text-[11.5px] text-dim">
@@ -192,10 +190,9 @@ export default function Cards() {
             )}
           </AnimatePresence>
         </div>
-      </div>
 
       <AddCard open={adding} onClose={() => setAdding(false)} saved={cards} onAdd={add} onAddMany={addMany} />
-    </div>
+    </AppPage>
   );
 }
 

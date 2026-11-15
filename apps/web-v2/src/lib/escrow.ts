@@ -86,7 +86,11 @@ export class PendingTxError extends Error {
 
 async function waitForReceipt(request: Rpc, hash: string, what: string) {
   for (let i = 0; i < 60; i++) {
-    const receipt = (await request({ method: "eth_getTransactionReceipt", params: [hash] }).catch(() => null)) as { status?: string } | null;
+    // The wallet's node first; if it has no answer, any other node we can reach (a wallet that sends fine may still
+    // be unable to read).
+    let receipt = (await request({ method: "eth_getTransactionReceipt", params: [hash] }).catch(() => null)) as { status?: string } | null;
+    const other = fallback();
+    if (!receipt && other) receipt = (await other({ method: "eth_getTransactionReceipt", params: [hash] }).catch(() => null)) as { status?: string } | null;
     if (receipt) {
       if (receipt.status === "0x0") throw new Error(`The ${what} transaction failed on-chain. Nothing changed.`);
       return;
@@ -97,15 +101,42 @@ async function waitForReceipt(request: Rpc, hash: string, what: string) {
 }
 
 /**
- * Second node for gas and fee reads when the wallet's own node refuses them: the configured Arc RPC, over fetch.
+ * Other nodes for reads when the wallet's own node refuses them: the public Arc RPC over fetch, then the read-only
+ * relay on NetPositive's server (for browsers that cannot reach an Arc node at all). They only ever read; the
+ * transaction itself is always sent by the wallet.
  * `undefined` means "not built yet"; tests set it to null (or a stub) with `setTxFallbackRpc`.
  */
 let fallbackRpc: Rpc | null | undefined;
+let relayUrl: string | null = null;
 export function setTxFallbackRpc(rpc: Rpc | null) {
   fallbackRpc = rpc;
 }
+/** Where the server's read-only relay lives (set once by api.ts). */
+export function setTxRelay(url: string | null) {
+  relayUrl = url;
+  fallbackRpc = undefined;
+}
+/** A node's own answer (a JSON-RPC error such as a revert) is final; only "could not reach it" moves to the next node. */
+const isNodeAnswer = (e: unknown) => typeof (e as { code?: unknown })?.code === "number";
+export function firstReachable(nodes: Rpc[]): Rpc {
+  return async (args) => {
+    let last: unknown = new Error("No node could be reached");
+    for (const node of nodes) {
+      try {
+        return await node(args);
+      } catch (e) {
+        if (isNodeAnswer(e)) throw e;
+        last = e;
+      }
+    }
+    throw last;
+  };
+}
 function fallback(): Rpc | null {
-  if (fallbackRpc === undefined) fallbackRpc = typeof fetch === "function" ? httpRpc(ARC.rpc) : null;
+  if (fallbackRpc === undefined) {
+    const nodes = typeof fetch === "function" ? [httpRpc(ARC.rpc), ...(relayUrl ? [httpRpc(relayUrl)] : [])] : [];
+    fallbackRpc = nodes.length ? firstReachable(nodes) : null;
+  }
   return fallbackRpc;
 }
 
@@ -140,10 +171,21 @@ async function send(request: Rpc, tx: { from: string; to: string; data: string }
   return hash;
 }
 
-/** The escrow record, read through the connected wallet's own node. */
+/**
+ * The escrow record, read through the connected wallet's own node, or through the other nodes when the wallet
+ * cannot read (some wallets send on Arc but do not answer eth_call).
+ */
 export async function readEscrowVia(request: Rpc, contract: string, escrowId: string): Promise<EscrowRecord> {
-  const out = await request({ method: "eth_call", params: [{ to: contract, data: encodeGetEscrow(escrowId) }, "latest"] });
-  return decodeGetEscrow(typeof out === "string" ? out : "");
+  const call = { method: "eth_call", params: [{ to: contract, data: encodeGetEscrow(escrowId) }, "latest"] };
+  try {
+    const out = await request(call);
+    return decodeGetEscrow(typeof out === "string" ? out : "");
+  } catch (walletError) {
+    const other = fallback();
+    if (!other) throw walletError;
+    const out = await other(call);
+    return decodeGetEscrow(typeof out === "string" ? out : "");
+  }
 }
 
 const same = (a?: string | null, b?: string | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
@@ -315,7 +357,8 @@ export async function escrowStep(request: Rpc, step: EscrowStep, a: StepArgs): P
   try {
     record = await readEscrowVia(request, a.escrow, a.escrowId);
   } catch (e) {
-    throw new Error(`Couldn't read the escrow on ${ARC.name} (${e instanceof Error ? e.message : "no answer"}). Nothing was sent. Try again.`);
+    const why = e instanceof Error ? e.message : typeof (e as { message?: unknown })?.message === "string" ? (e as { message: string }).message : "no answer";
+    throw new Error(`Couldn't read the escrow on ${ARC.name} (${why}). Nothing was sent. Try again.`);
   }
   const plan = planStep(step, record, a.from, Math.floor(Date.now() / 1000), a.permit);
   if (plan.do === "stop") throw new Error(plan.why);
@@ -368,7 +411,7 @@ export function lockTerms(shown: { receives: string; total: string }, server: { 
   if (amount === null || fee === null || total === null) throw new Error("The server didn't say what fee and total it will lock, so the app stopped before asking your wallet. Nothing was locked.");
   if (amount <= 0n || amount + fee !== total) throw new Error("The server's amount, fee and total don't add up, so the app stopped before asking your wallet. Nothing was locked.");
   if (amount !== usdcBaseUnits(shown.receives)) {
-    throw new Error(`The server would pay the buyer ${usdcExact(amount)} USDC, not the ${shown.receives} USDC you reviewed. Nothing was locked.`);
+    throw new Error(`The server would pay the USDC buyer ${usdcExact(amount)} USDC, not the ${shown.receives} USDC you reviewed. Nothing was locked.`);
   }
   const shownTotal = usdcBaseUnits(shown.total);
   const diff = total > shownTotal ? total - shownTotal : shownTotal - total;

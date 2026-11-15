@@ -76,7 +76,7 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
       if (!posted) return;
       const { intent } = posted;
       setMine(intent);
-      toast({ title: "Buy request posted", body: `${inr(intent.amountInr)} · ${voucherOf(intent) ? brand(voucherOf(intent)!).name : "any voucher"}. Spenders can see it now.`, tone: "mint" });
+      toast({ title: "Buy request posted", body: `${inr(intent.amountInr)} · ${voucherOf(intent) ? brand(voucherOf(intent)!).name : "any voucher"}. Voucher buyers can see it now.`, tone: "mint" });
     } catch (e) {
       setError(e instanceof ApiError || e instanceof Error ? e.message : "Couldn't post your buy request.");
     } finally {
@@ -105,7 +105,7 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
   if (!mine && !(amount > 0)) return null;
 
   return (
-    <div className="mt-5 rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]" data-testid="buy-request">
+    <div className="mt-4 rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]" data-testid="buy-request">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-brand/10 text-brand-ink ring-1 ring-fg/10">
           <HandCoins className="size-4" />
@@ -117,11 +117,11 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
               <div className="text-mute">
                 {inr(mine.amountInr)} · {mineVoucher ? `${brand(mineVoucher).name} voucher` : "any voucher"} · posted {ago(mine.createdAt)}
               </div>
-              <div className="text-dim">Spenders looking for this amount are shown your request.</div>
+              <div className="text-dim">Voucher buyers looking for this amount are shown your request.</div>
             </>
           ) : (
             <>
-              <div className="font-medium text-fg">Want {inr(amount)}? Let spenders find you</div>
+              <div className="font-medium text-fg">Want {inr(amount)}? Let voucher buyers find you</div>
               <div className="text-mute">
                 Post a buy request for {inr(amount)} with {apiVoucher ? `your ${brand(apiVoucher).name} voucher` : "no voucher"}. It's shown to people who want to spend crypto at that size.
               </div>
@@ -176,7 +176,7 @@ export function BuyerList({
     <div className={cx("rounded-2xl bg-brand/[0.05] p-3.5 ring-1 ring-brand/25", className)} data-testid="buyer-recommendations">
       <div className="flex items-center gap-2 text-[12.5px] font-medium">
         <HandCoins className="size-4 text-brand-ink" />
-        Recommended · {intents.length === 1 ? "a buyer wants" : `${intents.length} buyers want`} {inr(amount)}
+        Recommended · {intents.length === 1 ? "a USDC buyer wants" : `${intents.length} USDC buyers want`} {inr(amount)}
         {place ? ` ${place}` : ""}
       </div>
       <ul className="mt-2.5 space-y-2">
@@ -224,7 +224,7 @@ export function BuyerList({
         {others === 0
           ? "This is your own buy request. Another wallet can fill your order, not you."
           : onPick
-            ? "Choose a buyer to create an order at this size. You review it before any USDC is locked."
+            ? "Choose a USDC buyer to create an order at this size. You review it before any USDC is locked."
             : "Lock your USDC at this size and they can fill your order."}
       </p>
     </div>

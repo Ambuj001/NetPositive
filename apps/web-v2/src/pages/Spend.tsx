@@ -97,7 +97,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
     try {
       const [{ orders, match, count }, buyers] = await Promise.all([loadBrand(place, n, book), loadBuyers(place, n)]);
       // Buyers who asked for exactly this amount (this store, or no store in particular).
-      const buyerMsg = () => (buyers.length ? [bot(say(`${buyers.length === 1 ? "A buyer is" : `${buyers.length} buyers are`} waiting for a ${label} ${place.label} voucher.`), { kind: "buyers" as const, intents: buyers, amount: n, place: place.label })] : []);
+      const buyerMsg = () => (buyers.length ? [bot(say(`${buyers.length === 1 ? "A USDC buyer is" : `${buyers.length} USDC buyers are`} waiting for a ${label} ${place.label} voucher.`), { kind: "buyers" as const, intents: buyers, amount: n, place: place.label })] : []);
       if (match) {
         const extra = count > 1 ? ` I picked the newest of ${count}.` : "";
         push(
@@ -193,7 +193,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
 
   return (
     <>
-      <div className="hairline relative flex h-[min(760px,calc(100dvh_-_230px))] min-h-[520px] flex-col overflow-hidden rounded-[28px] bg-surface/85 backdrop-blur-xl">
+      <div className="hairline relative flex h-[min(660px,calc(100dvh_-_190px))] min-h-[440px] flex-col overflow-hidden rounded-[22px] bg-surface/85 backdrop-blur-xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(0,0,255,0.14), transparent)" }} />
         <div className="relative flex items-center gap-3 border-b border-fg/[0.06] px-5 py-4">
           <span className="relative grid size-10 place-items-center rounded-2xl bg-brand/10 text-brand-ink ring-1 ring-fg/10">
@@ -489,7 +489,7 @@ export function ReviewModal({
               <BrandMark id={brandId} size={40} />
               <div className="min-w-0 flex-1">
                 <div className="text-[14px] font-medium">{title}</div>
-                <div className="text-[12px] text-dim">You spend crypto. A buyer purchases the gift card.</div>
+                <div className="text-[12px] text-dim">You spend USDC. A USDC buyer purchases the gift card for you.</div>
               </div>
             </div>
             <div className="mt-4 space-y-2 rounded-2xl bg-fg/[0.02] p-4 text-[13px] ring-1 ring-fg/[0.06]">

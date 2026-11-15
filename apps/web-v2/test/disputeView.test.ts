@@ -30,7 +30,7 @@ test("only the crypto spender can raise while the code waits for review; the buy
   assert.equal(screenFor(req(), SPENDER, now).kind, "raise");
   const buyer = screenFor(req(), BUYER, now);
   assert.equal(buyer.kind, "none");
-  assert.match((buyer as { why: string }).why, /Only the spender can open a dispute/);
+  assert.match((buyer as { why: string }).why, /Only the voucher buyer can open a dispute/);
   assert.match((buyer as { why: string }).why, /paid automatically when the review window ends/);
 });
 

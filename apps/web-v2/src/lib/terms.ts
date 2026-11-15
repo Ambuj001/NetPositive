@@ -88,8 +88,8 @@ export type AmountCheck = { ok: true } | { ok: false; reason: "paused" | "below_
 export function checkAmount(terms: EscrowTerms, amount: bigint): AmountCheck {
   if (terms.paused) return { ok: false, reason: "paused", text: "New orders are paused right now. Orders already in escrow are not affected: they can still be completed, cancelled or refunded." };
   if (amount <= 0n) return { ok: true };
-  if (amount < terms.min) return { ok: false, reason: "below_min", text: `The smallest order is ${usdcShort(terms.min)} USDC to the buyer. This one is ${usdcShort(amount)} USDC.` };
-  if (amount > terms.max) return { ok: false, reason: "above_max", text: `The largest order is ${usdcShort(terms.max)} USDC to the buyer. This one is ${usdcShort(amount)} USDC.` };
+  if (amount < terms.min) return { ok: false, reason: "below_min", text: `The smallest order is ${usdcShort(terms.min)} USDC to the USDC buyer. This one is ${usdcShort(amount)} USDC.` };
+  if (amount > terms.max) return { ok: false, reason: "above_max", text: `The largest order is ${usdcShort(terms.max)} USDC to the USDC buyer. This one is ${usdcShort(amount)} USDC.` };
   const room = terms.cap > terms.locked ? terms.cap - terms.locked : 0n;
   if (amount + feeOn(amount, terms.feeBps) > room) {
     return {
