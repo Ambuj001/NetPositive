@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { escrowTerms, readEscrow, chainNow, isMock } from '../services/escrow.js';
 import { HttpError } from '../lib/errors.js';
+import { config } from '../config.js';
 
 const router = Router();
 
@@ -25,6 +26,40 @@ router.get('/state/:escrowId', async (req, res) => {
   const [e, now] = await Promise.all([readEscrow(req.params.escrowId), chainNow()]);
   res.set('cache-control', 'no-store');
   res.json({ escrow: { ...e, amount: e.amount.toString(), fee: e.fee.toString(), bond: e.bond.toString() }, chainTime: now, source: 'server' });
+});
+
+/**
+ * POST /escrow/rpc → a read-only relay to the Arc node for browsers and wallets that cannot reach one themselves.
+ * Only the calls the app needs to prepare and follow a transaction, and eth_call / eth_estimateGas only towards the
+ * escrow contract and USDC. It never signs or sends anything. Accepts one JSON-RPC request or a batch of up to 10.
+ */
+const RELAY_METHODS = new Set(['eth_chainId', 'eth_blockNumber', 'eth_getBlockByNumber', 'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_feeHistory', 'eth_getTransactionReceipt', 'eth_getTransactionByHash', 'eth_getBalance', 'eth_getTransactionCount', 'eth_call', 'eth_estimateGas']);
+function relayAllowed(call) {
+  if (!call || typeof call.method !== 'string' || !RELAY_METHODS.has(call.method) || !Array.isArray(call.params)) return false;
+  if (call.method === 'eth_call' || call.method === 'eth_estimateGas') {
+    const to = String(call.params[0]?.to ?? '').toLowerCase();
+    return to === config.ESCROW_CONTRACT_ADDRESS.toLowerCase() || to === config.USDC_ADDRESS.toLowerCase();
+  }
+  return true;
+}
+router.post('/rpc', async (req, res) => {
+  if (isMock) throw new HttpError(404, 'not_found', 'No chain in mock mode');
+  const batch = Array.isArray(req.body);
+  const calls = batch ? req.body : [req.body];
+  if (!calls.length || calls.length > 10) throw new HttpError(400, 'bad_rpc', 'Send one request or a batch of up to 10');
+  const out = await Promise.all(calls.map(async (call) => {
+    const id = call?.id ?? null;
+    if (!relayAllowed(call)) return { jsonrpc: '2.0', id, error: { code: -32601, message: 'This relay only serves read calls for the escrow and USDC' } };
+    try {
+      const r = await fetch(config.ARC_RPC_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id, method: call.method, params: call.params }), signal: AbortSignal.timeout(15_000) });
+      const j = await r.json();
+      return j.error ? { jsonrpc: '2.0', id, error: j.error } : { jsonrpc: '2.0', id, result: j.result };
+    } catch (err) {
+      return { jsonrpc: '2.0', id, error: { code: -32000, message: `Arc node did not answer: ${err.message}` } };
+    }
+  }));
+  res.set('cache-control', 'no-store');
+  res.json(batch ? out : out[0]);
 });
 
 export default router;

@@ -204,6 +204,18 @@ try {
     assert.equal(h.headers.get('x-frame-options'), 'DENY');
   });
 
+  await check('POST /escrow/rpc relays read calls for the escrow and USDC only', async () => {
+    const data = '0x' + 'f023b811' + a.escrowId.slice(2);
+    let r = await api('POST', '/escrow/rpc', { body: { jsonrpc: '2.0', id: 7, method: 'eth_call', params: [{ to: escrow, data }, 'latest'] } });
+    assert.equal(r.status, 200, r.text); assert.equal(r.body.id, 7); assert.ok(r.body.result.length > 66, 'returns the escrow record');
+    r = await api('POST', '/escrow/rpc', { body: [{ jsonrpc: '2.0', id: 1, method: 'eth_chainId', params: [] }, { jsonrpc: '2.0', id: 2, method: 'eth_call', params: [{ to: stranger.address, data: '0x' }, 'latest'] }, { jsonrpc: '2.0', id: 3, method: 'eth_sendRawTransaction', params: ['0x00'] }] });
+    assert.equal(Number(BigInt(r.body[0].result)), CHAIN_ID);
+    assert.ok(r.body[1].error, 'calls to other contracts are refused');
+    assert.ok(r.body[2].error, 'sending is never relayed');
+    r = await api('POST', '/escrow/rpc', { body: { jsonrpc: '2.0', id: 1, method: 'eth_estimateGas', params: [{ from: spender.address, to: escrow, data: '0xc4d252f5' + a.escrowId.slice(2) }] } });
+    assert.ok(r.body.result || r.body.error, 'estimates are relayed (result or the node\'s revert)');
+  });
+
   console.log('\n== 2. Happy path: the parties move the money, the server only records it ==');
   await check('submit-code is refused until the buyer is bound on-chain', async () => {
     assert.equal((await api('POST', `/requests/${a.id}/accept`, { token: tB })).status, 200);
