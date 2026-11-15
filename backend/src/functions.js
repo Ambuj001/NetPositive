@@ -11,7 +11,10 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 
-const SECRETS = ['JWT_SECRET', 'VOUCHER_ENC_KEY', 'WORLD_ID_SIGNING_KEY', 'ESCROW_KEEPER_PRIVATE_KEY'].map((name) => defineSecret(name));
+// The World ID signing key is only needed once World ID is switched on; set USE_WORLD_ID_SECRET=true in the project's
+// .env file after creating that secret, and redeploy.
+const SECRET_NAMES = ['JWT_SECRET', 'VOUCHER_ENC_KEY', 'ESCROW_KEEPER_PRIVATE_KEY', ...(process.env.USE_WORLD_ID_SECRET === 'true' ? ['WORLD_ID_SIGNING_KEY'] : [])];
+const SECRETS = SECRET_NAMES.map((name) => defineSecret(name));
 const REGION = process.env.FUNCTIONS_REGION_NAME || 'asia-south1'; // Mumbai
 
 function prepareEnv() {

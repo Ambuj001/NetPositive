@@ -48,6 +48,7 @@ jobs:
       - run: npm run cards:test
       - run: npm run test:rates
       - run: npm run hardening:test
+      - run: npm run admin:test
 
   contracts:
     name: Contracts and backend on a local chain

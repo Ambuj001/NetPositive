@@ -17,6 +17,7 @@
     "vault:test": "node --test vault-sdk/test/sdk.test.mjs",
     "vault:e2e": "node --import ./test-support/register.mjs scripts/vault-e2e.mjs both && node --import ./test-support/register.mjs scripts/vault-e2e.mjs sealed",
     "sim": "node --import ./test-support/register.mjs scripts/integration-sim.js",
+    "admin:test": "node --import ./test-support/register.mjs scripts/admin.test.js",
     "hardening:test": "node --import ./test-support/register.mjs scripts/hardening.test.js",
     "chain:v2:local": "node --import ./test-support/register.mjs scripts/escrow-v2-local.mjs",
     "full:e2e": "node scripts/full-e2e.mjs",

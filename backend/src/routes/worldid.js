@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getSettings } from '../services/settings.js';
 import { z } from 'zod';
 import { config } from '../config.js';
 import { col, db, FieldValue, serialize } from '../services/firestore.js';
@@ -31,8 +32,10 @@ const verifyBody = z.object({
  * GET /world-id/config → public values the frontend passes to IDKit.
  * The signal MUST be the signed-in wallet address so the proof is bound to it.
  */
-router.get('/config', (_req, res) => {
+router.get('/config', async (_req, res) => {
   res.json({
+    // Whether trading needs a World ID right now. An administrator can turn this off; the app then skips the step.
+    required: (await getSettings()).worldIdRequired,
     app_id: config.WORLD_ID_APP_ID,
     rp_id: config.WORLD_ID_RP_ID || null,
     action: config.WORLD_ID_ACTION,

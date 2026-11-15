@@ -14,6 +14,7 @@ import buyIntentRoutes from './routes/buyIntents.js';
 import internalRoutes from './routes/internal.js';
 import ratesRoutes from './routes/rates.js';
 import escrowRoutes from './routes/escrow.js';
+import adminRoutes from './routes/admin.js';
 import { securityHeaders, rateLimit, requestLog } from './middleware/security.js';
 
 export function createApp() {
@@ -41,6 +42,7 @@ export function createApp() {
   app.use('/internal', internalRoutes);
   app.use('/rates', ratesRoutes);
   app.use('/escrow', escrowRoutes);
+  app.use('/admin', adminRoutes);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found', 'Route not found')));
 

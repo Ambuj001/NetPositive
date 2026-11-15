@@ -81,6 +81,8 @@ const schema = z.object({
   // Base of POST /api/v4/verify/{rp_id}. A leftover v2 URL is rewritten in the service.
   WORLD_ID_VERIFY_URL: z.string().url().default('https://developer.world.org/api/v4/verify'),
   WORLD_ID_MOCK: bool,
+  // Whether trading needs a World ID until an administrator sets it from the admin screen (which then wins).
+  WORLD_ID_REQUIRED: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
   // LOCAL DEVELOPMENT ONLY. Skips World ID entirely: /world-id/verify marks the signed-in wallet as a verified human with its
   // own fake identity (derived from the wallet), so every test wallet can register. Refused in production (see below).
   WORLD_ID_DEV_BYPASS: bool,

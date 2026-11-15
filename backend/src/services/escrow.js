@@ -57,6 +57,9 @@ export const publicClient = createPublicClient({ chain: arc, transport: http(con
 const walletFor = (key) => (key ? createWalletClient({ account: privateKeyToAccount(key), chain: arc, transport: http(config.ARC_RPC_URL) }) : null);
 const keeper = walletFor(config.ESCROW_KEEPER_PRIVATE_KEY);
 const arbiter = walletFor(config.ESCROW_ARBITER_PRIVATE_KEY);
+/** The keeper's public address (for the admin screen's gas balance), or null in mock mode. */
+export const keeperAddress = keeper?.account.address ?? null;
+export const arbiterConfigured = Boolean(arbiter);
 
 export const isMock = config.ESCROW_MODE === 'mock';
 /** Mock mode only: names of operations that should fail ('release', 'refund', 'verifyDeposit'), to test failure paths. */

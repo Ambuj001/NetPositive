@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { col } from '../services/firestore.js';
 import { unauthorized, forbidden } from '../lib/errors.js';
+import { getSettings } from '../services/settings.js';
 
 export function issueToken(address) {
   return jwt.sign({ sub: address }, config.JWT_SECRET, { expiresIn: config.JWT_TTL, algorithm: 'HS256' });
@@ -29,10 +30,14 @@ export async function requireAuth(req, _res, next) {
   next();
 }
 
-/** Requires a verified World ID bound to this wallet (one human, one account). */
-export function requireHuman(req, _res, next) {
-  if (!req.user?.worldIdNullifier) throw forbidden('world_id_required', 'Verify with World ID first');
-  next();
+/**
+ * Requires a verified World ID bound to this wallet (one human, one account), unless an administrator has turned the
+ * requirement off (settings/platform.worldIdRequired).
+ */
+export async function requireHuman(req, _res, next) {
+  if (req.user?.worldIdNullifier) return next();
+  if (!(await getSettings()).worldIdRequired) return next();
+  throw forbidden('world_id_required', 'Verify with World ID first');
 }
 
 export function requireAdmin(req, _res, next) {
