@@ -175,6 +175,8 @@ type ApiClient = {
   listOpen: (limit?: number, brand?: string) => Promise<{ requests: ApiRequest[] }>;
   listMine: (token: string) => Promise<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] }>;
   get: (id: string) => Promise<{ request: ApiRequest }>;
+  /** The escrow record as the server reads it from the contract (a fallback when the browser can't reach an Arc node). 404 in mock mode. */
+  escrowState: (escrowId: string) => Promise<unknown>;
   /**
    * `pending_funding` request plus the escrow the wallet must deposit into. `amountUsdc` is what the buyer receives;
    * the server answers with the fee and the total. A null contract means the server runs the mock escrow.
@@ -276,6 +278,7 @@ export const api: ApiClient = Object.assign(call, {
   },
   listMine: (token: string) => call<{ asCryptoSpender: ApiRequest[]; asCryptoBuyer: ApiRequest[] }>("/requests/mine", { token }),
   get: (id: string) => call<{ request: ApiRequest }>(`/requests/${encodeURIComponent(id)}`),
+  escrowState: (escrowId: string) => call<unknown>(`/escrow/state/${encodeURIComponent(escrowId)}`),
   create: (body: { brand: string; amountInr: number; amountUsdc: string }, token: string) =>
     call<{ request: ApiRequest; escrowContract: string | null; escrow?: EscrowInfo | null }>("/requests", { body, token }),
   fund: (id: string, txHash: string, token: string) =>
@@ -313,16 +316,16 @@ export const api: ApiClient = Object.assign(call, {
 /* --------------------------------------------------------------- display */
 
 export const STATUS: Record<ReqStatus, { label: string; tone: "mint" | "amber" | "iris" | "rose" | "mute"; note: string }> = {
-  pending_funding: { label: "Awaiting deposit", tone: "amber", note: "Deposit USDC into escrow to publish the request." },
-  open: { label: "Open", tone: "mint", note: "Live in the order book. Waiting for a buyer." },
-  accepted: { label: "Accepted", tone: "amber", note: "A buyer is purchasing the voucher." },
-  code_submitted: { label: "Code submitted", tone: "iris", note: "Check the voucher and confirm, or it is paid to the buyer when the review window ends." },
+  pending_funding: { label: "Awaiting deposit", tone: "amber", note: "The voucher buyer hasn't deposited the USDC yet." },
+  open: { label: "Open", tone: "mint", note: "In the order book, waiting for a USDC buyer." },
+  accepted: { label: "Accepted", tone: "amber", note: "A USDC buyer took the order and is delivering the voucher." },
+  code_submitted: { label: "Code submitted", tone: "iris", note: "The voucher buyer is checking the voucher. The USDC buyer is paid when they release it, or when the review window ends." },
   disputed: { label: "Disputed", tone: "rose", note: "Under review by the arbiter." },
-  releasing: { label: "Releasing", tone: "iris", note: "Sending USDC to the buyer on-chain." },
-  released: { label: "Completed", tone: "mint", note: "USDC released. Trade settled." },
-  refunding: { label: "Refunding", tone: "iris", note: "Returning USDC to the spender on-chain." },
-  refunded: { label: "Refunded", tone: "mute", note: "USDC returned to the spender." },
-  cancelled: { label: "Cancelled", tone: "mute", note: "Cancelled by the spender." },
+  releasing: { label: "Releasing", tone: "iris", note: "Paying the USDC buyer on-chain." },
+  released: { label: "Completed", tone: "mint", note: "The USDC buyer was paid. Trade settled." },
+  refunding: { label: "Refunding", tone: "iris", note: "Returning the USDC to the voucher buyer on-chain." },
+  refunded: { label: "Refunded", tone: "mute", note: "The USDC went back to the voucher buyer." },
+  cancelled: { label: "Cancelled", tone: "mute", note: "Cancelled by the voucher buyer." },
 };
 
 /** Happy-path steps used by the tracker. */
@@ -354,8 +357,8 @@ export function onchainStepText(e: unknown): string | null {
     const which = typeof fn === "string" && fn ? `the "${fn}" transaction` : "the wallet transaction for this step";
     return `The escrow on ${ARC.name} doesn't show ${which} yet. Confirm it in your wallet, wait for it to go through, then press the button again.`;
   }
-  if (e.code === "not_assigned_onchain") return `The escrow on ${ARC.name} doesn't show this wallet as the buyer yet. Confirm the order from your wallet first, and don't buy the voucher before that goes through.`;
-  if (e.code === "buyer_dispute_unavailable") return "Only the spender can open a dispute. As the buyer you are paid automatically when the review window ends, unless the spender disputes first.";
-  if (e.code === "not_delivered_onchain") return `The escrow on ${ARC.name} doesn't show the voucher as delivered yet. Confirm the delivery transaction in your wallet, wait for it to go through, then send the code again.`;
+  if (e.code === "not_assigned_onchain") return `The escrow on ${ARC.name} doesn't show this wallet as the USDC buyer yet, so the code was not sent and no money moved. Confirm the order from your wallet first, and don't buy the voucher before that goes through.`;
+  if (e.code === "buyer_dispute_unavailable") return "Only the voucher buyer can open a dispute. As the USDC buyer you are paid automatically when the review window ends, unless the voucher buyer disputes first.";
+  if (e.code === "not_delivered_onchain") return `The escrow on ${ARC.name} doesn't show the voucher as delivered yet, so the code was not sent. Confirm the delivery transaction in your wallet, wait for it to go through, then send the code again.`;
   return null;
 }

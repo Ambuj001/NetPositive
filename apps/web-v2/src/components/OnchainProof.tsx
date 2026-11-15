@@ -3,6 +3,7 @@ import type { ApiRequest } from "../lib/api";
 import { ARC } from "../lib/chain";
 import { ESCROW_STATUS, ST, judgeEscrow, untilText } from "../lib/onchain";
 import type { ChainView } from "../lib/useEscrow";
+import { sourceText } from "../lib/escrowRead";
 import { cx } from "./ui";
 
 const PHASE: Record<number, string> = { [ST.Funded]: "Open until", [ST.Delivered]: "Review window ends", [ST.Disputed]: "Dispute times out" };
@@ -15,7 +16,9 @@ const clock = (sec: number) => new Date(sec * 1000).toLocaleString("en-IN", { da
  */
 export function OnchainProof({ req, view, onRefresh, className }: { req: ApiRequest; view: ChainView; onRefresh: () => void; className?: string }) {
   const verdict = view.kind === "ok" ? judgeEscrow(req, view.escrow) : null;
-  const tone = verdict ? verdict.tone : view.kind === "bad" ? "bad" : view.kind === "error" ? "warn" : "idle";
+  // A reading through NetPositive's server is shown, but never as a green "verified": it isn't an independent check.
+  const viaServer = view.kind === "ok" && view.source === "server";
+  const tone = verdict ? (viaServer && verdict.tone === "good" ? "warn" : verdict.tone) : view.kind === "bad" ? "bad" : view.kind === "error" ? "warn" : "idle";
   const Icon = view.kind === "loading" ? LoaderCircle : tone === "good" ? ShieldCheck : tone === "bad" ? ShieldAlert : ShieldQuestion;
   const contract = view.kind === "ok" || view.kind === "error" ? view.contract : undefined;
   const e = view.kind === "ok" ? view.escrow : null;
@@ -39,7 +42,7 @@ export function OnchainProof({ req, view, onRefresh, className }: { req: ApiRequ
                   : view.kind === "bad"
                     ? "Escrow can't be verified. Don't proceed"
                     : view.kind === "error"
-                      ? "Couldn't verify on-chain"
+                      ? "Couldn't read the escrow"
                       : verdict!.title}
             </div>
             {view.kind !== "loading" && view.kind !== "mock" && (
@@ -50,7 +53,7 @@ export function OnchainProof({ req, view, onRefresh, className }: { req: ApiRequ
           </div>
           <p className="mt-1 text-[12.5px] leading-relaxed text-mute">
             {view.kind === "loading"
-              ? `Reading the escrow record from a public ${ARC.name} node, not from our server.`
+              ? `Reading the escrow record from ${ARC.name}: a public node first, then your wallet's node, then NetPositive's server.`
               : view.kind === "mock"
                 ? "This development server runs with mock escrow, so there is no deposit on-chain to check and no USDC has moved."
                 : view.kind === "bad"
@@ -59,10 +62,11 @@ export function OnchainProof({ req, view, onRefresh, className }: { req: ApiRequ
                     ? `${view.text} Open the contract in the explorer to check by hand.`
                     : verdict!.detail}
           </p>
+          {view.kind === "ok" && <p className={cx("mt-1 text-[11.5px]", viaServer ? "text-amber-ink" : "text-dim")}>{sourceText(view.source, ARC.name).detail}</p>}
           {e && e.status !== ST.None && (
             <dl className="mt-2 space-y-1 text-[12px]">
               <Fact k="On-chain state" v={ESCROW_STATUS[e.status] ?? `state ${e.status}`} />
-              <Fact k="Buyer on-chain" v={e.fulfiller ?? "Nobody bound yet"} mono={!!e.fulfiller} />
+              <Fact k="USDC buyer on-chain" v={e.fulfiller ?? "Nobody bound yet"} mono={!!e.fulfiller} />
               {holding && <Fact k={e.status === ST.Funded && e.fulfiller ? "Deliver by" : PHASE[e.status]} v={`${clock(e.deadline)} (${untilText(e.deadline, Date.now())})`} />}
             </dl>
           )}

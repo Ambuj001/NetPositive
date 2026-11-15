@@ -69,7 +69,7 @@ test("verdict: an open, funded order is good and says amount, fee and expiry", (
   const v = judgeEscrow(order, chain(), NOW);
   assert.equal(v.tone, "good");
   assert.match(v.title, /5\.37 USDC locked on Arc/);
-  assert.match(v.detail, /5\.37 USDC for the buyer plus a 0\.05 USDC fee/);
+  assert.match(v.detail, /5\.37 USDC for the USDC buyer plus a 0\.05 USDC fee/);
   assert.match(v.detail, /expires in 17 min/);
 });
 
@@ -87,7 +87,7 @@ test("verdict: every mismatch says don't proceed", () => {
   assert.equal(judgeEscrow({ ...order, status: "pending_funding" }, chain({ status: 0 }), NOW).tone, "warn");
   const other = judgeEscrow(order, chain({ depositor: "0x" + "33".repeat(20) }), NOW);
   assert.match(other.title, /Different depositor/);
-  assert.match(other.detail, /Don't proceed/);
+  assert.match(other.detail, /Don't buy the voucher.*Nothing has moved/);
   // The contract would pay someone other than the buyer on the order.
   const wrongBuyer = judgeEscrow({ ...order, status: "accepted", crypto_buyer: BUYER }, chain({ fulfiller: "0x" + "55".repeat(20) }), NOW);
   assert.equal(wrongBuyer.tone, "bad");
@@ -98,11 +98,11 @@ test("verdict: the new statuses each read correctly", () => {
   // 1 Funded, server says accepted but nobody is bound on-chain: a warning for the buyer.
   const unbound = judgeEscrow({ ...order, status: "accepted", crypto_buyer: BUYER }, chain(), NOW);
   assert.equal(unbound.tone, "warn");
-  assert.match(unbound.title, /no buyer bound yet/);
+  assert.match(unbound.title, /USDC buyer not bound yet/);
   // 1 Funded with the buyer bound.
   const bound = judgeEscrow({ ...order, status: "accepted", crypto_buyer: BUYER }, chain({ fulfiller: BUYER }), NOW);
   assert.equal(bound.tone, "good");
-  assert.match(bound.detail, /bound to buyer 0x4444…4444/);
+  assert.match(bound.detail, /bound to the USDC buyer 0x4444…4444/);
   assert.match(bound.detail, /delivery deadline is in 17 min/);
   // 2 Delivered: still locked, review window running.
   const delivered = judgeEscrow({ ...order, status: "code_submitted", crypto_buyer: BUYER }, chain({ status: 2, fulfiller: BUYER }), NOW);

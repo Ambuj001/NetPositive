@@ -90,7 +90,7 @@ export async function switchToArc(request: Request, wallet?: string) {
 export async function assertOnArc(request: Request) {
   const now = chainIdNumber(await request({ method: "eth_chainId" }).catch(() => null));
   if (now !== ARC.id) {
-    throw new WalletStepError("wrong_network", `Your wallet is on chain ${now || "unknown"}, but this step runs on ${ARC.name} (chain ${ARC.id}). Switch networks in your wallet, then try again.`);
+    throw new WalletStepError("wrong_network", `Your wallet is on chain ${now || "unknown"}, but this step runs on ${ARC.name} (chain ${ARC.id}). Nothing was sent. Switch networks in your wallet, then try again.`);
   }
 }
 
@@ -131,7 +131,7 @@ export async function assertUsdc(request: Request, holder: string, amount: bigin
     const hint = ARC.faucet ? `Get test USDC from ${ARC.faucet} (choose ${ARC.name}), then try again.` : `Add USDC to this wallet on ${ARC.name}, then try again.`;
     const fee = gasFee === undefined ? "a few cents for the network fee" : `up to ${usdcFine(gas)} USDC for the network fee`;
     const needs = gas === 0n ? usdcText(amount) : amount > 0n ? `${usdcText(amount)} plus ${fee}` : fee;
-    throw new WalletStepError("insufficient_usdc", `This wallet has ${usdcText(have)} USDC on ${ARC.name}. This step needs ${needs} (${ARC.name} charges its network fee in USDC). ${hint}`);
+    throw new WalletStepError("insufficient_usdc", `This wallet has ${usdcText(have)} USDC on ${ARC.name}. This step needs ${needs} (${ARC.name} charges its network fee in USDC), so it is about ${usdcFine(amount + gas - have)} USDC short. Nothing was sent. ${hint}`);
   }
 }
 

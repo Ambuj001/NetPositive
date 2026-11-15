@@ -29,7 +29,8 @@ export type EscrowRecord = {
   /** Stake the spender locks on top to open a dispute. Held only while disputed. */
   bond: bigint;
 };
-export type OnchainEscrow = EscrowRecord & { block: number };
+/** `block` is the block the record was read at, when the source says (a public node does; the wallet and server reads don't). */
+export type OnchainEscrow = EscrowRecord & { block: number | null };
 
 const SEL_GET_ESCROW = "0xf023b811"; // getEscrow(bytes32) -> Escrow (11 static words)
 
@@ -123,9 +124,9 @@ export function judgeEscrow(server: ServerView, chain: OnchainEscrow, nowMs: num
       ? { ok: true, tone: "warn", title: "Not locked yet", detail: "The contract has no deposit for this order. Don't buy a voucher for it until this shows Funded." }
       : { ok: false, tone: "bad", title: "No deposit on-chain", detail: `The server says ${said}, but the contract has no deposit under this escrow id. Don't proceed.` };
   }
-  if (st === ST.Released) return { ok: true, tone: "good", title: "Released on-chain", detail: `The contract paid ${usdc(chain.amount)} to the buyer${chain.fulfiller ? ` ${shortAddr(chain.fulfiller)}` : ""} (read at block ${chain.block}).` };
-  if (st === ST.Refunded) return { ok: true, tone: "warn", title: "Refunded on-chain", detail: "The contract returned this deposit to the spender. There is nothing left to earn on this order." };
-  if (st === ST.Resolved) return { ok: true, tone: "warn", title: "Dispute resolved on-chain", detail: "The arbiter split this escrow between the buyer and the spender. Nothing is locked any more." };
+  if (st === ST.Released) return { ok: true, tone: "good", title: "Released on-chain", detail: `The contract paid ${usdc(chain.amount)} to the USDC buyer${chain.fulfiller ? ` ${shortAddr(chain.fulfiller)}` : ""}${chain.block ? ` (read at block ${chain.block})` : ""}.` };
+  if (st === ST.Refunded) return { ok: true, tone: "warn", title: "Refunded on-chain", detail: "The contract returned this deposit to the voucher buyer. There is nothing left to earn on this order." };
+  if (st === ST.Resolved) return { ok: true, tone: "warn", title: "Dispute resolved on-chain", detail: "The arbiter split this escrow between the USDC buyer and the voucher buyer. Nothing is locked any more." };
 
   // Still holding funds: Funded, Delivered or Disputed.
   let expected: bigint;
@@ -134,31 +135,31 @@ export function judgeEscrow(server: ServerView, chain: OnchainEscrow, nowMs: num
   } catch {
     return { ok: false, tone: "bad", title: "Amount can't be checked", detail: "The order has no readable USDC amount to compare with the contract. Don't proceed." };
   }
-  if (chain.amount !== expected) return { ok: false, tone: "bad", title: "Amount doesn't match", detail: `The contract will pay the buyer ${usdc(chain.amount)}, but the order says ${usdc(expected)}. Don't proceed.` };
-  if (!same(chain.depositor, server.crypto_spender)) return { ok: false, tone: "bad", title: "Different depositor", detail: `The deposit came from ${chain.depositor}, not the spender on this order. Don't proceed.` };
+  if (chain.amount !== expected) return { ok: false, tone: "bad", title: "Amount doesn't match", detail: `The contract will pay ${usdc(chain.amount)}, but the order says ${usdc(expected)}. Don't buy the voucher and don't send anything for this order. Nothing has moved; contact support.` };
+  if (!same(chain.depositor, server.crypto_spender)) return { ok: false, tone: "bad", title: "Different depositor", detail: `The deposit came from ${chain.depositor}, not the voucher buyer on this order. Don't buy the voucher and don't send anything for this order. Nothing has moved; contact support.` };
   if (chain.fulfiller && server.crypto_buyer && !same(chain.fulfiller, server.crypto_buyer)) {
-    return { ok: false, tone: "bad", title: "Different buyer on-chain", detail: `The contract will pay ${chain.fulfiller}, not the buyer on this order. Don't proceed.` };
+    return { ok: false, tone: "bad", title: "Different buyer on-chain", detail: `The contract will pay ${chain.fulfiller}, not the USDC buyer on this order. Don't buy the voucher and don't send anything for this order.` };
   }
   const live = ["open", "accepted", "code_submitted", "disputed", "releasing", "refunding"].includes(server.status);
   const state = ESCROW_STATUS[st] ?? `state ${st}`;
   if (!live) return { ok: false, tone: "warn", title: `Still ${state.toLowerCase()} on-chain`, detail: `The server says ${said}, but the contract still holds ${usdc(chain.amount)}. It may be catching up; refresh in a minute.` };
 
-  const held = `${usdc(chain.amount)} for the buyer plus a ${usdc(chain.fee)} fee`;
-  const at = `Read from the contract at block ${chain.block}`;
+  const held = `${usdc(chain.amount)} for the USDC buyer plus a ${usdc(chain.fee)} fee`;
+  const at = chain.block ? `Read from the contract at block ${chain.block}` : "Read from the contract";
   if (st === ST.Disputed) {
-    return { ok: true, tone: "warn", title: "Disputed on-chain", detail: `${at}: ${held} is frozen until the arbiter rules. If nobody rules, it returns to the spender ${untilText(chain.deadline, nowMs)}.` };
+    return { ok: true, tone: "warn", title: "Disputed on-chain", detail: `${at}: ${held} is frozen until the arbiter rules. If nobody rules, it returns to the voucher buyer ${untilText(chain.deadline, nowMs)}.` };
   }
   if (st === ST.Delivered) {
-    const pays = chain.fulfiller ? shortAddr(chain.fulfiller) : "the buyer";
-    return { ok: true, tone: "good", title: `${usdc(chain.amount)} locked · delivered`, detail: `${at}: the buyer marked the voucher delivered. The review window ends ${untilText(chain.deadline, nowMs)}; after that anyone can pay ${pays} unless the spender disputes.` };
+    const pays = chain.fulfiller ? `the USDC buyer ${shortAddr(chain.fulfiller)}` : "the USDC buyer";
+    return { ok: true, tone: "good", title: `${usdc(chain.amount)} locked · delivered`, detail: `${at}: the USDC buyer marked the voucher delivered. The review window ends ${untilText(chain.deadline, nowMs)}; after that ${pays} is paid automatically unless the voucher buyer disputes.` };
   }
   // Funded.
   if (chain.fulfiller) {
-    const due = chain.deadline * 1000 > nowMs ? `is ${untilText(chain.deadline, nowMs)}` : "has passed, so the spender can be refunded";
-    return { ok: true, tone: "good", title: `${usdc(chain.amount)} locked on Arc`, detail: `${at}: ${held}, deposited by the spender and bound to buyer ${shortAddr(chain.fulfiller)}. The delivery deadline ${due}.` };
+    const due = chain.deadline * 1000 > nowMs ? `is ${untilText(chain.deadline, nowMs)}` : "has passed, so the USDC goes back to the voucher buyer automatically";
+    return { ok: true, tone: "good", title: `${usdc(chain.amount)} locked on Arc`, detail: `${at}: ${held}, deposited by the voucher buyer and bound to the USDC buyer ${shortAddr(chain.fulfiller)}. The delivery deadline ${due}.` };
   }
   if (server.status === "accepted") {
-    return { ok: true, tone: "warn", title: `${usdc(chain.amount)} locked · no buyer bound yet`, detail: `${at}: the deposit is there, but no buyer is bound on-chain. The buyer must confirm the order from their wallet before buying the voucher.` };
+    return { ok: true, tone: "warn", title: `${usdc(chain.amount)} locked · USDC buyer not bound yet`, detail: `${at}: the deposit is there, but no USDC buyer is bound on-chain. The USDC buyer must confirm the order from their wallet before buying the voucher.` };
   }
-  return { ok: true, tone: "good", title: `${usdc(chain.amount)} locked on Arc`, detail: `${at}: ${held}, deposited by the spender. Open for a buyer; the order expires ${untilText(chain.deadline, nowMs)}. Only the escrow's rules can move it.` };
+  return { ok: true, tone: "good", title: `${usdc(chain.amount)} locked on Arc`, detail: `${at}: ${held}, deposited by the voucher buyer. Open for a USDC buyer; the order expires ${untilText(chain.deadline, nowMs)}. Only the escrow's rules can move it.` };
 }

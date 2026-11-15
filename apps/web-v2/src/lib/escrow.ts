@@ -2,8 +2,9 @@
  * Wallet transactions against VoucherEscrowV2 (contracts/src/VoucherEscrowV2.sol), hand-encoded.
  * In V2 each person sends their own transactions; the server only checks the chain afterwards.
  *
- *   spender  approve + deposit, release, cancel, dispute
- *   buyer    accept (with the spender's signed Ready/Assign permit), markDelivered
+ *   voucher buyer (depositor, `crypto_spender`)  approve + deposit, release, cancel, dispute
+ *   USDC buyer (fulfiller, `crypto_buyer`)       accept (with the voucher buyer's signed Ready/Assign permit), markDelivered,
+ *                                                unassign (step away), concede (give the money back)
  *
  * Two ids: `escrowRef` goes into `deposit`; `escrowId` (derived on-chain from depositor + ref) is used everywhere else.
  * Both come from the server. The encoders are pure so node tests can import them.
@@ -20,6 +21,8 @@ export const SELECTORS = {
   release: "0x67d42a8b", // release(bytes32)
   cancel: "0xc4d252f5", // cancel(bytes32)
   dispute: "0x82cbf88b", // dispute(bytes32,bytes32)
+  unassign: "0x349420fc", // unassign(bytes32)
+  concede: "0xdb31b6b5", // concede(bytes32)
 } as const;
 
 export const ZERO_BYTES32 = `0x${"0".repeat(64)}`;
@@ -67,6 +70,8 @@ export const encodeMarkDelivered = (escrowId: string, evidence: string = ZERO_BY
 export const encodeRelease = (escrowId: string) => SELECTORS.release + bytes32(escrowId, "Escrow id");
 export const encodeCancel = (escrowId: string) => SELECTORS.cancel + bytes32(escrowId, "Escrow id");
 export const encodeDispute = (escrowId: string, reason: string = ZERO_BYTES32) => SELECTORS.dispute + bytes32(escrowId, "Escrow id") + bytes32(reason, "Reason");
+export const encodeUnassign = (escrowId: string) => SELECTORS.unassign + bytes32(escrowId, "Escrow id");
+export const encodeConcede = (escrowId: string) => SELECTORS.concede + bytes32(escrowId, "Escrow id");
 
 /* ---------------------------------------------------------------- sending */
 
@@ -189,7 +194,7 @@ export async function lockUsdc(request: Rpc, t: LockTerms): Promise<string> {
 
 /* ------------------------------------------------- the other escrow steps */
 
-export type EscrowStep = "accept" | "markDelivered" | "release" | "cancel" | "dispute";
+export type EscrowStep = "accept" | "markDelivered" | "release" | "cancel" | "dispute" | "unassign" | "concede";
 
 export type StepArgs = {
   from: string;
@@ -216,42 +221,86 @@ export function planStep(step: EscrowStep, e: EscrowRecord, from: string, nowSec
     case "accept":
       if (same(e.fulfiller, from) && st !== ST.Refunded) return { do: "skip" };
       if (st !== ST.Funded) return stop("This order is no longer open on-chain.");
-      if (e.fulfiller) return stop("Another wallet is already bound to this order on-chain.");
-      if (same(e.depositor, from)) return stop("The wallet that locked the USDC can't also be the buyer.");
-      if (nowSec >= e.openUntil) return stop("This order has expired on-chain, so it can't be accepted any more.");
-      if (!permit?.signature) return stop("The spender hasn't pressed Ready yet. Wait for it, and don't buy the voucher before then.");
+      if (e.fulfiller) return stop("Another wallet is already bound to this order on-chain as the USDC buyer. Nothing was sent. Don't buy the voucher.");
+      if (same(e.depositor, from)) return stop("The wallet that locked the USDC can't also be the USDC buyer. Nothing was sent.");
+      if (nowSec >= e.openUntil) return stop("This order has expired on-chain, so it can't be accepted any more. Nothing was sent; don't buy the voucher. The USDC goes back to the voucher buyer automatically.");
+      if (!permit?.signature) return stop("The voucher buyer hasn't pressed Ready yet. Nothing was sent. Wait for it, and don't buy the voucher before then.");
       // The escrow bumps its epoch when a buyer steps away, which voids every permit signed before that.
-      if (typeof permit.epoch === "number" && permit.epoch !== e.epoch) return stop("The spender's Ready was signed for an earlier round of this order and no longer works. Ask them to press Ready again, and don't buy the voucher until this step confirms.");
-      if (permit.validUntil <= nowSec) return stop("The spender's Ready permit has expired. Ask them to press Ready again, and don't buy the voucher until this step confirms.");
+      if (typeof permit.epoch === "number" && permit.epoch !== e.epoch) return stop("The voucher buyer's Ready was signed for an earlier round of this order and no longer works. Nothing was sent. Ask them to press Ready again, and don't buy the voucher until this step confirms.");
+      if (permit.validUntil <= nowSec) return stop("The voucher buyer's Ready permit has expired. Nothing was sent. Ask them to press Ready again, and don't buy the voucher until this step confirms.");
       return { do: "send" };
     case "markDelivered":
       if (st === ST.Delivered || st === ST.Disputed || st === ST.Released || st === ST.Resolved) return { do: "skip" };
       if (st !== ST.Funded) return stop("This order was refunded on-chain, so the voucher can't be delivered for it.");
-      if (!same(e.fulfiller, from)) return stop("This wallet is not the buyer bound to the order on-chain. Confirm the order from your wallet first.");
+      if (!same(e.fulfiller, from)) return stop("This wallet is not the USDC buyer bound to the order on-chain. Nothing was sent. Confirm the order from your wallet first (and switch to the wallet that accepted it).");
       if (nowSec >= e.deadline) return stop("The delivery deadline has passed on-chain, so this voucher can't be delivered for the order.");
       return { do: "send" };
     case "release":
       if (st === ST.Released) return { do: "skip" };
       if (st === ST.Refunded || st === ST.Resolved) return stop("This escrow has already been settled on-chain, so there is nothing to release.");
-      if (!same(e.depositor, from)) return stop("Only the wallet that locked the USDC can release it.");
-      if (!e.fulfiller) return stop("No buyer is bound to this order on-chain, so there is nobody to pay.");
+      if (!same(e.depositor, from)) return stop("Only the wallet that locked the USDC can release it. Nothing was sent; switch to that wallet.");
+      if (!e.fulfiller) return stop("No USDC buyer is bound to this order on-chain yet, so there is nobody to pay. Nothing was sent. Release becomes possible once they confirm the order from their wallet.");
       return { do: "send" };
     case "cancel":
       if (st === ST.Refunded) return { do: "skip" };
       if (st !== ST.Funded) return stop("This order can't be cancelled any more: the voucher was delivered or the escrow has settled.");
-      if (!same(e.depositor, from)) return stop("Only the wallet that locked the USDC can cancel the order.");
-      if (e.fulfiller) return stop("A buyer is already bound to this order on-chain, so it can't be cancelled. If they don't deliver in time, the USDC can be refunded after the deadline.");
+      if (!same(e.depositor, from)) return stop("Only the wallet that locked the USDC can cancel the order. Nothing was sent; switch to that wallet.");
+      if (e.fulfiller) return stop("A USDC buyer is already bound to this order on-chain, so it can't be cancelled. Nothing was sent. If they don't deliver by the deadline, the USDC comes back to you automatically; after delivery you can dispute.");
       return { do: "send" };
     case "dispute":
       if (st === ST.Disputed) return { do: "skip" };
-      if (st === ST.Funded) return stop("The buyer hasn't marked the voucher delivered on-chain yet, so there is nothing to dispute.");
+      if (st === ST.Funded) return stop("The USDC buyer hasn't marked the voucher delivered on-chain yet, so there is nothing to dispute. Nothing was sent.");
       if (st !== ST.Delivered) return stop("This escrow has already been settled on-chain, so it can't be disputed.");
-      if (!same(e.depositor, from)) return stop("Only the spender can open a dispute.");
+      if (!same(e.depositor, from)) return stop("Only the voucher buyer can open a dispute. Nothing was sent.");
+      return { do: "send" };
+    case "unassign":
+      if (st === ST.Funded && !e.fulfiller) return { do: "skip" };
+      if (st !== ST.Funded) return stop("You can only step away before the voucher is marked delivered. Nothing was sent.");
+      if (!same(e.fulfiller, from)) return stop("This wallet is not the USDC buyer bound to the order on-chain, so it can't step away. Nothing was sent.");
+      return { do: "send" };
+    case "concede":
+      if (st === ST.Refunded) return { do: "skip" };
+      if (st !== ST.Delivered && st !== ST.Disputed) return stop(st === ST.Funded ? "The voucher isn't marked delivered yet, so there is nothing to give back. To leave the order, step away instead. Nothing was sent." : "This escrow has already been settled on-chain. Nothing was sent.");
+      if (!same(e.fulfiller, from)) return stop("Only the USDC buyer bound to the order can give the money back. Nothing was sent.");
       return { do: "send" };
   }
 }
 
-const STEP_NAME: Record<EscrowStep, string> = { accept: "accept", markDelivered: "delivery", release: "release", cancel: "cancel", dispute: "dispute" };
+const STEP_NAME: Record<EscrowStep, string> = { accept: "accept", markDelivered: "delivery", release: "release", cancel: "cancel", dispute: "dispute", unassign: "step-away", concede: "give-back" };
+
+/** Calldata for one step. `accept` needs the permit; `markDelivered` and `dispute` take an optional hash. */
+export function encodeStep(step: EscrowStep, escrowId: string, a: Pick<StepArgs, "permit" | "hash"> = {}): string {
+  switch (step) {
+    case "accept":
+      if (!a.permit) throw new Error("The voucher buyer's Ready permit is missing. Nothing was sent.");
+      return encodeAccept(escrowId, a.permit.validUntil, a.permit.signature);
+    case "markDelivered":
+      return encodeMarkDelivered(escrowId, a.hash);
+    case "release":
+      return encodeRelease(escrowId);
+    case "cancel":
+      return encodeCancel(escrowId);
+    case "dispute":
+      return encodeDispute(escrowId, a.hash);
+    case "unassign":
+      return encodeUnassign(escrowId);
+    case "concede":
+      return encodeConcede(escrowId);
+  }
+}
+
+/**
+ * The wallet's active account must be the one this step is for. Wallets can switch accounts without the page
+ * noticing; sending from the wrong one would revert or, worse, act for the wrong person. A wallet that won't say
+ * which account is active is left to the contract (which checks the sender itself).
+ */
+export async function assertAccount(request: Rpc, expected: string) {
+  const accounts = await request({ method: "eth_accounts" }).catch(() => null);
+  const active = Array.isArray(accounts) && typeof accounts[0] === "string" ? (accounts[0] as string) : null;
+  if (active && !same(active, expected)) {
+    throw new Error(`Your wallet's active account is ${active.slice(0, 6)}…${active.slice(-4)}, but this step is for ${expected.slice(0, 6)}…${expected.slice(-4)}. Switch to that account in your wallet (and sign in again if asked), then try again. Nothing was sent.`);
+  }
+}
 
 /**
  * Run one escrow step from the connected wallet. Reads the escrow first, so pressing the button again after a
@@ -261,6 +310,7 @@ export async function escrowStep(request: Rpc, step: EscrowStep, a: StepArgs): P
   if (!/^0x[0-9a-fA-F]{40}$/.test(a.escrow)) throw new Error("Escrow contract address is missing.");
   if (!/^0x[0-9a-fA-F]{40}$/.test(a.from)) throw new Error("Connect your wallet first.");
   await switchToArc(request, a.wallet);
+  await assertAccount(request, a.from);
   let record: EscrowRecord;
   try {
     record = await readEscrowVia(request, a.escrow, a.escrowId);
@@ -270,16 +320,7 @@ export async function escrowStep(request: Rpc, step: EscrowStep, a: StepArgs): P
   const plan = planStep(step, record, a.from, Math.floor(Date.now() / 1000), a.permit);
   if (plan.do === "stop") throw new Error(plan.why);
   if (plan.do === "skip") return null;
-  const data =
-    step === "accept"
-      ? encodeAccept(a.escrowId, a.permit!.validUntil, a.permit!.signature)
-      : step === "markDelivered"
-        ? encodeMarkDelivered(a.escrowId, a.hash)
-        : step === "release"
-          ? encodeRelease(a.escrowId)
-          : step === "cancel"
-            ? encodeCancel(a.escrowId)
-            : encodeDispute(a.escrowId, a.hash);
+  const data = encodeStep(step, a.escrowId, a);
   // Opening a dispute locks the order's dispute stake inside the same transaction, so the escrow needs an allowance for it.
   // The stake comes back unless the dispute is decided against the spender.
   const stake = step === "dispute" ? record.bond : 0n;

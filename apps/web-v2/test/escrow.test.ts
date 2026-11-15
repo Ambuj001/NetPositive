@@ -129,7 +129,7 @@ test("accept: sent only with a live permit on an open escrow; a retry after succ
   // A permit signed before the buyer slot was reopened (older epoch) is refused before any gas is spent.
   assert.equal(planStep("accept", rec({ epoch: 1 }), BUYER, NOW, { ...permit, epoch: 1 }).do, "send");
   assert.match(why(planStep("accept", rec({ epoch: 1 }), BUYER, NOW, { ...permit, epoch: 0 })), /earlier round.*press Ready again/);
-  assert.match(why(planStep("accept", rec(), SPENDER, NOW, permit)), /can't also be the buyer/);
+  assert.match(why(planStep("accept", rec(), SPENDER, NOW, permit)), /can't also be the USDC buyer/);
   assert.match(why(planStep("accept", rec({ openUntil: NOW }), BUYER, NOW, permit)), /expired on-chain/);
   assert.match(why(planStep("accept", rec({ status: 5 }), BUYER, NOW, permit)), /no longer open/);
   assert.match(why(planStep("accept", rec({ status: 0 }), BUYER, NOW, permit)), /no deposit/);
@@ -138,7 +138,7 @@ test("accept: sent only with a live permit on an open escrow; a retry after succ
 test("markDelivered: only the bound buyer, before the deadline; skipped once delivered", () => {
   assert.equal(planStep("markDelivered", rec({ fulfiller: BUYER }), BUYER, NOW).do, "send");
   for (const status of [2, 3, 4, 6]) assert.equal(planStep("markDelivered", rec({ fulfiller: BUYER, status }), BUYER, NOW).do, "skip");
-  assert.match(why(planStep("markDelivered", rec(), BUYER, NOW)), /not the buyer bound to the order/);
+  assert.match(why(planStep("markDelivered", rec(), BUYER, NOW)), /not the USDC buyer bound to the order/);
   assert.match(why(planStep("markDelivered", rec({ fulfiller: BUYER, deadline: NOW }), BUYER, NOW)), /deadline has passed/);
   assert.match(why(planStep("markDelivered", rec({ fulfiller: BUYER, status: 5 }), BUYER, NOW)), /refunded/);
 });
@@ -156,7 +156,7 @@ test("cancel: only while no buyer is bound; nothing to send when nothing was dep
   assert.equal(planStep("cancel", rec(), SPENDER, NOW).do, "send");
   assert.equal(planStep("cancel", rec({ status: 0 }), SPENDER, NOW).do, "skip");
   assert.equal(planStep("cancel", rec({ status: 5 }), SPENDER, NOW).do, "skip");
-  assert.match(why(planStep("cancel", rec({ fulfiller: BUYER }), SPENDER, NOW)), /buyer is already bound/);
+  assert.match(why(planStep("cancel", rec({ fulfiller: BUYER }), SPENDER, NOW)), /USDC buyer is already bound/);
   assert.match(why(planStep("cancel", rec({ status: 2, fulfiller: BUYER }), SPENDER, NOW)), /can't be cancelled any more/);
   assert.match(why(planStep("cancel", rec(), BUYER, NOW)), /Only the wallet that locked/);
 });
@@ -164,7 +164,7 @@ test("cancel: only while no buyer is bound; nothing to send when nothing was dep
 test("dispute: only the spender, only after delivery; skipped when already disputed", () => {
   assert.equal(planStep("dispute", rec({ fulfiller: BUYER, status: 2 }), SPENDER, NOW).do, "send");
   assert.equal(planStep("dispute", rec({ fulfiller: BUYER, status: 3 }), SPENDER, NOW).do, "skip");
-  assert.match(why(planStep("dispute", rec({ fulfiller: BUYER, status: 2 }), BUYER, NOW)), /Only the spender/);
+  assert.match(why(planStep("dispute", rec({ fulfiller: BUYER, status: 2 }), BUYER, NOW)), /Only the voucher buyer can open a dispute/);
   assert.match(why(planStep("dispute", rec({ fulfiller: BUYER }), SPENDER, NOW)), /hasn't marked the voucher delivered/);
   assert.match(why(planStep("dispute", rec({ fulfiller: BUYER, status: 4 }), SPENDER, NOW)), /already been settled/);
 });
@@ -271,7 +271,7 @@ test("steps: the transaction goes to the escrow with the right calldata, and a r
   const delivered = wallet({ balance: 1_000_000n, escrow: rec({ fulfiller: BUYER, status: 2 }) });
   await escrowStep(delivered.request, "release", { from: SPENDER, escrow: ESCROW, escrowId: ID });
   assert.equal(delivered.sent[0].data, encodeRelease(ID));
-  await assert.rejects(escrowStep(delivered.request, "dispute", { from: BUYER, escrow: ESCROW, escrowId: ID }), /Only the spender/);
+  await assert.rejects(escrowStep(delivered.request, "dispute", { from: BUYER, escrow: ESCROW, escrowId: ID }), /Only the voucher buyer can open a dispute/);
   assert.equal(delivered.sent.length, 1);
 });
 
