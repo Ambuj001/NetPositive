@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, Clock, Copy, LoaderCircle, Minus, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, ChevronDown, Clock, Copy, LoaderCircle, Minus, RefreshCw, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BuyOnPortal } from "../components/BuyOnPortal";
@@ -10,13 +10,12 @@ import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest } from "../lib/a
 import { ARC } from "../lib/chain";
 import { brand } from "../lib/data";
 import { inr, usdt } from "../lib/engine";
-import { sourceText } from "../lib/escrowRead";
 import { buildStages, impliedRate, isSettled, roleOf, sameAddr, type Role, type Stage, type Tone } from "../lib/lifecycle";
 import { ledgerFromRequest } from "../lib/orderbook";
-import { deadlineLine, orderView, type ChainInput, type Deadline, type OrderView } from "../lib/orderView";
+import { deadlineLine, deadlineShort, deadlineUrgency, orderView, type ChainInput, type Deadline, type OrderView } from "../lib/orderView";
 import { useApp } from "../lib/store";
 import { useEscrow, type ChainView } from "../lib/useEscrow";
-import { BindAction, BuyerExit, CancelAction, ReadyAction, SettleActions, type Notice } from "./TrackActions";
+import { BindAction, BuyerExit, CancelAction, DisputeAction, ReadyAction, SettleActions, type Notice } from "./TrackActions";
 import { SubmitCode, VaultSetup } from "./VoucherTransfer";
 
 /**
@@ -32,7 +31,6 @@ const TONE: Record<Tone, string> = {
   rose: "text-rose-ink bg-rose/10 ring-rose/25",
   mute: "text-mute bg-fg/[0.04] ring-fg/10",
 };
-const TONE_TEXT: Record<Tone, string> = { mint: "text-brand-ink", amber: "text-amber-ink", iris: "text-iris", rose: "text-rose-ink", mute: "text-mute" };
 const TONE_DOT: Record<Tone, string> = { mint: "bg-brand", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose", mute: "bg-fg/30" };
 
 /** The server is asked every 10 s while the tab is visible, and again whenever the window regains focus. */
@@ -40,6 +38,7 @@ const POLL_MS = 10_000;
 const EXPLORER = ARC.explorer;
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : null);
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 function ago(ms: number, now = Date.now()) {
@@ -246,35 +245,20 @@ function Detail({ req, stale, updatedAt, refreshing, refetch, onApplied }: { req
         </div>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-4">
+      {/* Phone: primary card, then amounts and the escrow, then history. Desktop: history under the primary card. */}
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-5">
+        <div className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-1">
           {notice && !chainFailed && <NoticeBar notice={notice} onClose={() => setNotice(null)} />}
-          {live && chainFailed && (
-            <div role="alert" className={cx("rounded-2xl px-4 py-3 text-[13px] leading-relaxed ring-1", chain.kind === "bad" ? TONE.rose : TONE.amber)}>
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <strong className="font-medium">{chain.kind === "bad" ? "The escrow can't be verified." : "The escrow couldn't be read from any source."}</strong> {chain.text}{" "}
-                  {role === "buyer" ? "Don't buy the voucher until this page can read the escrow." : "On-chain steps are hidden until it can be read."}
-                  <div className="mt-2">
-                    <Button size="sm" variant="outline" onClick={() => void refreshChain()} icon={<RefreshCw className="size-3.5" />}>
-                      Try again
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          {role === "spender" && (req.status === "pending_funding" || req.status === "open" || req.status === "accepted") && <VaultSetup />}
-          <NowCard req={req} role={role} v={v} chain={chain} onArc={onArc} hasWallet={!!fullAddress} openWallet={openWallet} onUpdated={onUpdated} onChainDone={onChainDone} refetch={() => void refetch(true)} />
+          <NowCard req={req} role={role} v={v} chain={chain} blocked={live && chainFailed} retryChain={() => void refreshChain()} onArc={onArc} hasWallet={!!fullAddress} openWallet={openWallet} onUpdated={onUpdated} onChainDone={onChainDone} refetch={() => void refetch(true)} />
           {role === "observer" && v.actions.includes("fill") && <PickRoute req={req} onAccepted={onApplied} onRefresh={() => void refetch(true)} />}
-          <Timeline stages={stages} viewer={fullAddress} />
         </div>
-        <div className="min-w-0 space-y-4">
+        <div className="min-w-0 space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <Money req={req} role={role === "observer" && req.status === "open" ? "buyer" : role} brandName={b.name} />
-          <OnchainProof req={req} view={chain} onRefresh={() => void refreshChain()} />
+          <OnchainProof req={req} view={chain} onRefresh={() => void refreshChain()} details={<Technical req={req} />} />
           <Parties req={req} viewer={fullAddress} />
-          <Technical req={req} chain={chain} />
+        </div>
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <Timeline stages={stages} viewer={fullAddress} />
         </div>
       </div>
 
@@ -294,7 +278,8 @@ function Detail({ req, stale, updatedAt, refreshing, refetch, onApplied }: { req
 
 /* --------------------------------------------------------------- now card */
 
-function NowCard({ req, role, v, chain, onArc, hasWallet, openWallet, onUpdated, onChainDone, refetch }: { req: ApiRequest; role: Role; v: OrderView; chain: ChainView; onArc: boolean; hasWallet: boolean; openWallet: () => void; onUpdated: (r: ApiRequest, n: Notice) => void; onChainDone: (n: Notice) => void; refetch: () => void }) {
+/** Steps that are the point of the current state; everything else is a quiet "More actions" button. */
+function NowCard({ req, role, v, chain, blocked, retryChain, onArc, hasWallet, openWallet, onUpdated, onChainDone, refetch }: { req: ApiRequest; role: Role; v: OrderView; chain: ChainView; blocked: boolean; retryChain: () => void; onArc: boolean; hasWallet: boolean; openWallet: () => void; onUpdated: (r: ApiRequest, n: Notice) => void; onChainDone: (n: Notice) => void; refetch: () => void }) {
   const { fullAddress, token, signIn, signingIn, walletRequest } = useApp();
   const A = new Set(v.actions);
   const common = { req, token, signIn, signingIn, onUpdated };
@@ -302,41 +287,48 @@ function NowCard({ req, role, v, chain, onArc, hasWallet, openWallet, onUpdated,
   const codeIn = req.status === "code_submitted" || req.status === "disputed";
   const walletSteps = v.actions.some((a) => a !== "fill" && a !== "openDispute" && a !== "buyVoucher" && a !== "cancelNoTx");
   const label = v.stop ? "Stop" : v.actor === "you" ? "Your move" : role === "observer" ? "Where it stands" : v.actor === "nobody" || v.actor === "automatic" ? "Status" : `Waiting on the ${v.actor}`;
+  // Release is the main step only when it is the viewer's move (or during a dispute, where it ends it); otherwise it is an early option.
+  const releaseMain = A.has("release") && v.actor === "you";
+  const hasMain = A.has("ready") || A.has("bind") || A.has("buyVoucher") || A.has("deliver") || releaseMain || A.has("openDispute");
+  const hasMore = A.has("cancel") || A.has("cancelNoTx") || A.has("unassign") || A.has("concede") || A.has("dispute") || (A.has("release") && !releaseMain);
+  // The observer's "this is read-only" line is shown in the card; every other note is a detail.
+  const lead = role === "observer" ? (v.notes[0]?.text ?? null) : null;
+  const details = role === "observer" ? v.notes.slice(1) : v.notes;
+  const showVault = role === "spender" && (req.status === "pending_funding" || req.status === "open" || req.status === "accepted") && !A.has("ready");
 
   return (
     <div className="hairline rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl sm:p-5">
-      <div className={cx("label", v.actor === "you" && "text-brand-ink")}>{label}</div>
-      <div className={cx("mt-1.5 text-[18px] leading-snug font-semibold tracking-tight", TONE_TEXT[v.tone])}>{v.headline}</div>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className={cx("label", v.actor === "you" && !v.stop && "text-brand-ink")}>{label}</div>
+        {v.deadline && <LiveDeadline d={v.deadline} role={role} />}
+      </div>
+      <div className={cx("mt-1.5 text-[18px] leading-snug font-semibold tracking-tight", v.stop ? "text-rose-ink" : "text-fg")}>{label === "Your move" ? cap(v.headline.replace(/^Your move: /, "")) : v.headline}</div>
       <p className="mt-1 text-[13.5px] leading-relaxed text-fg/80">{v.body}</p>
-      {v.deadline && <LiveDeadline d={v.deadline} role={role} />}
-      {v.stop && <p role="alert" className="mt-3 rounded-xl bg-rose/10 px-3 py-2 text-[12.5px] leading-relaxed text-rose-ink ring-1 ring-rose/25">Don't buy the voucher and don't send any transaction for this order. Nothing has moved. Contact NetPositive support with the order ID.</p>}
 
-      {(v.notes.length > 0 || (chain.kind === "ok" && chain.source === "server")) && (
-        <ul className="mt-3 space-y-1.5">
-          {chain.kind === "ok" && chain.source === "server" && (
-            <li className="rounded-xl bg-fg/[0.03] px-3 py-2 text-[12.5px] leading-relaxed text-mute ring-1 ring-fg/[0.06]">
-              {sourceText("server", ARC.name).detail}{" "}
-              <a className="underline underline-offset-2 hover:text-fg" href={`${EXPLORER}/address/${chain.contract}`} target="_blank" rel="noreferrer">Open the explorer</a>
-            </li>
-          )}
-          {v.notes.map((n) => (
-            <li key={n.text} className={cx("rounded-xl px-3 py-2 text-[12.5px] leading-relaxed ring-1", TONE[n.tone])}>
-              {n.text}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* Session and wallet checks before any action. */}
-      {role !== "observer" && v.needsSignIn && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber/[0.06] px-3 py-2 text-[12.5px] text-amber-ink ring-1 ring-amber/25">
-          <span className="min-w-0 flex-1">You're connected as {short(fullAddress)} but not signed in with this wallet (if you switched accounts, sign in again). Signing in is a free signature.</span>
-          <Button size="sm" variant="outline" onClick={() => void signIn()} disabled={signingIn} icon={signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : undefined}>
-            {signingIn ? "Check your wallet…" : "Sign in"}
-          </Button>
+      {/* The one caution for this state. A failed escrow read or a mismatch replaces it. */}
+      {blocked ? (
+        <div role="alert" className={cx("mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed", chain.kind === "bad" ? "text-rose-ink" : "text-amber-ink")}>
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            {/* The per-source reasons for a failed read are under "How this was checked" in the on-chain card. */}
+            <strong className="font-medium">{chain.kind === "bad" ? "The escrow can't be verified." : "The escrow couldn't be read from any source."}</strong> {chain.kind === "bad" ? chain.text : ""}{" "}
+            {role === "buyer" ? "Don't buy the voucher until this page can read the escrow." : "On-chain steps are hidden until it can be read."}{" "}
+            <button onClick={retryChain} className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:brightness-110">
+              <RefreshCw className="size-3" /> Try again
+            </button>
+          </div>
         </div>
-      )}
-      {role !== "observer" && walletSteps && hasWallet && !onArc && chain.kind !== "mock" && <p className="mt-3 text-[12.5px] text-mute">Your wallet is on another network. When you press a button below, it asks to switch to {ARC.name} first; nothing is sent before that.</p>}
+      ) : v.stop ? (
+        <p role="alert" className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed text-rose-ink">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> Don't buy the voucher and don't send any transaction for this order. Nothing has moved. Contact NetPositive support with the order ID.
+        </p>
+      ) : v.caution ? (
+        <p className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed font-medium text-amber-ink">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> {v.caution}
+        </p>
+      ) : null}
+
+      {lead && <p className="mt-3 text-[12.5px] leading-relaxed text-mute">{lead}</p>}
       {role === "observer" && !hasWallet && (
         <div className="mt-3">
           <Button size="sm" variant="outline" onClick={openWallet}>
@@ -345,8 +337,19 @@ function NowCard({ req, role, v, chain, onArc, hasWallet, openWallet, onUpdated,
         </div>
       )}
 
-      {v.actions.some((x) => x !== "fill") && (
-        <div className="mt-4 space-y-3 border-t border-fg/[0.06] pt-4">
+      {/* Session and wallet checks before any action: quiet lines, not warnings. */}
+      {role !== "observer" && v.needsSignIn && !(releaseMain && !token) && (
+        <p className="mt-3 text-[12.5px] leading-relaxed text-mute">
+          Connected as {short(fullAddress)} but not signed in with this wallet.{" "}
+          <button onClick={() => void signIn()} disabled={signingIn} className="font-medium text-fg underline underline-offset-2 hover:text-brand-ink disabled:opacity-50">
+            {signingIn ? "Check your wallet…" : "Sign in (free signature)"}
+          </button>
+        </p>
+      )}
+      {role !== "observer" && walletSteps && hasWallet && !onArc && chain.kind !== "mock" && <p className="mt-3 text-[12px] text-mute">Your wallet is on another network. It asks to switch to {ARC.name} first; nothing is sent before that.</p>}
+
+      {hasMain && (
+        <div className="mt-4 space-y-4">
           {A.has("ready") && <ReadyAction {...common} viewer={fullAddress} walletRequest={walletRequest} again={v.ready !== "none"} />}
           {A.has("bind") && <BindAction req={req} onDone={onChainDone} />}
           {A.has("buyVoucher") && (
@@ -361,19 +364,11 @@ function NowCard({ req, role, v, chain, onArc, hasWallet, openWallet, onUpdated,
               <SubmitCode req={req} onUpdated={onUpdated} deliveredOnChain={v.deliveredOnChain} />
             </div>
           )}
-          {A.has("release") && <SettleActions {...common} canDispute={A.has("dispute")} codeIn={codeIn} />}
+          {releaseMain && <SettleActions {...common} codeIn={codeIn} />}
           {A.has("openDispute") && (
             <Button size="sm" variant="outline" to={`/dispute/${encodeURIComponent(req.id)}`} icon={<ArrowUpRight className="size-3.5" />}>
               Open the dispute page
             </Button>
-          )}
-          {(A.has("cancel") || A.has("cancelNoTx") || A.has("unassign") || A.has("concede")) && (
-            <div className="flex flex-wrap items-start gap-2">
-              {A.has("cancel") && <CancelAction {...common} withTx locked={locked} />}
-              {A.has("cancelNoTx") && <CancelAction {...common} withTx={false} locked={locked} />}
-              {A.has("unassign") && <BuyerExit req={req} kind="unassign" onDone={onChainDone} />}
-              {A.has("concede") && <BuyerExit req={req} kind="concede" onDone={onChainDone} />}
-            </div>
           )}
         </div>
       )}
@@ -382,30 +377,75 @@ function NowCard({ req, role, v, chain, onArc, hasWallet, openWallet, onUpdated,
           <LoaderCircle className="size-3.5 animate-spin" /> Reading the escrow on {ARC.name}…
         </p>
       )}
-      {v.serverBehind && (
-        <button onClick={refetch} className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-mute hover:text-fg">
-          <RefreshCw className="size-3" /> Check the server again
-        </button>
+
+      {hasMore && (
+        <div className={cx("flex flex-wrap items-center gap-x-1 gap-y-2", hasMain ? "mt-4 border-t border-fg/[0.06] pt-3" : "mt-4")}>
+          <span className="mr-1 text-[11.5px] text-dim">More actions</span>
+          {A.has("release") && !releaseMain && <SettleActions {...common} codeIn={codeIn} quiet />}
+          {A.has("dispute") && <DisputeAction {...common} />}
+          {A.has("cancel") && <CancelAction {...common} withTx locked={locked} />}
+          {A.has("cancelNoTx") && <CancelAction {...common} withTx={false} locked={locked} />}
+          {A.has("unassign") && <BuyerExit req={req} kind="unassign" onDone={onChainDone} />}
+          {A.has("concede") && <BuyerExit req={req} kind="concede" onDone={onChainDone} />}
+        </div>
+      )}
+      {showVault && <VaultSetup />}
+
+      {(v.deadline || details.length > 0 || v.serverBehind) && (
+        <details className="group mt-4 border-t border-fg/[0.06] pt-2.5">
+          <summary className="flex cursor-pointer list-none items-center gap-1 text-[12px] text-mute select-none hover:text-fg">
+            Details <ChevronDown className="size-3.5 transition group-open:rotate-180" />
+          </summary>
+          <ul className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed text-mute">
+            {v.deadline && <DeadlineDetail d={v.deadline} role={role} />}
+            {details.map((n) => (
+              <li key={n.text}>{n.text}</li>
+            ))}
+            {v.serverBehind && (
+              <li>
+                <button onClick={refetch} className="inline-flex items-center gap-1.5 text-[12px] text-mute underline underline-offset-2 hover:text-fg">
+                  <RefreshCw className="size-3" /> Check the server again
+                </button>
+              </li>
+            )}
+          </ul>
+        </details>
       )}
     </div>
   );
 }
 
-function LiveDeadline({ d, role }: { d: Deadline; role: Role }) {
+function useTick(ms = 1000) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => setNow(Date.now()), ms);
     return () => clearInterval(t);
-  }, []);
-  const over = d.at * 1000 <= now;
+  }, [ms]);
+  return now;
+}
+
+/** "Closes in 2 d 23 h": quiet until the last 15 minutes, amber then, red once passed. */
+function LiveDeadline({ d, role }: { d: Deadline; role: Role }) {
+  const now = useTick();
+  const u = deadlineUrgency(d, now);
   return (
-    <p className={cx("mt-3 flex items-start gap-2 rounded-xl px-3 py-2 text-[13px] leading-relaxed ring-1", over ? TONE.iris : TONE.amber)}>
-      <Clock className="mt-0.5 size-3.5 shrink-0" />
-      <span>
-        {deadlineLine(d, role, now)}
-        <span className="ml-1 text-[11.5px] opacity-70">({new Date(d.at * 1000).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}{d.source === "server" ? ", NetPositive's clock" : ", on-chain"})</span>
+    <span className={cx("inline-flex items-center gap-1.5 text-[12px] tabular", u === "over" ? "font-medium text-rose-ink" : u === "soon" ? "font-medium text-amber-ink" : "text-mute")} title={deadlineLine(d, role, now)}>
+      <Clock className="size-3.5" /> {deadlineShort(d, role, now)}
+    </span>
+  );
+}
+
+/** The full deadline sentence with its exact time, for the Details disclosure. */
+function DeadlineDetail({ d, role }: { d: Deadline; role: Role }) {
+  const now = useTick();
+  return (
+    <li>
+      {deadlineLine(d, role, now)}{" "}
+      <span className="text-dim">
+        ({new Date(d.at * 1000).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+        {d.source === "server" ? ", NetPositive's clock" : ", on-chain"})
       </span>
-    </p>
+    </li>
   );
 }
 
@@ -414,8 +454,10 @@ function LiveDeadline({ d, role }: { d: Deadline; role: Role }) {
 function Timeline({ stages, viewer }: { stages: Stage[]; viewer: string }) {
   return (
     <details open className="hairline group rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl sm:p-5">
-      <summary className="label cursor-pointer list-none select-none">History</summary>
-      <ol className="mt-4">
+      <summary className="label flex cursor-pointer list-none items-center gap-1 select-none">
+        History <ChevronDown className="size-3.5 transition group-open:rotate-180" />
+      </summary>
+      <ol className="mt-3">
         {stages.map((st, i) => (
           <StageRow key={st.key} st={st} viewer={viewer} last={i === stages.length - 1} />
         ))}
@@ -424,50 +466,57 @@ function Timeline({ stages, viewer }: { stages: Stage[]; viewer: string }) {
   );
 }
 
+/**
+ * One compact row. Only what happened (or is really under way: a dispute, a payout being sent) is drawn in colour
+ * with its detail; the next step and anything after it is grey, titled only, and never shown as "in progress".
+ */
 function StageRow({ st, viewer, last }: { st: Stage; viewer: string; last: boolean }) {
   const done = st.state === "done";
-  const cur = st.state === "current";
   const skipped = st.state === "skipped";
+  // `buildStages` marks the first step still ahead as "current"; unless it has its own tone, nothing has happened yet.
+  const active = st.state === "current" && st.tone !== "mint";
+  const next = st.state === "current" && !active;
+  const future = st.state === "upcoming" || next;
   const time = when(st.at);
   const mine = !!st.actor && sameAddr(st.actor, viewer);
-  const settledTone = done ? st.tone : cur ? (st.tone === "mint" ? "amber" : st.tone) : "mute";
 
   return (
-    <li className="relative flex gap-3.5 pb-5 last:pb-0">
-      {!last && <span className={cx("absolute top-7 bottom-0 left-[12px] w-px", done ? "bg-brand/40" : "bg-fg/[0.09]")} aria-hidden />}
+    <li className="relative flex gap-3 pb-3.5 last:pb-0">
+      {!last && <span className={cx("absolute top-6 bottom-0 left-[9.5px] w-px", done ? "bg-brand/40" : "bg-fg/[0.09]")} aria-hidden />}
       <span
         className={cx(
-          "relative mt-0.5 grid size-[25px] shrink-0 place-items-center rounded-full ring-1",
+          "relative mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ring-1",
           done && "bg-brand/15 text-brand-ink ring-brand/40",
           done && st.tone !== "mint" && TONE[st.tone],
-          cur && TONE[settledTone],
-          st.state === "upcoming" && "bg-transparent text-dim ring-fg/12",
+          active && TONE[st.tone],
+          future && "bg-transparent text-dim ring-fg/12",
           skipped && "bg-transparent text-dim/60 ring-fg/[0.07]",
         )}
       >
-        {done ? <Check className="size-3.5" /> : skipped ? <Minus className="size-3.5" /> : cur ? <span className={cx("size-2 animate-pulse rounded-full", TONE_DOT[settledTone])} /> : null}
+        {done ? <Check className="size-3" /> : skipped ? <Minus className="size-3" /> : active ? <span className={cx("size-1.5 rounded-full", TONE_DOT[st.tone])} /> : null}
       </span>
       <div className={cx("min-w-0 flex-1", skipped && "opacity-60")}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <div className={cx("text-[14px] font-medium", st.state === "upcoming" || skipped ? "text-mute" : "text-fg")}>
+          <div className={cx("text-[13px] font-medium", future || skipped ? "text-mute" : "text-fg")}>
             {st.title}
-            {skipped && <span className="ml-2 font-mono text-[10px] tracking-wider text-dim uppercase">didn't happen</span>}
+            {next && <span className="ml-2 font-mono text-[9.5px] tracking-wider text-dim uppercase">next</span>}
+            {skipped && <span className="ml-2 font-mono text-[9.5px] tracking-wider text-dim uppercase">didn't happen</span>}
           </div>
           {time && <time className="font-mono text-[11px] text-dim" dateTime={st.at ?? undefined}>{time}</time>}
         </div>
-        <p className="mt-0.5 text-[12.5px] leading-relaxed text-mute">{st.detail}</p>
-        {st.facts.length > 0 && (
-          <dl className="mt-2 space-y-1 rounded-xl bg-fg/[0.03] px-3 py-2 text-[12.5px] ring-1 ring-fg/[0.06]">
+        {!future && <p className="mt-0.5 text-[12px] leading-relaxed text-mute">{st.detail}</p>}
+        {!future && st.facts.length > 0 && (
+          <dl className="mt-1 space-y-0.5 text-[12px]">
             {st.facts.map((f) => (
-              <div key={f.label} className="flex gap-3">
-                <dt className="w-20 shrink-0 text-dim">{f.label}</dt>
-                <dd className="min-w-0 break-words text-fg/90">{f.value}</dd>
+              <div key={f.label} className="flex gap-2">
+                <dt className="shrink-0 text-dim">{f.label}:</dt>
+                <dd className="min-w-0 break-words text-fg/85">{f.value}</dd>
               </div>
             ))}
           </dl>
         )}
-        {(st.actor || st.tx) && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-dim">
+        {!future && (st.actor || st.tx) && (
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-dim">
             {st.actor && (
               <span className="inline-flex items-center gap-1.5">
                 <span className="font-mono">{short(st.actor)}</span>
@@ -575,34 +624,31 @@ function Parties({ req, viewer }: { req: ApiRequest; viewer: string }) {
   );
 }
 
-function Technical({ req, chain }: { req: ApiRequest; chain: ChainView }) {
+/** Order and transaction references, inside the on-chain card's "How this was checked". */
+function Technical({ req }: { req: ApiRequest }) {
   const txs = [
     ["Deposit", req.escrowTxHash],
     ["Release", req.releaseTxHash],
     ["Refund", req.refundTxHash],
   ].filter((t): t is [string, string] => !!t[1] && !t[1].startsWith("reconciled"));
   return (
-    <details className="hairline group rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl sm:p-5">
-      <summary className="label cursor-pointer list-none select-none">Technical details</summary>
-      <div className="mt-3 space-y-2 text-[12px]">
-        <Kv k="Order ID" v={req.id} />
-        <Kv k="Escrow ID" v={req.escrowId} />
-        <Kv k="Network" v={`${ARC.name} (chain ${ARC.id})`} />
-        <Kv k="Status code" v={req.status} />
-        {chain.kind === "ok" && <Kv k="Read via" v={sourceText(chain.source, ARC.name).short} />}
-        <Kv k="Created" v={when(req.createdAt) ?? "—"} />
-        <Kv k="Last change" v={when(req.updatedAt) ?? "—"} />
-        {txs.map(([k, h]) => (
-          <div key={k} className="flex gap-3">
-            <span className="w-20 shrink-0 text-dim">{k} tx</span>
-            <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-fg/85 hover:text-brand-ink">
-              {h}
-            </a>
-          </div>
-        ))}
-        {req.lastError && <Kv k="Last error" v={req.lastError} />}
-      </div>
-    </details>
+    <div className="space-y-1.5 border-t border-fg/[0.06] pt-2.5">
+      <Kv k="Order ID" v={req.id} />
+      <Kv k="Escrow ID" v={req.escrowId} />
+      <Kv k="Network" v={`${ARC.name} (chain ${ARC.id})`} />
+      <Kv k="Status code" v={req.status} />
+      <Kv k="Created" v={when(req.createdAt) ?? "—"} />
+      <Kv k="Last change" v={when(req.updatedAt) ?? "—"} />
+      {txs.map(([k, h]) => (
+        <div key={k} className="flex gap-3">
+          <span className="w-20 shrink-0 text-dim">{k} tx</span>
+          <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-fg/85 hover:text-brand-ink">
+            {h}
+          </a>
+        </div>
+      ))}
+      {req.lastError && <Kv k="Last error" v={req.lastError} />}
+    </div>
   );
 }
 

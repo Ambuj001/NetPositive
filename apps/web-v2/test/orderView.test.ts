@@ -1,7 +1,7 @@
 // The action matrix: {server status, chain record, viewer, Ready, now} → headline, who acts, deadline, actions.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deadlineLine, duration, orderView, readyState, type Action, type ChainInput, type Role } from "../src/lib/orderView.ts";
+import { deadlineLine, deadlineShort, deadlineUrgency, duration, orderView, readyState, type Action, type ChainInput, type Role } from "../src/lib/orderView.ts";
 import type { OnchainEscrow } from "../src/lib/onchain.ts";
 
 const SPENDER = "0x" + "aa".repeat(20);
@@ -82,7 +82,7 @@ test("bind: only for the USDC buyer, only with a valid Ready, before the order e
   assert.deepEqual(ok.actions, ["bind"]);
   assert.equal(ok.actor, "you");
   assert.match(ok.headline, /^Your move: confirm the order on-chain/);
-  assert.ok(ok.notes.some((n) => /Don't buy the voucher yet/.test(n.text)));
+  assert.equal(ok.caution, "Don't buy the voucher until this confirms.");
   const none = view(req(), "buyer", esc());
   assert.deepEqual(none.actions, []);
   assert.match(none.headline, /Waiting for the voucher buyer to press Ready$/);
@@ -197,7 +197,7 @@ test("the whole matrix: every status × chain state × viewer gives text, and ac
           if (role !== "buyer") assert.ok(!v.actions.some((a) => BUYER_ONLY.includes(a)), `${where}: ${v.actions}`);
           if (role === "observer") assert.ok(v.notes.some((n) => /read-only|guest|not part of this order yet/.test(n.text)), where);
           // Never "buyer" or "spender" or "seller" on its own.
-          for (const text of [v.headline, v.body, ...v.notes.map((n) => n.text)]) assert.doesNotMatch(text, /\b(?<!(USDC|voucher) )(buyer|spender|seller)\b/i, `${where}: ${text}`);
+          for (const text of [v.headline, v.body, v.caution ?? "", ...v.notes.map((n) => n.text)]) assert.doesNotMatch(text, /\b(?<!(USDC|voucher) )(buyer|spender|seller)\b/i, `${where}: ${text}`);
           // Ended on-chain: nothing to do but maybe read the dispute.
           if (name === "released" || name === "refunded") assert.deepEqual(v.actions, [], where);
         }
@@ -242,4 +242,22 @@ test("order list headlines name the viewer, never a third-person 'buyer'", () =>
   assert.match(v.headline, /^Your move/);
   assert.match(deadlineLine(v.deadline!, "buyer", NOW), /^You have 1 h 00 m to deliver/);
   assert.match(orderView({ req: req({ ready: readyOk }), role: "spender", chain: list, now: NOW }).headline, /Waiting for the USDC buyer to deliver your voucher/);
+});
+
+test("short deadline: a few words next to the headline, loud only in the last 15 minutes", () => {
+  const open = { phase: "open" as const, at: SEC + 2 * 86400 + 23 * 3600, source: "chain" as const };
+  assert.equal(deadlineShort(open, "buyer", NOW), "Closes in 2 d 23 h");
+  assert.equal(deadlineShort(open, "spender", NOW), "Open for 2 d 23 h");
+  assert.equal(deadlineUrgency(open, NOW), "calm");
+  const fulfil = { phase: "fulfil" as const, at: SEC + 600, source: "chain" as const };
+  assert.equal(deadlineShort(fulfil, "buyer", NOW), "Deliver within 10 m");
+  assert.equal(deadlineUrgency(fulfil, NOW), "soon");
+  assert.equal(deadlineShort(fulfil, "buyer", NOW + 700_000), "Delivery time is up");
+  assert.equal(deadlineUrgency(fulfil, NOW + 700_000), "over");
+});
+
+test("the main card carries at most one caution, and the USDC buyer is told not to buy before binding", () => {
+  assert.equal(view(req(), "buyer", esc()).caution, "Don't buy the voucher yet.");
+  assert.equal(view(req({ ready: readyOk }), "spender", esc()).caution, null);
+  assert.equal(view(req(), "buyer", esc({ fulfiller: BUYER })).caution, null);
 });

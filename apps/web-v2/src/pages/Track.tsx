@@ -1,15 +1,14 @@
-import { ArrowRight, ArrowUpRight, Clock, LoaderCircle, PenLine, RefreshCw, X } from "lucide-react";
+import { ArrowRight, Clock, LoaderCircle, PenLine, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AppHead, AppPage, BrandMark, Button, cx } from "../components/ui";
 import { api, brandIdFromApi, isFinal, STATUS, type ApiRequest } from "../lib/api";
-import { ARC } from "../lib/chain";
 import { brand } from "../lib/data";
 import { inr, usdt } from "../lib/engine";
 import { recordAfterTx } from "../lib/afterTx";
 import { stepError } from "../lib/escrowFlow";
 import { ledgerFromRequest } from "../lib/orderbook";
-import { deadlineLine, orderView, type Role } from "../lib/orderView";
+import { deadlineLine, deadlineShort, deadlineUrgency, orderView, type Role } from "../lib/orderView";
 import { useApp } from "../lib/store";
 import TrackDetail from "./TrackDetail";
 
@@ -148,7 +147,7 @@ function OrderCard({ r, role, token, onChanged }: { r: ApiRequest; role: Role; t
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const final = isFinal(r.status);
-  const tx = r.releaseTxHash ?? r.refundTxHash ?? r.escrowTxHash;
+  const urgency = v.deadline ? deadlineUrgency(v.deadline, now) : "calm";
 
   useEffect(() => {
     if (!v.deadline) return;
@@ -174,36 +173,23 @@ function OrderCard({ r, role, token, onChanged }: { r: ApiRequest; role: Role; t
         </div>
       </div>
 
-      <div className="mt-3">
-        <div className={cx("text-[13.5px] font-medium", v.actor === "you" ? "text-brand-ink" : "text-fg")}>{v.headline}</div>
-        {v.deadline && (
-          <div className="mt-1 flex items-start gap-1.5 text-[12px] text-amber-ink">
-            <Clock className="mt-0.5 size-3 shrink-0" /> {deadlineLine(v.deadline, role, now)}
-          </div>
+      {/* One headline, the amounts, one deadline line, one button. */}
+      <div className={cx("mt-3 text-[13.5px] font-medium", v.actor === "you" && !final ? "text-brand-ink" : "text-fg")}>{v.headline}</div>
+      <div className="mt-1 text-[12px] text-mute tabular">
+        {role === "spender" ? (
+          <>You lock <span className="font-medium text-fg">{usdt(ledger.sellerLocks)} USDC</span></>
+        ) : (
+          <>You are paid <span className="font-medium text-fg">{usdt(ledger.buyerReceives)} USDC</span></>
         )}
+        {ledger.fee > 0 && <span className="text-dim"> · fee {usdt(ledger.fee)}</span>}
       </div>
-
-      <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-fg/[0.03] px-3 py-2 text-[12px] ring-1 ring-fg/[0.06]">
-        <div>
-          <dt className="text-dim">{role === "spender" ? "You lock" : "Voucher buyer locks"}</dt>
-          <dd className="font-medium tabular">{usdt(ledger.sellerLocks)}</dd>
+      {v.deadline && !final && (
+        <div title={deadlineLine(v.deadline, role, now)} className={cx("mt-1 flex items-center gap-1.5 text-[12px]", urgency === "over" ? "text-rose-ink" : urgency === "soon" ? "text-amber-ink" : "text-mute")}>
+          <Clock className="size-3 shrink-0" /> {deadlineShort(v.deadline, role, now)}
         </div>
-        <div>
-          <dt className="text-dim">{role === "buyer" ? "You are paid" : "USDC buyer is paid"}</dt>
-          <dd className="font-medium tabular">{usdt(ledger.buyerReceives)}</dd>
-        </div>
-        <div>
-          <dt className="text-dim">Fee</dt>
-          <dd className="tabular">{ledger.fee > 0 ? usdt(ledger.fee) : "—"}</dd>
-        </div>
-      </dl>
+      )}
 
       <div className="mt-auto flex flex-wrap items-center justify-end gap-2 pt-3">
-        {tx && !tx.startsWith("reconciled") && (
-          <a href={`${ARC.explorer}/tx/${tx}`} target="_blank" rel="noreferrer" className="mr-auto flex items-center gap-1 font-mono text-[11px] text-dim hover:text-fg">
-            {tx.slice(0, 8)}… <ArrowUpRight className="size-3" />
-          </a>
-        )}
         {v.actions.includes("cancelNoTx") && token && (
           <button
             disabled={busy}
@@ -220,7 +206,7 @@ function OrderCard({ r, role, token, onChanged }: { r: ApiRequest; role: Role; t
                 setBusy(false);
               }
             }}
-            className="flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] text-mute ring-1 ring-fg/10 hover:text-rose-ink hover:ring-rose/30 disabled:opacity-50"
+            className="mr-auto flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] text-mute hover:bg-sunken hover:text-fg disabled:opacity-50"
           >
             {busy ? <LoaderCircle className="size-3 animate-spin" /> : <X className="size-3" />} Cancel
           </button>

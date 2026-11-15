@@ -65,7 +65,10 @@ export type OrderView = {
   actor: "you" | "voucher buyer" | "USDC buyer" | "arbiter" | "automatic" | "nobody";
   deadline: Deadline | null;
   actions: Action[];
+  /** Secondary facts for the "Details" disclosure; never shown as warnings in the main card. */
   notes: Note[];
+  /** At most one caution for the main card: the single most important thing not to get wrong in this state. */
+  caution: string | null;
   /** The chain contradicts the order in a way that makes any step unsafe. Nothing is offered while this is set. */
   stop: string | null;
   ready: ReadyState;
@@ -112,6 +115,29 @@ export function duration(sec: number) {
   if (s < 3600) return `${Math.floor(s / 60)} m`;
   if (s < 86400) return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} m`;
   return `${Math.floor(s / 86400)} d ${Math.floor((s % 86400) / 3600)} h`;
+}
+
+/** "Closes in 2 d 23 h": the deadline as a few words for the line next to the headline. The full sentence is `deadlineLine`. */
+export function deadlineShort(d: Deadline, role: Role, nowMs: number): string {
+  const left = d.at - nowMs / 1000;
+  const t = duration(left);
+  if (left <= 0) return d.phase === "open" ? "Expired" : d.phase === "fulfil" ? "Delivery time is up" : d.phase === "review" ? "Review window ended" : "Ruling time is up";
+  switch (d.phase) {
+    case "open":
+      return role === "spender" ? `Open for ${t}` : `Closes in ${t}`;
+    case "fulfil":
+      return role === "buyer" ? `Deliver within ${t}` : `Delivery due in ${t}`;
+    case "review":
+      return role === "spender" ? `${t} left to review` : `Review ends in ${t}`;
+    case "dispute":
+      return `Arbiter rules within ${t}`;
+  }
+}
+
+/** How loud the deadline should be: quiet until the last 15 minutes. */
+export function deadlineUrgency(d: Deadline, nowMs: number): "calm" | "soon" | "over" {
+  const left = d.at - nowMs / 1000;
+  return left <= 0 ? "over" : left <= 15 * 60 ? "soon" : "calm";
 }
 
 /**
@@ -196,7 +222,7 @@ export function orderView(input: ViewInput): OrderView {
 }
 
 function base(req: ApiRequest, role: Role, chain: ChainInput, nowSec: number, amt: string, locked: string, brandName: string): OrderView {
-  const v: OrderView = { tone: "mute", headline: "", body: "", actor: "nobody", deadline: null, actions: [], notes: [], stop: null, ready: "none", deliveredOnChain: false, needsSignIn: false, serverBehind: false };
+  const v: OrderView = { tone: "mute", headline: "", body: "", actor: "nobody", deadline: null, actions: [], notes: [], caution: null, stop: null, ready: "none", deliveredOnChain: false, needsSignIn: false, serverBehind: false };
   const set = (p: Partial<OrderView>) => Object.assign(v, p);
   const s = req.status;
   const voucher = `₹${req.amountInr.toLocaleString("en-IN")} ${brandName} voucher`;
@@ -234,7 +260,7 @@ function base(req: ApiRequest, role: Role, chain: ChainInput, nowSec: number, am
         if (expired) {
           v.notes.push({ tone: "iris", text: "The order's time ran out on-chain. The refund to the voucher buyer is sent automatically within a minute or two." });
           if (role === "spender") return set({ tone: "iris", actor: "automatic", headline: "Your order expired. Your USDC is coming back", body: `${locked} returns to your wallet automatically. You can also cancel now to get it back straight away.`, actions: ["cancel"] });
-          if (role === "buyer") return set({ tone: "amber", actor: "automatic", headline: "This order expired before you confirmed it", body: "Don't buy the voucher. The USDC goes back to the voucher buyer." });
+          if (role === "buyer") return set({ tone: "amber", actor: "automatic", headline: "This order expired before you confirmed it", body: "The USDC goes back to the voucher buyer.", caution: "Don't buy the voucher." });
           return set({ tone: "mute", actor: "automatic", headline: "This order expired", body: "The USDC goes back to the voucher buyer." });
         }
         if (s === "accepted" && req.crypto_buyer) {
@@ -246,23 +272,23 @@ function base(req: ApiRequest, role: Role, chain: ChainInput, nowSec: number, am
               : set({ tone: "amber", actor: "USDC buyer", headline: "Waiting for the USDC buyer to confirm on-chain", body: "You're ready. The USDC buyer now confirms the order from their wallet, then buys your voucher and hands over the code.", actions: ["cancel"] });
           }
           if (role === "buyer") {
-            v.notes.push({ tone: "amber", text: "Don't buy the voucher yet: until you confirm on-chain, the USDC is not bound to you and the voucher buyer can still cancel." });
+            v.notes.push({ tone: "mute", text: "Until you confirm on-chain, the USDC is not bound to you and the voucher buyer can still cancel." });
             return v.ready === "valid"
-              ? set({ tone: "amber", actor: "you", headline: "Your move: confirm the order on-chain", body: "The voucher buyer is ready. One transaction from your wallet binds the locked USDC to you. Buy the voucher only after it confirms.", actions: ["bind"] })
-              : set({ tone: "amber", actor: "voucher buyer", headline: v.ready === "none" ? "Waiting for the voucher buyer to press Ready" : "Waiting for the voucher buyer to press Ready again", body: v.ready === "none" ? "Your next step appears here as soon as they do." : "Their earlier Ready can't be used any more. Ask them to press Ready again; your next step appears here when they do." });
+              ? set({ tone: "amber", actor: "you", headline: "Your move: confirm the order on-chain", body: "The voucher buyer is ready. One transaction from your wallet binds the locked USDC to you.", caution: "Don't buy the voucher until this confirms.", actions: ["bind"] })
+              : set({ tone: "amber", actor: "voucher buyer", caution: "Don't buy the voucher yet.", headline: v.ready === "none" ? "Waiting for the voucher buyer to press Ready" : "Waiting for the voucher buyer to press Ready again", body: v.ready === "none" ? "Your next step appears here as soon as they do." : "Their earlier Ready can't be used any more. Ask them to press Ready again; your next step appears here when they do." });
           }
           return set({ tone: "amber", actor: "USDC buyer", headline: "A USDC buyer accepted this order", body: "Waiting for them to confirm it on-chain." });
         }
         // Open on-chain, nobody accepted (or the server reopened it).
         if (role === "spender") return set({ tone: "mint", actor: "nobody", headline: "Waiting for a USDC buyer", body: `Your ${locked} is locked and the order is in the order book. Until a USDC buyer is bound on-chain you can cancel and get all of it back.`, actions: ["cancel"] });
-        if (role === "buyer") return set({ tone: "mute", actor: "nobody", headline: "You're not bound to this order", body: "The order is back in the order book. Don't buy the voucher for it." });
+        if (role === "buyer") return set({ tone: "mute", actor: "nobody", headline: "You're not bound to this order", body: "The order is back in the order book.", caution: "Don't buy the voucher for it." });
         return set({ tone: "mint", actor: "nobody", headline: "This order is open", body: `Buy a ${voucher} on your best card and you receive ${amt}.`, actions: s === "open" || s === "pending_funding" ? ["fill"] : [] });
       }
       // A USDC buyer is bound.
       if (past) {
         v.notes.push({ tone: "iris", text: "The delivery deadline passed on-chain. The refund to the voucher buyer is sent automatically within a minute or two." });
         if (role === "spender") return set({ tone: "iris", actor: "automatic", headline: "Delivery time is up. Your USDC is coming back", body: `${locked} returns to your wallet automatically. If you did receive a working voucher, you can still release instead.`, actions: ["release"] });
-        if (role === "buyer") return set({ tone: "amber", actor: "automatic", headline: "Your delivery time is up", body: "Don't buy the voucher now. The USDC goes back to the voucher buyer." });
+        if (role === "buyer") return set({ tone: "amber", actor: "automatic", headline: "Your delivery time is up", body: "The USDC goes back to the voucher buyer.", caution: "Don't buy the voucher now." });
         return set({ tone: "mute", actor: "automatic", headline: "Delivery time is up", body: "The USDC goes back to the voucher buyer." });
       }
       if (role === "buyer" && viewerBound) {
@@ -338,9 +364,9 @@ function serverOnly(v: OrderView, req: ApiRequest, role: Role, chain: ChainInput
           : set({ tone: "amber", actor: "you", headline: req.ready ? "Your move: sign Ready again" : "Your move: press Ready for the USDC buyer", body: "A USDC buyer accepted your order. Ready is a free signature (no gas) that lets them bind to your order on-chain.", actions: act(["ready", "cancel"]) });
       }
       if (role === "buyer") {
-        if (!ready) return set({ tone: "amber", actor: "voucher buyer", headline: req.ready ? "Waiting for the voucher buyer to press Ready again" : "Waiting for the voucher buyer to press Ready", body: "Don't buy the voucher yet. Your next step appears once they do." });
+        if (!ready) return set({ tone: "amber", actor: "voucher buyer", headline: req.ready ? "Waiting for the voucher buyer to press Ready again" : "Waiting for the voucher buyer to press Ready", body: "Your next step appears here once they do.", caution: "Don't buy the voucher yet." });
         if (mock) return set({ tone: "amber", actor: "you", headline: "Your move: buy the voucher and submit the code", body: `Buy the ${voucher}, then submit its code below to be paid ${amt}.`, actions: ["buyVoucher", "deliver"] });
-        return set({ tone: "amber", actor: "you", headline: "Your move: confirm on-chain, then deliver", body: "The voucher buyer is ready. Confirm the order from your wallet first; buy the voucher only after that goes through." });
+        return set({ tone: "amber", actor: "you", headline: "Your move: confirm on-chain, then deliver", body: "The voucher buyer is ready. Confirm the order from your wallet first.", caution: "Don't buy the voucher until that confirms." });
       }
       return set({ tone: "amber", actor: "USDC buyer", headline: "A USDC buyer is working on this order", body: "Nothing for you to do." });
     case "code_submitted":

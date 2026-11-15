@@ -66,11 +66,24 @@ function permitProblem(typedData: unknown, contract: string | null): string | nu
   return null;
 }
 
-export function ActionBox({ tone = "mute", children }: { tone?: "mint" | "amber" | "rose" | "mute"; children: ReactNode }) {
-  return <div className={cx("rounded-2xl p-3.5 ring-1", tone === "mint" ? "bg-brand/[0.05] ring-brand/20" : tone === "amber" ? "bg-amber/[0.06] ring-amber/25" : tone === "rose" ? "bg-rose/[0.05] ring-rose/25" : "bg-fg/[0.03] ring-fg/[0.07]")}>{children}</div>;
+/** A neutral panel, used only for things the person opened themselves (a confirmation, the dispute form). */
+export function ActionBox({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cx("rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]", className)}>{children}</div>;
 }
 
-const Err = ({ text }: { text: string }) => (text ? <p role="alert" className="mt-2 text-[12.5px] leading-relaxed text-rose-ink">{text}</p> : null);
+/** A secondary action: a quiet text button for the "More actions" row under the primary button. */
+export function QuietButton({ onClick, disabled, icon, children }: { onClick: () => void; disabled?: boolean; icon?: ReactNode; children: ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] text-mute transition hover:bg-sunken hover:text-fg disabled:pointer-events-none disabled:opacity-40">
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+/** The error of the step just tried, directly under its button. Cleared when the step is tried again. */
+const Err = ({ text, className }: { text: string; className?: string }) => (text ? <p role="alert" className={cx("mt-2 text-[12.5px] leading-relaxed text-rose-ink", className)}>{text}</p> : null);
+const Hint = ({ children }: { children: ReactNode }) => <p className="mt-2 text-[12px] leading-relaxed text-mute">{children}</p>;
 const Spin = () => <LoaderCircle className="size-3.5 animate-spin" />;
 
 /* ------------------------------------------------------------------- Ready */
@@ -109,18 +122,16 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
     });
 
   return (
-    <ActionBox tone="mint">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" onClick={() => void go()} disabled={busy || signingIn} icon={busy || signingIn ? <Spin /> : <Check className="size-3.5" />}>
-          {busy || signingIn ? "Check your wallet…" : again ? "Sign Ready again" : "Press Ready"}
-        </Button>
-        <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-mute">
-          A free signature, no gas. It lets the USDC buyer <span className="font-mono">{req.crypto_buyer ? short(req.crypto_buyer) : ""}</span>, and only them, bind to your order on-chain. It is valid for a few minutes; if it expires before they use it, sign again.
-          {!token && " The first time, your wallet asks twice: once to sign in, once for the permit."}
-        </p>
-      </div>
+    <div>
+      <Button size="sm" onClick={() => void go()} disabled={busy || signingIn} icon={busy || signingIn ? <Spin /> : <Check className="size-3.5" />}>
+        {busy || signingIn ? "Check your wallet…" : again ? "Sign Ready again" : "Press Ready"}
+      </Button>
       <Err text={err} />
-    </ActionBox>
+      <Hint>
+        Free, no gas. Only the USDC buyer <span className="font-mono">{req.crypto_buyer ? short(req.crypto_buyer) : ""}</span> can use it, for a few minutes.
+        {!token && " Your wallet asks twice the first time: sign in, then the permit."}
+      </Hint>
+    </div>
   );
 }
 
@@ -146,16 +157,13 @@ export function BindAction({ req, onDone }: { req: ApiRequest; onDone: (n: Notic
     });
 
   return (
-    <ActionBox tone="amber">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" variant="amber" onClick={() => void go()} disabled={busy} icon={busy ? <Spin /> : <ShieldCheck className="size-3.5" />}>
-          {busy ? "Check your wallet…" : "Confirm on-chain"}
-        </Button>
-        <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-mute">One transaction on {ARC.name} (a few cents of gas, paid in USDC). It binds the locked USDC to you, so the voucher buyer can no longer cancel.</p>
-      </div>
-      {busy && <p className="mt-2 text-[12px] text-mute">Waiting for the transaction to confirm. Keep this page open.</p>}
+    <div>
+      <Button size="sm" onClick={() => void go()} disabled={busy} icon={busy ? <Spin /> : <ShieldCheck className="size-3.5" />}>
+        {busy ? "Check your wallet…" : "Confirm on-chain"}
+      </Button>
       <Err text={err} />
-    </ActionBox>
+      <Hint>{busy ? "Waiting for the transaction to confirm. Keep this page open." : `One transaction on ${ARC.name}, a few cents of gas in USDC.`}</Hint>
+    </div>
   );
 }
 
@@ -187,26 +195,26 @@ export function CancelAction({ req, token, signIn, signingIn, withTx, locked, on
     });
 
   return (
-    <div>
+    <>
       {!confirming ? (
-        <Button size="sm" variant="outline" onClick={() => setConfirming(true)} disabled={signingIn} icon={<X className="size-3.5" />}>
+        <QuietButton onClick={() => { setErr(""); setConfirming(true); }} disabled={signingIn} icon={<X className="size-3.5" />}>
           {withTx ? "Cancel and get my USDC back" : "Cancel this order"}
-        </Button>
+        </QuietButton>
       ) : (
-        <ActionBox tone="amber">
+        <ActionBox className="w-full basis-full">
           <p className="text-[12.5px] leading-relaxed">{withTx ? `Your wallet confirms one transaction on ${ARC.name}. The escrow then returns ${locked}, fee included, to your wallet. This works only while no USDC buyer is bound on-chain.` : "No USDC was deposited, so there is no transaction."}</p>
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <Button size="sm" variant="amber" onClick={() => void go()} disabled={busy || signingIn} icon={busy || signingIn ? <Spin /> : <X className="size-3.5" />}>
               {busy || signingIn ? "Check your wallet…" : withTx ? "Yes, cancel and refund me" : "Yes, cancel"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
+            <Button size="sm" variant="ghost" onClick={() => { setErr(""); setConfirming(false); }} disabled={busy}>
               Keep the order
             </Button>
           </div>
+          <Err text={err} />
         </ActionBox>
       )}
-      <Err text={err} />
-    </div>
+    </>
   );
 }
 
@@ -240,26 +248,26 @@ export function BuyerExit({ req, kind, onDone }: { req: ApiRequest; kind: "unass
     });
 
   return (
-    <div>
+    <>
       {!confirming ? (
-        <Button size="sm" variant="ghost" onClick={() => setConfirming(true)} icon={copy.icon}>
+        <QuietButton onClick={() => { setErr(""); setConfirming(true); }} icon={copy.icon}>
           {copy.button}
-        </Button>
+        </QuietButton>
       ) : (
-        <ActionBox tone="rose">
+        <ActionBox className="w-full basis-full">
           <p className="text-[12.5px] leading-relaxed">{copy.text} Your wallet confirms one transaction on {ARC.name}.</p>
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <Button size="sm" variant="amber" onClick={() => void go()} disabled={busy} icon={busy ? <Spin /> : undefined}>
               {busy ? "Check your wallet…" : copy.yes}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={busy}>
+            <Button size="sm" variant="ghost" onClick={() => { setErr(""); setConfirming(false); }} disabled={busy}>
               Not now
             </Button>
           </div>
+          <Err text={err} />
         </ActionBox>
       )}
-      <Err text={err} />
-    </div>
+    </>
   );
 }
 
@@ -273,37 +281,58 @@ const REASONS: { text: string; category: DisputeCategory }[] = [
   { text: "The balance is lower than ordered", category: "wrong_amount" },
 ];
 
-export function SettleActions({ req, token, signIn, signingIn, onUpdated, canDispute, codeIn }: Common & { canDispute: boolean; codeIn: boolean }) {
+/**
+ * Release. `quiet` when releasing isn't the step this state is waiting for (e.g. the voucher buyer may release early
+ * while the USDC buyer is still delivering): then it is a text button in the "More actions" row.
+ */
+export function SettleActions({ req, token, signIn, signingIn, onUpdated, codeIn, quiet = false }: Common & { codeIn: boolean; quiet?: boolean }) {
   const [confirming, setConfirming] = useState(false);
-  const [disputing, setDisputing] = useState(false);
+
+  if (quiet) {
+    return (
+      <>
+        <QuietButton onClick={() => (token ? setConfirming(true) : void signIn())} disabled={signingIn} icon={signingIn ? <Spin /> : <ShieldCheck className="size-3.5" />}>
+          {signingIn ? "Check your wallet…" : token ? "Release the USDC now" : "Sign in to release"}
+        </QuietButton>
+        {token && <ConfirmSettle req={req} token={token} open={confirming} onClose={() => setConfirming(false)} onUpdated={onUpdated} codeIn={codeIn} />}
+      </>
+    );
+  }
 
   if (!token) {
     return (
-      <ActionBox>
-        <Button size="sm" variant="outline" onClick={() => void signIn()} disabled={signingIn} icon={signingIn ? <Spin /> : undefined}>
-          {signingIn ? "Check your wallet…" : canDispute ? "Sign in to release or dispute" : "Sign in to release"}
+      <div>
+        <Button size="sm" onClick={() => void signIn()} disabled={signingIn} icon={signingIn ? <Spin /> : undefined}>
+          {signingIn ? "Check your wallet…" : "Sign in to release"}
         </Button>
-        <p className="mt-2 text-[12px] text-mute">Signing in is a free signature. It proves this wallet is the voucher buyer.</p>
-      </ActionBox>
+        <Hint>A free signature that proves this wallet is the voucher buyer.</Hint>
+      </div>
     );
   }
 
   return (
     <div className="space-y-3">
       {codeIn && <VoucherPeek req={req} token={token} />}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" onClick={() => { setDisputing(false); setConfirming(true); }} icon={<ShieldCheck className="size-3.5" />}>
-          Release the USDC
-        </Button>
-        {canDispute && (
-          <Button size="sm" variant="outline" onClick={() => setDisputing((v) => !v)} className={cx(disputing && "ring-rose/40")}>
-            Raise a dispute
-          </Button>
-        )}
-      </div>
-      {disputing && <DisputeForm req={req} token={token} onCancel={() => setDisputing(false)} onUpdated={onUpdated} />}
+      <Button size="sm" onClick={() => setConfirming(true)} icon={<ShieldCheck className="size-3.5" />}>
+        Release the USDC
+      </Button>
       <ConfirmSettle req={req} token={token} open={confirming} onClose={() => setConfirming(false)} onUpdated={onUpdated} codeIn={codeIn} />
     </div>
+  );
+}
+
+/** Dispute, as a quiet text button that opens the form under the "More actions" row. */
+export function DisputeAction({ req, token, signIn, signingIn, onUpdated }: Common) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {!open && (
+        <QuietButton onClick={() => (token ? setOpen(true) : void signIn())} disabled={signingIn} icon={signingIn ? <Spin /> : undefined}>
+          {signingIn ? "Check your wallet…" : token ? "Raise a dispute" : "Sign in to dispute"}
+        </QuietButton>
+      )}
+      {open && token && <DisputeForm req={req} token={token} onCancel={() => setOpen(false)} onUpdated={onUpdated} />}
+    </>
   );
 }
 
@@ -331,9 +360,9 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
   }
 
   return (
-    <ActionBox>
+    <div>
       <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-mute">
-        Check the voucher before you release. A sealed code opens only with your vault key.
+        Check the voucher before you release.
         {state.kind === "code" ? (
           <button onClick={() => setState({ kind: "hidden" })} className="inline-flex items-center gap-1 text-fg/80 hover:text-fg">
             <EyeOff className="size-3.5" /> Hide
@@ -344,7 +373,7 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
           </button>
         )}
       </div>
-      {state.kind === "loading" && <p className="mt-1.5 text-[12px] text-amber-ink">{state.text}</p>}
+      {state.kind === "loading" && <p className="mt-1.5 text-[12px] text-mute">{state.text}</p>}
       {state.kind === "code" && (
         <dl className="mt-2 space-y-1 rounded-xl bg-canvas px-3 py-2 font-mono text-[12.5px] ring-1 ring-fg/10">
           <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">Code</dt><dd className="min-w-0 break-all whitespace-pre-wrap select-all text-fg">{state.code}</dd></div>
@@ -352,7 +381,7 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
         </dl>
       )}
       {state.kind === "error" && <p role="alert" className="mt-1.5 text-[12px] text-rose-ink">{state.message}</p>}
-    </ActionBox>
+    </div>
   );
 }
 
@@ -381,8 +410,8 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
     });
 
   return (
-    <ActionBox tone="rose">
-      <div className="text-[12.5px] font-medium text-rose-ink">What's wrong with the voucher?</div>
+    <ActionBox className="w-full basis-full">
+      <div className="text-[12.5px] font-medium">What's wrong with the voucher?</div>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {REASONS.map((r) => (
           <button key={r.text} type="button" onClick={() => setReason(r.text)} className={cx("rounded-full px-2.5 py-1 text-[11.5px] ring-1 transition", reason === r.text ? "bg-rose/15 text-rose-ink ring-rose/40" : "text-mute ring-fg/10 hover:text-fg")}>
@@ -395,7 +424,6 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
         <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} rows={3} placeholder="Describe the problem (at least 5 characters)" className="w-full resize-none rounded-lg bg-canvas px-3 py-2 text-[13px] ring-1 ring-fg/10 outline-none placeholder:text-dim focus:ring-rose/40" />
       </label>
       <p className="mt-1 text-[11.5px] text-mute">Your wallet freezes the escrow with a transaction. {stakeNotice(terms?.disputeBond ?? null, usdcShort)} Raise it before the review window ends. To add screenshots, use the dispute page afterwards.</p>
-      <Err text={err} />
       <div className="mt-2.5 flex items-center gap-2">
         <Button size="sm" variant="amber" onClick={() => void submit()} disabled={!ok || busy} icon={busy ? <Spin /> : undefined}>
           {busy ? "Check your wallet…" : "Raise dispute"}
@@ -404,6 +432,7 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
           Cancel
         </Button>
       </div>
+      <Err text={err} />
     </ActionBox>
   );
 }

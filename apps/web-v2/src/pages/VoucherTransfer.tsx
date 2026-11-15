@@ -77,18 +77,18 @@ export function VaultSetup() {
     }
   }
 
+  // A quiet row inside the order's main card: needed before the code can be sealed to you, but not a warning.
   return (
-    <div className="rounded-[22px] bg-brand/[0.05] p-4 ring-1 ring-brand/25">
-      <div className="text-[14px] font-medium text-brand-ink">Unlock your voucher vault</div>
-      <p className="mt-1 text-[12.5px] leading-relaxed text-mute">
-        The USDC buyer seals the voucher code to your wallet before it is sent. Your wallet signs a message, and that signature becomes the key. It stays in this browser. The server only keeps the public key.
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <Button size="sm" onClick={() => void setup()} disabled={phase === "working" || signingIn} icon={phase === "working" || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
+    <div className="mt-4 border-t border-fg/[0.06] pt-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="min-w-0 flex-1 text-[12.5px] leading-relaxed text-mute" title="Your wallet signs a message and that signature becomes the key. It stays in this browser; the server only keeps the public key.">
+          <span className="font-medium text-fg">Set up your voucher vault.</span> The USDC buyer seals the code to it; the key stays in this browser.
+        </p>
+        <Button size="sm" variant="outline" onClick={() => void setup()} disabled={phase === "working" || signingIn} icon={phase === "working" || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
           {phase === "working" || signingIn ? "Check your wallet…" : token ? "Set up vault" : "Sign in and set up vault"}
         </Button>
-        {hint && <p className="min-w-0 flex-1 text-[12px] text-amber-ink">{hint}</p>}
       </div>
+      {hint && <p className="mt-1.5 text-[12px] text-mute">{hint}</p>}
       {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
     </div>
   );
@@ -209,16 +209,15 @@ export function SubmitCode({ req, onUpdated, deliveredOnChain = false }: { req: 
   };
 
   return (
-    <div className="rounded-2xl bg-amber/[0.05] p-3.5 ring-1 ring-amber/25">
-      <div className="text-[13px] font-medium text-amber-ink">Submit the voucher code</div>
-      <p className="mt-1 text-[12px] leading-relaxed text-mute">
-        Paste the code once you've bought the voucher. It is encrypted on this device to the voucher buyer's vault key, so NetPositive can't read it. {chainDone ? "The voucher is already marked delivered on-chain, so this only sends the code." : `Your wallet confirms one transaction on ${ARC.name} that marks it delivered and starts the voucher buyer's review window.`}
+    <div>
+      <p className="text-[12px] leading-relaxed text-mute">
+        Encrypted on this device for the voucher buyer only; NetPositive can't read it. {chainDone ? "Already marked delivered on-chain, so this only sends the code." : `One transaction on ${ARC.name} marks it delivered and starts the voucher buyer's review window.`}
       </p>
-      <ol className="mt-2.5 grid gap-1 text-[12px] sm:grid-cols-3">
+      <ol className="mt-2 grid gap-1 text-[12px] sm:grid-cols-3">
         {STAGES.map((st, i) => {
           const s = stateOf(st.key);
           return (
-            <li key={st.key} className={s === "done" ? "text-brand-ink" : s === "now" ? "text-amber-ink" : "text-dim"}>
+            <li key={st.key} className={s === "done" ? "text-brand-ink" : s === "now" ? "text-fg" : "text-dim"}>
               {s === "done" ? "✓" : s === "now" ? "…" : `${i + 1}.`} {st.label}
             </li>
           );
@@ -238,7 +237,7 @@ export function SubmitCode({ req, onUpdated, deliveredOnChain = false }: { req: 
           spellCheck={false}
           placeholder="Paste the code from the voucher"
           aria-label="Voucher code"
-          className="mt-1.5 w-full resize-none rounded-xl bg-canvas px-3 py-2 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-amber/40"
+          className="mt-1.5 w-full resize-none rounded-xl bg-canvas px-3 py-2 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-brand/40"
         />
       </label>
       <label className="mt-2 block">
@@ -252,14 +251,15 @@ export function SubmitCode({ req, onUpdated, deliveredOnChain = false }: { req: 
           spellCheck={false}
           placeholder="Optional"
           aria-label="Voucher PIN"
-          className="mt-1.5 h-10 w-full rounded-xl bg-canvas px-3 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-amber/40"
+          className="mt-1.5 h-10 w-full rounded-xl bg-canvas px-3 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-brand/40"
         />
       </label>
-      {err && <p role="alert" className="mt-2 text-[12.5px] leading-relaxed text-rose-ink">{err}</p>}
       <div className="mt-3">
-        <Button size="sm" variant="amber" onClick={() => void send()} disabled={!codeOk || !pinOk || busy || worldBusy || signingIn} icon={busy || worldBusy || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
+        <Button size="sm" onClick={() => void send()} disabled={!codeOk || !pinOk || busy || worldBusy || signingIn} icon={busy || worldBusy || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
           {busy ? (stage === "chain" ? "Confirm in your wallet…" : stage === "send" ? "Sending the sealed code…" : "Sealing…") : worldBusy || signingIn ? "Check your wallet…" : chainDone ? "Seal and send the code" : "Seal, mark delivered and send"}
         </Button>
+        {/* Directly under the button that caused it; cleared when the button is pressed again. */}
+        {err && <p role="alert" className="mt-2 text-[12.5px] leading-relaxed text-rose-ink">{err}</p>}
       </div>
     </div>
   );
