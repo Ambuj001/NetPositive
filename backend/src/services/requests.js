@@ -210,8 +210,10 @@ export async function cancelRequest(id, requester) {
       return { status: S.CANCELLED };
     });
   }
-  // Funded but nobody has accepted yet. The spender sends cancel() from their wallet; this records it.
-  return settle(id, requester, 'refund', [S.OPEN]);
+  // Funded and no buyer is bound on-chain. The spender sends cancel() from their wallet; this records it.
+  // A buyer who only accepted here (and has not sent accept() to the contract) does not block it: until they are
+  // bound on-chain the money is the spender's to take back, and the buyer is told not to buy before binding.
+  return settle(id, requester, 'refund', isMock ? [S.OPEN] : [S.OPEN, S.ACCEPTED]);
 }
 
 export async function getVoucher(id, viewer, { isAdmin = false } = {}) {

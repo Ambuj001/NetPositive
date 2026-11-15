@@ -264,6 +264,21 @@ try {
     r = await api('POST', `/requests/${req.id}/cancel`, { token: tS });
     assert.equal(r.status, 200, r.text); assert.equal(r.body.request.status, 'refunded');
   });
+  await check('a buyer who only accepted on the server does not stop the spender cancelling; the server state endpoint matches the chain', async () => {
+    const before = await bal(spender);
+    const req = await fundedOrder();
+    assert.equal((await api('POST', `/requests/${req.id}/accept`, { token: tB })).status, 200);
+    const st = await api('GET', `/escrow/state/${req.escrowId}`);
+    assert.equal(st.status, 200, st.text);
+    assert.equal(st.body.escrow.status, 'funded'); assert.equal(st.body.escrow.statusCode, 1); assert.equal(st.body.escrow.fulfiller, null);
+    assert.equal(st.body.escrow.amount, String(AMOUNT_BASE)); assert.equal(st.body.escrow.depositor, spender.address.toLowerCase());
+    let r = await api('POST', `/requests/${req.id}/cancel`, { token: tS });
+    assert.equal(r.status, 409); assert.equal(r.body.details.function, 'cancel');
+    await onEscrow(spender, 'cancel', [req.escrowId]);
+    r = await api('POST', `/requests/${req.id}/cancel`, { token: tS });
+    assert.equal(r.status, 200, r.text); assert.equal(r.body.request.status, 'refunded');
+    assert.equal(await bal(spender), before);
+  });
   await check('once a buyer is bound on-chain the spender can no longer cancel', async () => {
     const req = await fundedOrder();
     await acceptedOnChain(req);

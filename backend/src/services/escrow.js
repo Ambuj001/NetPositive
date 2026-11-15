@@ -128,6 +128,9 @@ export async function readEscrow(id) {
   const e = await publicClient.readContract({ address: config.ESCROW_CONTRACT_ADDRESS, abi: ESCROW_ABI, functionName: 'getEscrow', args: [id] });
   return {
     status: STATUS_NAMES[e.status] ?? 'unknown',
+    statusCode: Number(e.status),
+    reviewWindow: Number(e.reviewWindow),
+    fulfillWindow: Number(e.fulfillWindow),
     depositor: e.depositor.toLowerCase(),
     fulfiller: e.fulfiller === ZERO_ADDRESS ? null : e.fulfiller.toLowerCase(),
     token: e.token.toLowerCase(),
