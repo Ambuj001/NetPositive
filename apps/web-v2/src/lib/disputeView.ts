@@ -41,6 +41,16 @@ export function screenFor(r: DisputeRequest, viewer: string | null | undefined, 
 
 const hadStake = (r: DisputeRequest) => !!r.dispute?.bond?.status && r.dispute.bond.status !== "none";
 
+/**
+ * What opening a dispute locks, in words. `stake` is the order's own stake when the server reported it (base units),
+ * otherwise the escrow's current stake for new orders; null when neither is known.
+ */
+export function stakeNotice(stake: bigint | null, text: (base: bigint) => string): string {
+  if (stake === null) return "Opening a dispute may lock a dispute stake in USDC from your wallet. Your wallet shows the exact amount before you confirm. It is returned unless the dispute is decided against you.";
+  if (stake === 0n) return "No stake is needed for this order.";
+  return `You lock ${text(stake)} USDC to open a dispute. It is returned unless the dispute is decided against you.`;
+}
+
 /** One line on where the stake stands. Disputes no longer need one; older ones may have. */
 export function stakeLine(r: DisputeRequest, viewer?: string | null): string {
   const bond = r.dispute?.bond;

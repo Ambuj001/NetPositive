@@ -1,0 +1,3 @@
+# The repo root ignores .env.* files. This one holds only public build defaults (network and contract address)
+# and must be committed so a production build targets the live contract.
+!.env.production

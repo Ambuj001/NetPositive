@@ -11,6 +11,8 @@ import { brandIdFromApi } from "../lib/api";
 import { sameAddr } from "../lib/lifecycle";
 import { useOrderBook, type Source } from "../lib/orderbook";
 import { useApp } from "../lib/store";
+import { feePercent } from "../lib/terms";
+import { useTerms } from "../lib/useTerms";
 import type { Order } from "../lib/data";
 
 /** The only amounts a buyer can pick. There is no free-typed amount. */
@@ -40,6 +42,7 @@ export function matchOrders(orders: Order[], spend: number, maxRate?: number) {
 export function BuyView() {
   const { orders, source, reload } = useOrderBook();
   const { fullAddress, toast } = useApp();
+  const { feeBps, estimated: feeEstimated } = useTerms();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"market" | "limit">("market");
@@ -186,7 +189,7 @@ export function BuyView() {
                   return `Set your spend to ${inr(n)}. ${matchOrders(pool, n).length} whole order(s) match.`;
                 }
               }
-              if (/fee/i.test(t)) return "Buying is free. The spender pays a 1% fee from the USDC they lock. You pay only the voucher price on your own card, and any card rewards stay yours.";
+              if (/fee/i.test(t)) return `Buying is free. The spender pays a ${feePercent(feeBps)} fee${feeEstimated ? " (estimated; the server couldn't be asked just now)" : ""} on top of the USDC they lock. You pay only the voucher price on your own card, and any card rewards stay yours.`;
               return null;
             }}
           />

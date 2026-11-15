@@ -15,6 +15,7 @@ import {
   lockTerms,
   lockUsdc,
   planStep,
+  setTxFallbackRpc,
   usdcBaseUnits,
   usdcExact,
 } from "../src/lib/escrow.ts";
@@ -172,8 +173,26 @@ test("dispute: only the spender, only after delivery; skipped when already dispu
 
 const getEscrowReturn = (e: EscrowRecord) => "0x" + [e.depositor, e.openUntil, e.epoch, e.fulfiller ?? "0x" + "00".repeat(20), e.deadline, e.status, e.token, e.reviewWindow, e.fulfillWindow, e.amount, e.fee, e.bond].map(word).join("");
 
-function wallet(opts: { chain?: string; escrow?: EscrowRecord; balance?: bigint; allowance?: bigint }) {
-  const sent: { to: string; data: string; from: string; value: string }[] = [];
+// Tests never reach for the public Arc node: the wallet stub is the only node.
+setTxFallbackRpc(null);
+
+type Sent = { to: string; data: string; from: string; value: string; gas?: string; maxFeePerGas?: string; maxPriorityFeePerGas?: string; gasPrice?: string };
+type WalletOpts = {
+  chain?: string;
+  escrow?: EscrowRecord;
+  balance?: bigint;
+  allowance?: bigint;
+  /** What eth_estimateGas does: a gas number, an error to throw, or "unknown" for a node that doesn't have the method. */
+  estimate?: bigint | Error | "unknown";
+  /** No fee methods at all (eth_getBlockByNumber, eth_gasPrice, eth_maxPriorityFeePerGas). */
+  noFees?: boolean;
+  /** eth_sendTransaction refuses EIP-1559 fields. */
+  legacyOnly?: boolean;
+};
+
+function wallet(opts: WalletOpts) {
+  const sent: Sent[] = [];
+  const calls: string[] = [];
   const request = async ({ method, params }: { method: string; params?: unknown[] | object }) => {
     const p = params as { to?: string; data?: string }[];
     if (method === "eth_chainId") return opts.chain ?? ARC.hex;
@@ -182,14 +201,25 @@ function wallet(opts: { chain?: string; escrow?: EscrowRecord; balance?: bigint;
       if (d.startsWith("0xf023b811")) return getEscrowReturn(opts.escrow ?? rec({ status: 0 }));
       return "0x" + word(d.startsWith("0x70a08231") ? (opts.balance ?? 0n) : (opts.allowance ?? 0n));
     }
+    calls.push(method);
+    if (method === "eth_estimateGas" && opts.estimate !== "unknown") {
+      if (opts.estimate instanceof Error) throw opts.estimate;
+      return "0x" + (opts.estimate ?? 100_000n).toString(16);
+    }
+    if (!opts.noFees) {
+      if (method === "eth_getBlockByNumber") return { baseFeePerGas: "0x" + (10n * 10n ** 9n).toString(16) };
+      if (method === "eth_maxPriorityFeePerGas") return "0x" + (2n * 10n ** 9n).toString(16);
+    }
     if (method === "eth_sendTransaction") {
-      sent.push(p[0] as never);
+      const tx = p[0] as Sent;
+      if (opts.legacyOnly && tx.maxFeePerGas) throw Object.assign(new Error("Invalid transaction params: this network does not support EIP-1559"), { code: -32602 });
+      sent.push(tx);
       return "0x" + word(sent.length);
     }
     if (method === "eth_getTransactionReceipt") return { status: "0x1" };
     throw Object.assign(new Error("unexpected " + method), { code: 4902 });
   };
-  return { request, sent };
+  return { request, sent, calls };
 }
 
 const terms = { from: SPENDER, escrow: ESCROW, escrowRef: REF, escrowId: ID, token: USDC, amount: 5_370_000n, total: 5_423_700n, ttlSeconds: 86_400 };
@@ -229,7 +259,8 @@ test("lock: stops without sending when something is off", async () => {
 
 test("steps: the transaction goes to the escrow with the right calldata, and a repeat is not sent twice", async () => {
   const a = { from: BUYER, escrow: ESCROW, escrowId: ID, permit: { validUntil: Math.floor(Date.now() / 1000) + 600, signature: permit.signature } };
-  const open = wallet({ escrow: rec({ openUntil: Math.floor(Date.now() / 1000) + 3600 }) });
+  // Each wallet holds a little USDC: Arc charges gas in it, and a step is refused up front without any.
+  const open = wallet({ balance: 1_000_000n, escrow: rec({ openUntil: Math.floor(Date.now() / 1000) + 3600 }) });
   assert.match((await escrowStep(open.request, "accept", a))!, /^0x/);
   assert.deepEqual(open.sent.map((t) => [t.to, t.data]), [[ESCROW, encodeAccept(ID, a.permit.validUntil, a.permit.signature)]]);
 
@@ -237,9 +268,104 @@ test("steps: the transaction goes to the escrow with the right calldata, and a r
   assert.equal(await escrowStep(bound.request, "accept", a), null);
   assert.equal(bound.sent.length, 0);
 
-  const delivered = wallet({ escrow: rec({ fulfiller: BUYER, status: 2 }) });
+  const delivered = wallet({ balance: 1_000_000n, escrow: rec({ fulfiller: BUYER, status: 2 }) });
   await escrowStep(delivered.request, "release", { from: SPENDER, escrow: ESCROW, escrowId: ID });
   assert.equal(delivered.sent[0].data, encodeRelease(ID));
   await assert.rejects(escrowStep(delivered.request, "dispute", { from: BUYER, escrow: ESCROW, escrowId: ID }), /Only the spender/);
   assert.equal(delivered.sent.length, 1);
+});
+
+/* ------------------------------------------------ gas and fees on every send */
+
+test("send: every transaction carries a gas limit (estimate + 20%) and EIP-1559 fees", async () => {
+  const w = wallet({ balance: 10_000_000n });
+  await lockUsdc(w.request, terms);
+  assert.equal(w.sent.length, 2);
+  for (const tx of w.sent) {
+    assert.equal(BigInt(tx.gas!), 120_000n);
+    assert.equal(BigInt(tx.maxPriorityFeePerGas!), 2n * 10n ** 9n);
+    assert.equal(BigInt(tx.maxFeePerGas!), 22n * 10n ** 9n); // 2 x base fee + tip
+    assert.equal(tx.gasPrice, undefined);
+  }
+  // The estimate comes before the wallet is asked to send.
+  assert.ok(w.calls.indexOf("eth_estimateGas") < w.calls.indexOf("eth_sendTransaction"));
+});
+
+test("send: a call that would revert is reported in words and nothing is sent", async () => {
+  const revert = Object.assign(new Error("execution reverted"), { code: 3, data: selector("CapExceeded()") });
+  const w = wallet({ balance: 10_000_000n, allowance: 5_423_700n, estimate: revert });
+  await assert.rejects(lockUsdc(w.request, terms), /deposit transaction would fail: the escrow has reached its launch cap.*Nothing was sent/);
+  assert.equal(w.sent.length, 0);
+  const step = wallet({ balance: 1_000_000n, escrow: rec({ status: 2, fulfiller: BUYER }), estimate: Object.assign(new Error("execution reverted: TooLate"), { code: -32000 }) });
+  await assert.rejects(escrowStep(step.request, "release", { from: SPENDER, escrow: ESCROW, escrowId: ID }), /release transaction would fail: TooLate/);
+  assert.equal(step.sent.length, 0);
+});
+
+test("send: the USDC check uses the real maximum fee, and a step with no USDC for gas stops before the wallet", async () => {
+  // total 5.4237 + max fee 120000 gas x 22 gwei = 0.00264 USDC. One unit short of that is refused.
+  const short = wallet({ balance: 5_423_700n + 2_639n, allowance: 5_423_700n });
+  await assert.rejects(lockUsdc(short.request, terms), /needs 5\.42 plus up to 0\.0027 USDC for the network fee/);
+  assert.equal(short.sent.length, 0);
+  const exact = wallet({ balance: 5_423_700n + 2_640n, allowance: 5_423_700n });
+  await lockUsdc(exact.request, terms);
+  assert.equal(exact.sent.length, 1);
+  const broke = wallet({ balance: 0n, escrow: rec({ status: 2, fulfiller: BUYER }) });
+  await assert.rejects(escrowStep(broke.request, "release", { from: SPENDER, escrow: ESCROW, escrowId: ID }), /has 0\.00 USDC.*network fee/);
+  assert.equal(broke.sent.length, 0);
+});
+
+test("send: when the wallet's node refuses the reads, the fallback node supplies them; with neither, the transaction still goes without the fields", async () => {
+  const asked: string[] = [];
+  setTxFallbackRpc(async ({ method }) => {
+    asked.push(method);
+    if (method === "eth_estimateGas") return "0x7530"; // 30000
+    if (method === "eth_getBlockByNumber") return { baseFeePerGas: "0x3b9aca00" }; // 1 gwei
+    throw new Error("method not found");
+  });
+  try {
+    const w = wallet({ balance: 10_000_000n, allowance: 5_423_700n, estimate: "unknown", noFees: true });
+    await lockUsdc(w.request, terms);
+    assert.equal(BigInt(w.sent[0].gas!), 36_000n);
+    assert.equal(BigInt(w.sent[0].maxPriorityFeePerGas!), 10n ** 9n); // no node gave a tip: 1 gwei
+    assert.equal(BigInt(w.sent[0].maxFeePerGas!), 3n * 10n ** 9n);
+    assert.deepEqual(asked.slice(0, 2), ["eth_estimateGas", "eth_getBlockByNumber"]);
+
+    // The fallback node says the call reverts: that is as final as the wallet's node saying it.
+    setTxFallbackRpc(async () => {
+      throw Object.assign(new Error("execution reverted"), { code: 3, data: selector("AmountOutOfRange()") });
+    });
+    const r = wallet({ balance: 10_000_000n, allowance: 5_423_700n, estimate: "unknown", noFees: true });
+    await assert.rejects(lockUsdc(r.request, terms), /outside the escrow's order limits/);
+    assert.equal(r.sent.length, 0);
+  } finally {
+    setTxFallbackRpc(null);
+  }
+  const bare = wallet({ balance: 10_000_000n, allowance: 5_423_700n, estimate: "unknown", noFees: true });
+  await lockUsdc(bare.request, terms);
+  assert.equal(bare.sent.length, 1);
+  assert.equal(bare.sent[0].gas, undefined);
+  assert.equal(bare.sent[0].maxFeePerGas, undefined);
+});
+
+test("send: a wallet that refuses EIP-1559 fields gets one retry with a plain gas price", async () => {
+  const w = wallet({ balance: 10_000_000n, allowance: 5_423_700n, legacyOnly: true });
+  await lockUsdc(w.request, terms);
+  assert.equal(w.sent.length, 1);
+  assert.equal(BigInt(w.sent[0].gasPrice!), 22n * 10n ** 9n);
+  assert.equal(BigInt(w.sent[0].gas!), 120_000n);
+  assert.equal(w.sent[0].maxFeePerGas, undefined);
+});
+
+test("send: declining in the wallet is not retried", async () => {
+  let prompts = 0;
+  const w = wallet({ balance: 10_000_000n, allowance: 5_423_700n });
+  const request: typeof w.request = async (a) => {
+    if (a.method === "eth_sendTransaction") {
+      prompts++;
+      throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+    }
+    return w.request(a);
+  };
+  await assert.rejects(lockUsdc(request, terms), /rejected/);
+  assert.equal(prompts, 1);
 });

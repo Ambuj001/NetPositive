@@ -17,7 +17,7 @@ import { Button, Card, Pill, cx } from "./ui";
  * (see AcceptOnchain). The page reloads into the buyer's view, which says not to buy the voucher before then.
  */
 export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onAccepted: (r: ApiRequest) => void; onRefresh: () => void }) {
-  const { fullAddress, humanVerified, openWallet, token, signIn, toast, cards } = useApp();
+  const { fullAddress, humanVerified, openWallet, token, signIn, toast, cards, cardsAreExamples } = useApp();
   const { verifyHuman, phase } = useWorldId();
   const [pick, setPick] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -56,8 +56,13 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
     <Card glow="rgba(245,181,68,0.10)" className="p-6 md:p-7">
       <h2 className="font-display text-2xl font-semibold tracking-tight">Pick how to buy it</h2>
       <p className="mt-1.5 text-[14px] leading-relaxed text-mute">
-        Ranked from cards saved on your device for a {inr(req.amountInr)} {b.name} voucher.
+        {cardsAreExamples ? "Ranked from example cards (you haven't saved any yet)" : "Ranked from your saved cards"} for a {inr(req.amountInr)} {b.name} voucher.
       </p>
+      {cardsAreExamples && (
+        <p className="mt-2 rounded-xl bg-amber/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-amber-ink">
+          Example cards only: these may not be cards you hold. <Link to="/cards" className="underline">Add your cards</Link> to rank your real options.
+        </p>
+      )}
 
       <div className="mt-6">
         {routes.length === 0 ? (

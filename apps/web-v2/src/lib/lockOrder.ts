@@ -3,6 +3,7 @@ import { api } from "./api";
 import { PendingTxError, lockTerms, lockUsdc, mockTxHash, usdcExact, type Terms } from "./escrow";
 import { escrowTarget, stepError, targetFrom } from "./escrowFlow";
 import { useApp } from "./store";
+import { checkAmount, toBaseUnits } from "./terms";
 import { useWorldId } from "./world";
 
 /**
@@ -116,6 +117,14 @@ export function useLockOrder() {
       // Ask the server how its escrow is set up before creating anything: wrong chain, wrong contract or (in a
       // production build) no escrow at all stops here.
       await escrowTarget();
+      // The contract's limits, asked fresh: paused, outside the order limits or over the launch cap stops here,
+      // before an order exists and before the wallet is asked for anything. If the terms can't be read the order
+      // goes on; the gas estimate before each transaction still catches a deposit the contract would refuse.
+      const limits = await api.terms(true).catch(() => null);
+      if (limits) {
+        const allowed = checkAmount(limits, toBaseUnits(a.usdcReceives));
+        if (!allowed.ok) throw new Error(`${allowed.text} Nothing was locked.`);
+      }
       const shown = { receives: amountUsdc(a.usdcReceives), total: amountUsdc(a.usdcTotal) };
       // `amountUsdc` is what the buyer receives. The server adds the fee and tells us the total.
       const created = await api.create({ brand: a.brandApi, amountInr: a.amountInr, amountUsdc: shown.receives }, auth);

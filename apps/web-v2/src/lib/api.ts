@@ -12,7 +12,9 @@
  * In dev, leave VITE_API_URL empty. Vite proxies /api to the backend.
  * Data model: requests/{id}. See backend/README.md.
  */
+import { ARC } from "./chain";
 import type { Card } from "./engine";
+import { parseTerms, retryAfterSeconds, serverErrorText, type EscrowTerms } from "./terms";
 
 
 const BASE = ((import.meta.env.VITE_API_URL as string | undefined) || "/api").replace(/\/$/, "");
@@ -141,10 +143,21 @@ async function call<T>(path: string, opts: ApiOpts = {}): Promise<T> {
   }
 
   const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string; details?: unknown };
-  if (!res.ok) {
-    throw new ApiError(res.status, data.error ?? "request_failed", data.message ?? "Request failed", data.details);
-  }
+  if (!res.ok) throw apiErrorFrom(res, data);
   return data as T;
+}
+
+/** Errors are JSON `{ error: "<code>", message, details }`. A 429 also carries how long to wait (Retry-After). */
+export function apiErrorFrom(res: { status: number; headers: { get(name: string): string | null } }, data: { error?: string; message?: string; details?: unknown }) {
+  const code = data.error ?? (res.status === 429 ? "rate_limited" : "request_failed");
+  if (res.status === 429) {
+    const details = { ...(data.details && typeof data.details === "object" ? data.details : {}), retryAfterSeconds: retryAfterSeconds(res.headers.get("retry-after")) };
+    return new ApiError(429, code, serverErrorText({ status: 429, code, details }) ?? "Too many requests. Wait a moment and try again.", details);
+  }
+  const err = new ApiError(res.status, code, data.message ?? "Request failed", data.details);
+  const better = serverErrorText(err);
+  if (better) err.message = better;
+  return err;
 }
 
 type ApiClient = {
@@ -152,6 +165,8 @@ type ApiClient = {
   health: () => Promise<Health>;
   /** `/health`, asked once and remembered (asked again after a failure). */
   serverInfo: () => Promise<Health>;
+  /** What the escrow charges and allows right now (GET /escrow/terms). Remembered for 30 seconds; `fresh` asks again. */
+  terms: (fresh?: boolean) => Promise<EscrowTerms>;
   nonce: (address: string) => Promise<{ message: string }>;
   verify: (address: string, signature: string) => Promise<{ token: string; user: ApiUser }>;
   me: (token: string) => Promise<{ user: ApiUser }>;
@@ -223,6 +238,7 @@ export type VoucherPayload = {
 };
 
 let healthOnce: Promise<Health> | null = null;
+let termsOnce: { at: number; value: Promise<EscrowTerms> } | null = null;
 
 /** Callable for World ID routes, with named methods for the order book and sign-in. */
 export const api: ApiClient = Object.assign(call, {
@@ -233,6 +249,20 @@ export const api: ApiClient = Object.assign(call, {
       throw e;
     });
     return healthOnce;
+  },
+  terms: (fresh = false) => {
+    if (!fresh && termsOnce && Date.now() - termsOnce.at < 30_000) return termsOnce.value;
+    const value = call<unknown>("/escrow/terms").then((raw) => {
+      const terms = parseTerms(raw);
+      if (!terms) throw new ApiError(502, "bad_terms", "The server's escrow terms could not be read.");
+      return terms;
+    });
+    const mine = { at: Date.now(), value };
+    termsOnce = mine;
+    value.catch(() => {
+      if (termsOnce === mine) termsOnce = null;
+    });
+    return value;
   },
   nonce: (address: string) => call<{ message: string }>("/auth/nonce", { body: { address } }),
   verify: (address: string, signature: string) => call<{ token: string; user: ApiUser }>("/auth/verify", { body: { address, signature } }),
@@ -320,10 +350,10 @@ export function onchainStepText(e: unknown): string | null {
   if (e.code === "wallet_action_required") {
     const fn = (e.details as { function?: unknown } | undefined)?.function;
     const which = typeof fn === "string" && fn ? `the "${fn}" transaction` : "the wallet transaction for this step";
-    return `The escrow on Arc doesn't show ${which} yet. Confirm it in your wallet, wait for it to go through, then press the button again.`;
+    return `The escrow on ${ARC.name} doesn't show ${which} yet. Confirm it in your wallet, wait for it to go through, then press the button again.`;
   }
-  if (e.code === "not_assigned_onchain") return "The escrow on Arc doesn't show this wallet as the buyer yet. Confirm the order from your wallet first, and don't buy the voucher before that goes through.";
+  if (e.code === "not_assigned_onchain") return `The escrow on ${ARC.name} doesn't show this wallet as the buyer yet. Confirm the order from your wallet first, and don't buy the voucher before that goes through.`;
   if (e.code === "buyer_dispute_unavailable") return "Only the spender can open a dispute. As the buyer you are paid automatically when the review window ends, unless the spender disputes first.";
-  if (e.code === "not_delivered_onchain") return "The escrow on Arc doesn't show the voucher as delivered yet. Confirm the delivery transaction in your wallet, wait for it to go through, then send the code again.";
+  if (e.code === "not_delivered_onchain") return `The escrow on ${ARC.name} doesn't show the voucher as delivered yet. Confirm the delivery transaction in your wallet, wait for it to go through, then send the code again.`;
   return null;
 }

@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, ArrowUpRight, LoaderCircle, MessageCircle, Sparkles, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { ChatbotError, chatbot, userIdFor } from "../lib/chatbot";
+import { CHATBOT_ENABLED, CHATBOT_OFF_NOTE, ChatbotError, chatbot, userIdFor } from "../lib/chatbot";
+import { IS_DEV } from "../lib/chain";
 import { useApp } from "../lib/store";
 import { cx } from "./ui";
 
@@ -25,7 +26,16 @@ export function AssistantBar({
   intercept?: (text: string) => ReactNode | null | Promise<ReactNode | null>;
   tone?: "mint" | "amber";
 }) {
-  const { fullAddress } = useApp();
+  const { fullAddress, token, signIn, signingIn, openWallet } = useApp();
+  // The assistant's user endpoints need the backend sign-in. Offer it instead of sending an anonymous request.
+  const signInPrompt = (
+    <span>
+      {fullAddress ? "Sign in with your wallet (one free signature) to ask the assistant." : "Connect a wallet to ask the assistant."}{" "}
+      <button type="button" className="link" disabled={signingIn} onClick={() => (fullAddress ? void signIn() : openWallet())}>
+        {fullAddress ? "Sign in" : "Connect"}
+      </button>
+    </span>
+  );
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState<{ q: string; a: ReactNode } | null>(null);
@@ -38,12 +48,18 @@ export function AssistantBar({
     try {
       const local = await intercept?.(msg);
       if (local) return setReply({ q: msg, a: local });
-      const r = await chatbot.chat(userIdFor(fullAddress), role, msg);
+      if (!CHATBOT_ENABLED) return setReply({ q: msg, a: CHATBOT_OFF_NOTE });
+      if (!token) return setReply({ q: msg, a: signInPrompt });
+      const r = await chatbot.chat(userIdFor(fullAddress), role, msg, token);
       setReply({ q: msg, a: r.reply });
     } catch (e) {
       const a =
-        e instanceof ChatbotError && e.kind === "offline"
-          ? "The AI assistant isn't running. Start it with: cd chatbot && python3 server.py"
+        e instanceof ChatbotError && e.kind === "auth"
+          ? signInPrompt
+          : e instanceof ChatbotError && e.kind === "offline"
+          ? IS_DEV
+            ? "The AI assistant isn't running. Start it with: cd chatbot && python3 server.py"
+            : "The AI assistant can't be reached right now. Try again in a moment."
           : e instanceof ChatbotError && e.kind === "no_ai_key"
             ? "AI answers are off: the assistant server has no OpenRouter key."
             : e instanceof Error
@@ -89,7 +105,7 @@ export function AssistantBar({
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={placeholder}
+          placeholder={CHATBOT_ENABLED ? placeholder : "Try a quick action below"}
           maxLength={500}
           aria-label="Ask the NetPositive assistant"
           className="h-10 min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-dim"
@@ -99,6 +115,7 @@ export function AssistantBar({
         </button>
       </form>
 
+      {!CHATBOT_ENABLED && <p className="mt-2 px-1 text-[11.5px] text-dim">{CHATBOT_OFF_NOTE}</p>}
       <div className="scrollbar-none mt-3 flex gap-2 overflow-x-auto">
         {chips.map((c) => (
           <button key={c.label} onClick={() => (c.ask ? send(c.ask) : c.on?.())} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-fg/[0.03] px-3 py-1.5 text-[12px] text-mute ring-1 ring-fg/[0.07] transition hover:text-fg hover:ring-fg/20">

@@ -19,7 +19,9 @@ import {
   type DisputeRequest,
   type Evidence,
 } from "../lib/dispute";
-import { disputerOf, hasDispute, outcomeLine, roleIn, screenFor, stakeLine } from "../lib/disputeView";
+import { disputerOf, hasDispute, outcomeLine, roleIn, screenFor, stakeLine, stakeNotice } from "../lib/disputeView";
+import { usdcShort } from "../lib/terms";
+import { useTerms } from "../lib/useTerms";
 import { inr } from "../lib/engine";
 import { MOCK_NOTE, sendEscrowStep } from "../lib/escrowFlow";
 import { useApp } from "../lib/store";
@@ -203,8 +205,8 @@ function OrderDispute({ id }: { id: string }) {
 /* ------------------------------------------------------------- raise form */
 
 type Step = "idle" | "chain" | "submit" | "upload";
-/** Shown if a server still asks for a stake. Escrow V2 has no way to hold one, so the app stops instead of guessing. */
-const STAKE_UNSUPPORTED = "This server asks for a dispute stake. Stakes were removed with the current escrow and this app can't pay one, so the dispute can't be opened from here. Nothing was sent.";
+/** Shown if a server asks for a stake paid outside the escrow. The escrow takes its own stake; the app can't pay another. */
+const STAKE_UNSUPPORTED = "This server asks for a dispute stake paid separately from the escrow. This app can only lock the stake the escrow contract itself takes, so the dispute can't be opened from here. Nothing was sent.";
 
 function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string; onDone: () => Promise<void> }) {
   const { fullAddress, walletRequest, walletName } = useApp();
@@ -218,6 +220,9 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
   const [problems, setProblems] = useState<string[]>([]);
   const busy = step !== "idle";
   const stakeAsked = !!terms?.required;
+  // This order's own stake when the server read it from the contract; otherwise the escrow's current stake.
+  const escrowTerms = useTerms().terms;
+  const stake = terms?.onchain && typeof terms.amountBaseUnits === "string" && /^\d+$/.test(terms.amountBaseUnits) ? BigInt(terms.amountBaseUnits) : (escrowTerms?.disputeBond ?? null);
 
   useEffect(() => {
     let live = true;
@@ -279,7 +284,11 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
       <div>
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight"><ShieldAlert className="size-5 text-rose-ink" /> Raise a dispute</h2>
         <p className="mt-1.5 text-[13px] leading-relaxed text-mute">
-          Your wallet sends one transaction that freezes the escrow, so nothing is paid out while it is open. The arbiter then decides how the escrow is split. If they agree with you, the other person gets a strike. If the dispute is found to be false, your account is banned. No stake is needed.
+          Your wallet sends one transaction that freezes the escrow, so nothing is paid out while it is open. The arbiter then decides how the escrow is split. If they agree with you, the other person gets a strike. If the dispute is found to be false, your account is banned.
+        </p>
+        <p className="mt-2 rounded-xl bg-amber/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-amber-ink" data-testid="dispute-stake">
+          {stakeNotice(stake, usdcShort)}
+          {stake !== null && stake > 0n ? " Your wallet may ask twice: once to approve the stake, then to open the dispute." : ""}
         </p>
       </div>
       {stakeAsked && <Notice>{STAKE_UNSUPPORTED}</Notice>}

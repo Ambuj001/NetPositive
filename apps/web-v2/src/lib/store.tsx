@@ -48,6 +48,8 @@ type Ctx = {
   applySession: (address: string, token: string, verified: boolean) => void;
   /** Saved card reward profiles (issuer, variant, rates). Never card numbers. Saved per wallet in this browser. */
   cards: CardT[];
+  /** True while `cards` is the built-in example list, not cards this person saved. Label them wherever they show. */
+  cardsAreExamples: boolean;
   setCards: (next: CardT[]) => void;
   /** True once this wallet's saved cards have been read from the server. */
   cardsLoaded: boolean;
@@ -63,7 +65,13 @@ const AppCtx = createContext<Ctx | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const wallet = useWallet();
   const [humanVerified, setHuman] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
+  // The sign-in is remembered together with the address it belongs to. If the wallet switches account, the old
+  // token stops being handed out in the same render, before any effect runs, so it is never used for the new account.
+  const [auth, setAuth] = useState<{ address: string; token: string } | null>(null);
+  const addressRef = useRef(wallet.address);
+  addressRef.current = wallet.address;
+  const token = auth && auth.address === wallet.address.toLowerCase() ? auth.token : null;
+  const setToken = useCallback((next: string | null, address: string = addressRef.current) => setAuth(next && address ? { address: address.toLowerCase(), token: next } : null), []);
   const [walletOpen, setWalletOpen] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [apiUser, setApiUser] = useState<ApiUser | null>(null);
@@ -80,14 +88,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [dismiss],
   );
   // Saved cards: in Firestore when signed in, in this browser otherwise.
-  const { cards, setCards, cardsLoaded, cardsPromptDismissed, dismissCardsPrompt } = useSavedCards({ address: wallet.address, token, toast });
+  const { cards, cardsAreExamples, setCards, cardsLoaded, cardsPromptDismissed, dismissCardsPrompt } = useSavedCards({ address: wallet.address, token, toast });
 
   const applySession = useCallback((address: string, nextToken: string, verified: boolean) => {
     sessionGen.current += 1;
     writeSession(address, { token: nextToken, verified });
-    setToken(nextToken);
+    // A sign-in that finished after the wallet moved to another account belongs to the old one: stored, not applied.
+    if (address.toLowerCase() !== addressRef.current.toLowerCase()) return;
+    setToken(nextToken, address);
     setHuman(verified);
-  }, []);
+  }, [setToken]);
 
   // One session for World ID and the tracker. Drop it when the wallet changes.
   // The vault private key is memory-only and belongs to the previous wallet, so it goes too.
@@ -106,7 +116,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setHuman(false);
       return;
     }
-    setToken(stored.token);
+    setToken(stored.token, addr);
     setHuman(stored.verified);
     const gen = sessionGen.current;
     let cancel = false;
@@ -131,20 +141,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       cancel = true;
     };
-  }, [wallet.address]);
+  }, [wallet.address, setToken]);
 
   /** Wallet sign-in with the backend: nonce → personal_sign → JWT. Shares the World ID session. */
   const signIn = useCallback(async () => {
-    if (!wallet.address) return null;
+    const who = wallet.address;
+    if (!who) return null;
     setSigningIn(true);
     try {
-      const { message } = await api.nonce(wallet.address);
+      const { message } = await api.nonce(who);
       const signature = await wallet.signMessage(message);
-      const r = await api.verify(wallet.address, signature);
-      sessionGen.current += 1;
+      const r = await api.verify(who, signature);
       const verified = !!r.user.worldIdNullifier;
-      writeSession(wallet.address, { token: r.token, verified });
-      setToken(r.token);
+      writeSession(who, { token: r.token, verified });
+      // The wallet switched account while the signature was open: this sign-in is for the old one.
+      if (who.toLowerCase() !== addressRef.current.toLowerCase()) return null;
+      sessionGen.current += 1;
+      setToken(r.token, who);
       setApiUser(r.user);
       setHuman(verified);
       toast({ title: "Signed in", body: "Your orders are loading from NetPositive.", tone: "mint" });
@@ -156,7 +169,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } finally {
       setSigningIn(false);
     }
-  }, [wallet, toast]);
+  }, [wallet, toast, setToken]);
 
   const value = useMemo<Ctx>(
     () => ({
@@ -174,7 +187,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       onArc: wallet.onArc,
       switchToArc: wallet.switchChain,
       walletBalance: wallet.walletBalance,
-      humanVerified: humanVerified || !!apiUser?.worldIdNullifier,
+      // Tied to the sign-in, so an account switch can't carry the previous account's verification for even one render.
+      humanVerified: !!token && (humanVerified || !!apiUser?.worldIdNullifier),
       token,
       walletOpen,
       toasts,
@@ -200,6 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       walletRequest: wallet.request,
       applySession,
       cards,
+      cardsAreExamples,
       setCards,
       cardsLoaded,
       cardsPromptDismissed,
@@ -207,7 +222,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toast,
       dismiss,
     }),
-    [wallet, humanVerified, token, walletOpen, toasts, apiUser, signingIn, signIn, toast, dismiss, applySession, cards, setCards, cardsLoaded, cardsPromptDismissed, dismissCardsPrompt],
+    [wallet, humanVerified, token, walletOpen, toasts, apiUser, signingIn, signIn, toast, dismiss, applySession, setToken, cards, cardsAreExamples, setCards, cardsLoaded, cardsPromptDismissed, dismissCardsPrompt],
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

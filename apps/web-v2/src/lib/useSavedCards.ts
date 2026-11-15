@@ -74,6 +74,8 @@ type Toast = (t: { title: string; body?: string; tone?: "mint" | "amber" | "iris
 
 export function useSavedCards({ address, token, toast }: { address: string; token: string | null; toast: Toast }) {
   const [cards, setCardsState] = useState<Card[]>(() => readLocal("") ?? CARDS);
+  // True while the list is the built-in example cards (nothing saved here or on the account yet). Screens label them.
+  const [examples, setExamples] = useState(() => readLocal("") === null);
   const [loaded, setLoaded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -123,9 +125,11 @@ export function useSavedCards({ address, token, toast }: { address: string; toke
     setLoaded(false);
     loadedRef.current = false;
     setDismissed(flag(DISMISSED_KEY(address)));
-    const local = readLocal(address) ?? CARDS;
+    const saved = readLocal(address);
+    const local = saved ?? CARDS;
     cardsRef.current = local;
     setCardsState(local);
+    setExamples(saved === null);
     if (!token || !address) return;
 
     (async () => {
@@ -137,6 +141,7 @@ export function useSavedCards({ address, token, toast }: { address: string; toke
         synced.current = list;
         cardsRef.current = list;
         setCardsState(list);
+        setExamples(false);
         setDismissed(res.promptDismissed || flag(DISMISSED_KEY(address)));
         loadedRef.current = true;
         setLoaded(true);
@@ -160,6 +165,7 @@ export function useSavedCards({ address, token, toast }: { address: string; toke
     (next: Card[]) => {
       cardsRef.current = next;
       setCardsState(next);
+      setExamples(false);
       if (tokenRef.current && loadedRef.current) {
         clearTimeout(timer.current);
         timer.current = setTimeout(writeNow, SAVE_DELAY_MS);
@@ -177,5 +183,5 @@ export function useSavedCards({ address, token, toast }: { address: string; toke
     if (t) void api.cardsPromptDismiss(t).catch(() => undefined);
   }, []);
 
-  return { cards, setCards, cardsLoaded: loaded, cardsPromptDismissed: dismissed, dismissCardsPrompt: dismissPrompt };
+  return { cards, cardsAreExamples: examples, setCards, cardsLoaded: loaded, cardsPromptDismissed: dismissed, dismissCardsPrompt: dismissPrompt };
 }

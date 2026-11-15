@@ -1,4 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
+import { stakeNotice } from "../lib/disputeView";
+import { usdcShort } from "../lib/terms";
+import { useTerms } from "../lib/useTerms";
 import { Check, Eye, EyeOff, LoaderCircle, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, cx } from "../components/ui";
@@ -261,6 +264,7 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const { terms } = useTerms();
   const ok = reason.trim().length >= 5;
 
   async function submit() {
@@ -303,7 +307,7 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
           className="w-full resize-none rounded-lg bg-canvas px-3 py-2 text-[13px] ring-1 ring-fg/10 outline-none placeholder:text-dim focus:ring-rose/40"
         />
       </label>
-      <p className="mt-1 text-[11.5px] text-mute">Your wallet sends one transaction that freezes the escrow; no stake is needed. Raise it before the review window ends. To add screenshots, use the dispute page afterwards.</p>
+      <p className="mt-1 text-[11.5px] text-mute">Your wallet freezes the escrow with a transaction. {stakeNotice(terms?.disputeBond ?? null, usdcShort)} Raise it before the review window ends. To add screenshots, use the dispute page afterwards.</p>
       {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
       <div className="mt-2.5 flex items-center gap-2">
         <Button size="sm" variant="amber" onClick={submit} disabled={!ok || busy} icon={busy ? <LoaderCircle className="size-3.5 animate-spin" /> : undefined}>

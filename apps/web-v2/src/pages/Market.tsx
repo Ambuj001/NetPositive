@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, ChevronDown, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Aurora, BrandMark, cx } from "../components/ui";
 import { BRANDS, brand, type Order } from "../lib/data";
 import { bestReward, inr, quote, round2, usdt } from "../lib/engine";
@@ -17,7 +17,7 @@ const SORTS: { id: Sort; label: string }[] = [
 
 export default function Market() {
   const { orders, source, reload } = useOrderBook();
-  const { cards, toast } = useApp();
+  const { cards, cardsAreExamples, toast } = useApp();
   const nav = useNavigate();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
@@ -63,6 +63,11 @@ export default function Market() {
             <div className="label">Marketplace</div>
             <h1 className="text-gradient mt-3 font-display text-4xl font-semibold tracking-[-0.03em] md:text-5xl">Find your next match.</h1>
             <p className="mt-3 text-[15px] text-mute">Voucher requests, ranked by your estimated cash-value rate.</p>
+            {cardsAreExamples && (
+              <p className="mt-2 text-[12.5px] text-amber-ink">
+                Rewards here are worked out from example cards, not yours. <Link to="/cards" className="underline">Add your cards</Link> for real numbers.
+              </p>
+            )}
           </div>
           <SourceTag source={source} onRetry={reload} />
         </motion.div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ARC, chainIdNumber, switchToArc } from "./arc";
-import { ARC_CHAIN_IDS, CHAINS as ARC_NETWORKS } from "./chain";
+import { ARC_CHAIN_IDS, CHAINS as ARC_NETWORKS, IS_DEV } from "./chain";
+import { appLinks, isMobile, walletConnectOptions } from "./walletLinks";
 export { ARC, switchToArc };
 
 /** Minimal EIP-1193 provider surface. */
@@ -27,19 +28,23 @@ declare global {
 
 /* ------------------------------------------------------------------ chains */
 
-const CHAINS: Record<string, string> = {
-  "0x1": "Ethereum",
-  "0xaa36a7": "Sepolia",
-  "0x2105": "Base",
-  "0x14a34": "Base Sepolia",
-  "0xa": "Optimism",
-  "0xa4b1": "Arbitrum",
-  "0x89": "Polygon",
-  "0x38": "BNB Chain",
-  [ARC_NETWORKS.mainnet.hex]: ARC_NETWORKS.mainnet.name,
-  [ARC_NETWORKS.testnet.hex]: ARC_NETWORKS.testnet.name,
+// Keyed by number so "0x13b2", "0x13B2" and "5042" all find Arc.
+const CHAINS: Record<number, string> = {
+  1: "Ethereum",
+  11155111: "Sepolia",
+  8453: "Base",
+  84532: "Base Sepolia",
+  10: "Optimism",
+  42161: "Arbitrum",
+  137: "Polygon",
+  56: "BNB Chain",
+  [ARC_NETWORKS.mainnet.id]: ARC_NETWORKS.mainnet.name,
+  [ARC_NETWORKS.testnet.id]: ARC_NETWORKS.testnet.name,
 };
-export const chainName = (id: string) => (id ? CHAINS[id.toLowerCase()] ?? `Chain ${parseInt(id, 16)}` : "");
+export function chainName(id: string) {
+  const n = chainIdNumber(id);
+  return n ? CHAINS[n] ?? `Chain ${n}` : "";
+}
 export const shortAddr = (a: string) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
 const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[a-fA-F0-9]{40}$/.test(v);
 
@@ -148,7 +153,11 @@ const CATALOG: CatalogEntry[] = [
   { id: "walletconnect", name: "WalletConnect", rdns: [], fallback: "walletconnect" },
 ];
 
-export type WalletStatus = "installed" | "popup" | "qr" | "install" | "unavailable";
+/** `app`: a link that opens this site inside the wallet app's browser (phones). `unavailable`: development hint only. */
+export type WalletStatus = "installed" | "popup" | "qr" | "app" | "install" | "unavailable";
+
+/** A phone or tablet browser. Decided once: the device doesn't change while the page is open. */
+export const ON_MOBILE = typeof navigator !== "undefined" && isMobile(navigator.userAgent || "", navigator.maxTouchPoints || 0);
 
 /** One row in the wallet picker. */
 export type WalletChoice = {
@@ -160,6 +169,8 @@ export type WalletChoice = {
   /** Short line under the name. */
   hint: string;
   install?: string;
+  /** `app` rows: the link that opens this page inside the wallet app. */
+  href?: string;
   /** Installed extension provider, when present. */
   announced?: Announced;
   fallback: Fallback;
@@ -180,7 +191,8 @@ async function loadSdk(kind: "base-sdk" | "coinbase-sdk"): Promise<Provider> {
     sdkCache[kind] = createBaseAccountSDK({
       appName: APP.name,
       appLogoUrl: APP.logo,
-      appChainIds: [8453, 84532],
+      // Base stays first (the SDK starts on the first id); Arc is listed so the SDK accepts switching to it.
+      appChainIds: [8453, 84532, ARC.id],
       preference: { telemetry: false },
     }).getProvider() as unknown as Provider;
   } else {
@@ -188,7 +200,7 @@ async function loadSdk(kind: "base-sdk" | "coinbase-sdk"): Promise<Provider> {
     sdkCache[kind] = createCoinbaseWalletSDK({
       appName: APP.name,
       appLogoUrl: APP.logo,
-      appChainIds: [8453, 84532, 1],
+      appChainIds: [8453, 84532, 1, ARC.id],
       preference: { options: "all" },
     }).getProvider() as unknown as Provider;
   }
@@ -198,19 +210,9 @@ async function loadSdk(kind: "base-sdk" | "coinbase-sdk"): Promise<Provider> {
 async function loadWalletConnect(): Promise<Provider> {
   if (wcProvider) return wcProvider;
   const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
-  wcProvider = (await EthereumProvider.init({
-    projectId: WC_PROJECT_ID,
-    // Arc is where the escrow lives, so the session must allow it. Wallets that don't know Arc yet still connect on the others.
-    optionalChains: [ARC.id, 8453, 84532, 1, 10, 42161, 137],
-    rpcMap: { [ARC.id]: ARC.rpc },
-    showQrModal: true,
-    metadata: {
-      name: APP.name,
-      description: "Spend crypto anywhere. Keep every reward.",
-      url: window.location.origin,
-      icons: [APP.logo],
-    },
-  })) as unknown as Provider;
+  // Only the configured Arc network is asked for (see walletConnectOptions), with its RPC so reads don't depend on
+  // WalletConnect's own RPC knowing the chain.
+  wcProvider = (await EthereumProvider.init(walletConnectOptions(ARC, window.location.origin, WC_PROJECT_ID))) as unknown as Provider;
   return wcProvider;
 }
 
@@ -314,25 +316,36 @@ export function useWallet() {
   // Build picker rows: installed first, then the catalog.
   const choices = useMemo<WalletChoice[]>(() => {
     const used = new Set<string>();
-    const rows: WalletChoice[] = CATALOG.map((c) => {
+    // A phone browser with no injected wallet: extensions can't be installed there, so offer to open this page
+    // inside a wallet app instead.
+    const phone = ON_MOBILE && announced.length === 0;
+    const links = phone ? appLinks(window.location.href) : [];
+    const rows: WalletChoice[] = [];
+    for (const c of CATALOG) {
       const hit = announced.find((a) => a.info.rdns && c.rdns.includes(a.info.rdns));
       if (hit) {
         used.add(hit.info.uuid);
-        return { id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: c.limited ? `Sign-in only · can't use ${ARC.name}` : "Detected in this browser", announced: hit, fallback: c.fallback, install: c.install, limited: c.limited };
+        rows.push({ id: c.id, name: c.name, icon: hit.info.icon, status: "installed", hint: c.limited ? `Sign-in only · can't use ${ARC.name}` : "Detected in this browser", announced: hit, fallback: c.fallback, install: c.install, limited: c.limited });
+        continue;
       }
       const base = { id: c.id, name: c.name, fallback: c.fallback, install: c.install };
-      if (c.fallback === "base-sdk") return { ...base, status: "popup", hint: "Passkey smart wallet · no extension" };
-      if (c.fallback === "coinbase-sdk") return { ...base, status: "popup", hint: "Coinbase app or popup" };
-      if (c.fallback === "walletconnect")
-        return WC_PROJECT_ID
-          ? { ...base, status: "qr", hint: c.id === "walletconnect" ? "Any mobile wallet · scan a QR" : "Scan with the mobile app" }
-          : { ...base, status: c.install ? "install" : "unavailable", hint: c.install ? "Not detected · get it" : "Needs VITE_WALLETCONNECT_PROJECT_ID" };
-      return { ...base, status: "install", hint: "Not detected · get it" };
-    });
+      const link = links.find((l) => l.id === c.id);
+      if (link) rows.push({ ...base, status: "app", hint: "Opens this site in the app", href: link.href });
+      else if (c.fallback === "base-sdk") rows.push({ ...base, status: "popup", hint: "Passkey smart wallet · no extension" });
+      else if (c.fallback === "coinbase-sdk") rows.push({ ...base, status: "popup", hint: "Coinbase app or popup" });
+      else if (c.fallback === "walletconnect" && WC_PROJECT_ID) rows.push({ ...base, status: "qr", hint: c.id === "walletconnect" ? (phone ? "Any wallet app on this phone" : "Any mobile wallet · scan a QR") : phone ? "Connect through WalletConnect" : "Scan with the mobile app" });
+      // No WalletConnect project id: people never see a dead row. Developers get a hint on the WalletConnect row.
+      else if (c.id === "walletconnect") {
+        if (IS_DEV) rows.push({ ...base, status: "unavailable", hint: "Dev: set VITE_WALLETCONNECT_PROJECT_ID" });
+      }
+      // "Get the extension" only makes sense where extensions exist.
+      else if (!phone && c.install) rows.push({ ...base, status: "install", hint: "Not detected · get it" });
+    }
     const others: WalletChoice[] = announced
       .filter((a) => !used.has(a.info.uuid))
       .map((a) => ({ id: a.info.rdns || a.info.uuid, name: a.info.name, icon: a.info.icon, status: "installed", hint: "Detected in this browser", announced: a, fallback: "install" }));
-    return [...rows.filter((r) => r.status === "installed"), ...others, ...rows.filter((r) => r.status !== "installed")];
+    const rank = (r: WalletChoice) => (r.status === "installed" ? 0 : r.status === "app" ? 1 : 2);
+    return [...rows.filter((r) => r.status === "installed"), ...others, ...rows.filter((r) => r.status !== "installed").sort((a, b) => rank(a) - rank(b))];
   }, [announced]);
 
   const adopt = useCallback((choice: WalletChoice, provider: Provider, kind: Session["kind"], account: string, chain: unknown) => {
@@ -415,6 +428,8 @@ export function useWallet() {
     if (!p) return;
     const onAccounts = (accounts: unknown) => {
       const first = Array.isArray(accounts) ? accounts[0] : undefined;
+      // A different account is a different person as far as the app goes: the store drops the old sign-in (it is
+      // kept per address) and signs in again when it next needs to.
       if (isAddress(first)) setAddress(first);
       else {
         setAddress("");
@@ -431,6 +446,8 @@ export function useWallet() {
       setAddress("");
       setChainId("");
       setSession(null);
+      // A WalletConnect or SDK session that ended is gone for good; don't try to restore it on the next load.
+      if (session?.kind !== "injected") writeSaved(null);
     };
     p.on?.("accountsChanged", onAccounts);
     p.on?.("chainChanged", onChain);
@@ -450,6 +467,11 @@ export function useWallet() {
     async (choice: WalletChoice) => {
       if (choice.status === "install") {
         if (choice.install) window.open(choice.install, "_blank", "noopener,noreferrer");
+        return false;
+      }
+      if (choice.status === "app") {
+        // Leaves this page: the wallet app opens it again in its own browser, where the wallet is injected.
+        if (choice.href) window.location.assign(choice.href);
         return false;
       }
       if (choice.status === "unavailable") {

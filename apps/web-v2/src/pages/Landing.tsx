@@ -6,7 +6,9 @@ import { PlusField } from "../brand/PlusField";
 import { PixelIcon, type PixelName } from "../components/PixelIcon";
 import { BrandMark, Button, Marquee, SectionHead, Sticker, cx } from "../components/ui";
 import { ARC } from "../lib/chain";
-import { CARDS, FEE_RATE, routesFor } from "../lib/engine";
+import { CARDS, routesFor } from "../lib/engine";
+import { feePercent } from "../lib/terms";
+import { useTerms } from "../lib/useTerms";
 import { bps, inr, useRates, type RatesSummary } from "../lib/rates";
 import { useApp } from "../lib/store";
 
@@ -156,6 +158,7 @@ function Lifecycle() {
 /* --------------------------------------------------------------- 2 sides */
 
 function TwoSides() {
+  const { feeBps, estimated } = useTerms();
   return (
     <section className="bg-sunken py-20 md:py-28">
       <div className={wrap}>
@@ -177,7 +180,7 @@ function TwoSides() {
             body="Pick a store and an amount, lock USDC in escrow, and receive a working gift-card code in minutes. No bank account, no P2P counterparty risk."
             facts={[
               ["You set the rate", "₹ per USDC"],
-              ["You pay", "USDC + 1% fee"],
+              ["You pay", `USDC + ${feePercent(feeBps)} fee${estimated ? " (est.)" : ""}`],
             ]}
             cta={{ label: "Spend USDC", to: "/trade?mode=sell" }}
           />
@@ -216,12 +219,14 @@ function SideCard({ icon, title, body, facts, cta }: { icon: PixelName; title: s
 
 /* ---------------------------------------------------------- how it works */
 
+/** Replaced with the escrow's current fee when the list is shown. */
+const FEE_TAG = "fee";
 const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detail: string[] }[] = [
   {
     icon: "lock",
     title: "A spender locks USDC in escrow",
     line: "Someone who wants to shop posts an order: a store, a voucher amount and a rate. Their USDC goes into the escrow contract on Arc, and you can check it there yourself.",
-    tags: ["Arc escrow", "1% fee"],
+    tags: ["Arc escrow", FEE_TAG],
     detail: [
       "Your wallet signs two transactions: approve USDC, then deposit into VoucherEscrow under this order's id.",
       "Nobody, including NetPositive, can move it except by the order's rules: release to the card holder, refund to you, or a dispute ruling.",
@@ -262,6 +267,8 @@ const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detai
 
 function HowItWorks() {
   const [open, setOpen] = useState<number | null>(0);
+  const { feeBps, estimated } = useTerms();
+  const feeTag = `${feePercent(feeBps)} fee${estimated ? " (estimated)" : ""}`;
   return (
     <section id="how" className={cx(wrap, "scroll-mt-24 py-20 md:py-28")}>
       <SectionHead eyebrow="How it works" title="From your card to USDC in your wallet, in four steps" sub="Seen from the buyer's side. Every step is enforced by the escrow contract, World ID or encryption, not by trusting the other person." />
@@ -283,7 +290,7 @@ function HowItWorks() {
                   <span className="mt-3 flex flex-wrap gap-1.5">
                     {h.tags.map((t) => (
                       <span key={t} className="rounded-md bg-sunken px-2 py-0.5 text-[12px] text-mute">
-                        {t}
+                        {t === FEE_TAG ? feeTag : t}
                       </span>
                     ))}
                   </span>
@@ -398,9 +405,11 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
   const defaultRate = Math.round(((usdtBuy + usdtSell) / 2) * 10) / 10;
   const [rate, setRate] = useState<number | null>(null);
   const r = rate ?? defaultRate;
+  const { feeBps, estimated } = useTerms();
+  // Example cards only: nobody's own cards are known on the landing page.
   const best = useMemo(() => routesFor(amount, CARDS)[0], [amount]);
   const usdc = amount / r;
-  const lock = usdc * (1 + FEE_RATE);
+  const lock = usdc * (1 + feeBps / 10_000);
   const reward = best ? best.statementInr : 0;
   const buyerEffective = (amount - reward) / usdc;
   const spenderVsP2P = ((r - usdtSell) / usdtSell) * 100;
@@ -411,7 +420,7 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
     <div className="flex flex-col rounded-2xl border border-line bg-surface p-5 md:p-6">
       <div className="flex items-center justify-between">
         <span className="text-[15px] font-medium">Trade calculator</span>
-        <span className="text-[12.5px] text-mute">Best card: {best ? `${best.cardLabel} · ${best.channel.name}` : "—"}</span>
+        <span className="text-[12.5px] text-mute">Example card: {best ? `${best.cardLabel} · ${best.channel.name}` : "—"}</span>
       </div>
       <label className="mt-5 block">
         <span className="flex items-baseline justify-between text-[13px] text-mute">
@@ -435,7 +444,7 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
         <div className="bg-surface p-4">
           <div className="text-[12.5px] text-mute">Spender locks</div>
           <div className="tabular mt-1 text-[22px] font-semibold tracking-[-0.02em]">{lock.toFixed(2)}</div>
-          <div className="text-[12.5px] text-mute">USDC incl. 1% fee</div>
+          <div className="text-[12.5px] text-mute">USDC incl. {feePercent(feeBps)} fee{estimated ? " (estimated)" : ""}</div>
           <div className={cx("mt-3 text-[13px] font-medium", spenderVsP2P >= 0 ? "text-pos-ink" : "text-rose-ink")}>
             {spenderVsP2P >= 0 ? `${spenderVsP2P.toFixed(1)}% more ₹ per USDC` : `${(-spenderVsP2P).toFixed(1)}% fewer ₹ per USDC`} than selling on P2P
           </div>
@@ -449,7 +458,7 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
           </div>
         </div>
       </div>
-      <p className="mt-3 text-[12px] leading-relaxed text-dim">Reward value uses the example card catalog at statement-credit value. Check your issuer's current terms.</p>
+      <p className="mt-3 text-[12px] leading-relaxed text-dim">Example only: the reward shown is for a sample card ({best ? best.cardLabel : "none"}) at statement-credit value, not your own card. Add your cards in the app to see your real route, and check your issuer's current terms.</p>
     </div>
   );
 }

@@ -4,11 +4,13 @@
  * ₹10,000 Lifestyle voucher at ₹90/USDC → buyer gets 111.11 USDC, seller locks 112.22 USDC.
  */
 
-export const FEE_RATE = 0.01;
-
-export function quote(voucherInr: number, rateInrPerUsdt: number) {
-  const buyerReceives = round2(voucherInr / rateInrPerUsdt);
-  const fee = round2(buyerReceives * FEE_RATE);
+/**
+ * The fee comes from the escrow contract through the server (GET /escrow/terms, `feeBps`). 100 bps is only what
+ * `quote` assumes when a caller has no terms yet; screens label such numbers as estimates.
+ */
+export function quote(voucherInr: number, rateInrPerUsdt: number, feeBps: number = 100) {
+  const buyerReceives = rateInrPerUsdt > 0 ? round2(voucherInr / rateInrPerUsdt) : 0;
+  const fee = round2((buyerReceives * feeBps) / 10_000);
   const sellerLocks = round2(buyerReceives + fee);
   return {
     buyerReceives,

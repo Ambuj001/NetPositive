@@ -2,12 +2,14 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, ChevronDown, CreditCard } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AMOUNTS, PLACES, RATE, ReviewModal, amountLabel } from "../pages/Spend";
+import { AMOUNTS, PLACES, ReviewModal, amountLabel } from "../pages/Spend";
 import { useMarketRate } from "../lib/rates";
 import { inr, quote, usdt } from "../lib/engine";
 import { MOCK_NOTE } from "../lib/escrowFlow";
 import { useLockOrder } from "../lib/lockOrder";
 import { useApp } from "../lib/store";
+import { checkAmount, feePercent, limitsLine, toBaseUnits } from "../lib/terms";
+import { useTerms } from "../lib/useTerms";
 import { RecommendedBuyers } from "./BuyRequest";
 import { BrandMark, Button, cx } from "./ui";
 
@@ -27,18 +29,36 @@ export function CustomOrder() {
   const [type, setType] = useState<OrderType>("market");
   const [placeId, setPlaceId] = useState<(typeof PLACES)[number]["id"]>(PLACES[0].id);
   const [amount, setAmount] = useState<number>(500);
-  const market = useMarketRate(RATE);
-  const [limit, setLimit] = useState(market.rate);
+  const market = useMarketRate();
+  const { terms, feeBps, estimated } = useTerms();
+  // Starts empty and follows the live rate until the person types their own.
+  const [typedLimit, setLimit] = useState<number | null>(null);
+  const limit = typedLimit ?? market.rate ?? 0;
   const [review, setReview] = useState(false);
   const [calcOpen, setCalcOpen] = useState(true);
 
   const place = PLACES.find((p) => p.id === placeId) ?? PLACES[0];
   const rate = type === "limit" ? limit : market.rate;
   const validAmount = Number.isInteger(amount) && amount > 0 && amount <= MAX_INR;
-  const validRate = rate >= 1 && rate <= 1000;
-  const q = quote(validAmount ? amount : 0, validRate ? rate : 1);
-  const ready = validAmount && validRate && q.sellerLocks > 0;
-  const hint = !validAmount ? `Enter a whole-rupee amount up to ${inr(MAX_INR)}.` : !validRate ? "Enter a rate between ₹1 and ₹1,000 per USDC." : "Preview only · no funds move until you lock";
+  const validRate = rate !== null && rate >= 1 && rate <= 1000;
+  const q = quote(validAmount && validRate ? amount : 0, validRate ? rate : 0, feeBps);
+  // The escrow's own limits (from the server): outside them, paused or over the launch cap is said here, not in the wallet.
+  const check = terms && validAmount && validRate ? checkAmount(terms, toBaseUnits(q.buyerReceives)) : terms?.paused ? checkAmount(terms, 0n) : null;
+  const blocked = check && !check.ok ? check.text : null;
+  const ready = validAmount && validRate && q.sellerLocks > 0 && !blocked;
+  const noMarketRate = type === "market" && market.rate === null;
+  const feeLabel = `${feePercent(feeBps)}${estimated ? " (estimated)" : ""}`;
+  const hint = !validAmount
+    ? `Enter a whole-rupee amount up to ${inr(MAX_INR)}.`
+    : noMarketRate
+      ? market.loading
+        ? "Loading the live rate…"
+        : "The live rate isn't available. Switch to Limit and enter your own rate."
+      : !validRate
+        ? "Enter a rate between ₹1 and ₹1,000 per USDC."
+        : blocked
+          ? blocked
+          : "Preview only · no funds move until you lock";
 
   /** Open the review for the store and amount entered. Used by the button and by picking a recommended buyer. */
   const startReview = () => {
@@ -63,7 +83,14 @@ export function CustomOrder() {
       <TypeTabs type={type} setType={setType} />
       <VoucherPicker value={placeId} onChange={(id) => setPlaceId(id as typeof placeId)} />
       <AmountField label="Voucher value" value={amount} onChange={setAmount} />
-      {type === "limit" ? <LimitField label="Your rate" value={limit} onChange={setLimit} /> : <p className="mt-3 text-[11.5px] text-dim">{market.live ? "Live P2P rate" : "Market rate"}: ₹{market.rate.toFixed(2)} / USDC.</p>}
+      {type === "limit" ? (
+        <LimitField label="Your rate" value={limit} onChange={setLimit} />
+      ) : (
+        <p className={cx("mt-3 text-[11.5px]", market.rate === null && !market.loading ? "text-amber-ink" : "text-dim")}>
+          {market.rate !== null ? `Live P2P rate: ₹${market.rate.toFixed(2)} / USDC.` : market.loading ? "Loading the live rate…" : "The live rate isn't available right now. Use a Limit order to set your own rate."}
+        </p>
+      )}
+      {terms && <p className="mt-1.5 text-[11.5px] text-dim">{limitsLine(terms)}</p>}
 
       {/* Buy requests (Firestore `buyIntents`) that match the store and amount entered above: same amount, and the same
           voucher or no voucher. It follows the inputs live. */}
@@ -80,7 +107,7 @@ export function CustomOrder() {
       </div>
       <div className="mt-4 space-y-2 border-b border-fg/[0.07] pb-3 text-[12.5px]">
         <Line k="Buyer receives" v={`${usdt(q.buyerReceives)} USDC`} />
-        <Line k="Spender fee · 1%" v={`${usdt(q.fee)} USDC`} />
+        <Line k={`Spender fee · ${feeLabel}`} v={`${usdt(q.fee)} USDC`} />
       </div>
       <div className="mt-3 flex justify-between text-[13px]">
         <span className="text-mute">Total USDC you lock</span>
@@ -90,7 +117,7 @@ export function CustomOrder() {
       <Calc open={calcOpen} setOpen={setCalcOpen}>
         <div className="space-y-1.5 text-[12.5px]">
           <Line k="Voucher value" v={inr(validAmount ? amount : 0)} />
-          <Line k="USDC including 1% fee" v={usdt(q.sellerLocks)} />
+          <Line k={`USDC including ${feePercent(feeBps)} fee`} v={usdt(q.sellerLocks)} />
         </div>
         <Rate value={ready ? amount / q.sellerLocks : null} />
         <p className="mt-1.5 text-[11px] text-dim">Voucher value ÷ total USDC, including the fee.</p>
@@ -105,7 +132,7 @@ export function CustomOrder() {
       >
         {address ? "Review order" : "Connect to review"}
       </Button>
-      <p className="mt-3 text-center text-[11.5px] text-dim">{hint}</p>
+      <p className={cx("mt-3 text-center text-[11.5px]", blocked || noMarketRate ? "text-amber-ink" : "text-dim")} role={blocked ? "alert" : undefined}>{hint}</p>
       <CardsLink />
 
       <ReviewModal
@@ -116,7 +143,11 @@ export function CustomOrder() {
         lock={q.sellerLocks}
         receives={q.buyerReceives}
         fee={q.fee}
-        rate={rate}
+        rate={validRate ? rate : null}
+        feeBps={feeBps}
+        feeEstimated={estimated}
+        limits={terms ? limitsLine(terms) : null}
+        blocked={blocked}
         phase={lock.phase}
         error={lock.error}
         server={lock.terms}

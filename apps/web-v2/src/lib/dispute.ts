@@ -1,9 +1,10 @@
 /**
  * Disputes: API calls and screenshot helpers. Only the spender can open one, by sending `dispute` to the escrow from
- * their wallet (see escrowFlow.ts) and then telling the server why. There is no stake any more.
+ * their wallet (see escrowFlow.ts) and then telling the server why. The escrow locks the order's dispute stake in that
+ * same transaction and returns it unless the dispute is decided against them.
  * The JWT only ever goes in the Authorization header.
  */
-import { API_URL, ApiError, onchainStepText, type ApiRequest } from "./api";
+import { API_URL, ApiError, apiErrorFrom, onchainStepText, type ApiRequest } from "./api";
 
 /* ------------------------------------------------------------------ types */
 
@@ -26,8 +27,12 @@ export const MAX_SHOTS = 4;
 export const MAX_SHOT_BYTES = 500 * 1024;
 export const SHOT_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
-/** Answer of POST /requests/:id/dispute/bond. With escrow V2 no stake is asked: `required` is false. */
-export type Bond = { required: boolean; amountUsdc?: string | number };
+/**
+ * Answer of POST /requests/:id/dispute/bond. With escrow V2 the contract takes the stake itself inside the `dispute`
+ * transaction (`onchain: true`, `amountBaseUnits` = this order's stake). `required` is only true on a server that
+ * still wants a separate stake payment, which this app cannot make.
+ */
+export type Bond = { required: boolean; onchain?: boolean; amountBaseUnits?: string; amountUsdc?: string | number };
 
 /** What this backend stores on a request once a dispute is open (see backend/src/services/disputes.js). */
 export type DisputeInfo = {
@@ -67,7 +72,7 @@ async function send(path: string, init: Init): Promise<Response> {
   }
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string; details?: unknown };
-    throw new ApiError(res.status, data.error ?? "error", data.message ?? `Request failed (${res.status})`, data.details);
+    throw apiErrorFrom(res, { ...data, message: data.message ?? `Request failed (${res.status})` });
   }
   return res;
 }

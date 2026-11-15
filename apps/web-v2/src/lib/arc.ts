@@ -110,20 +110,34 @@ export async function usdcAllowance(request: Request, holder: string, spender: s
   return toBig(await request({ method: "eth_call", params: [{ to: ARC_USDC, data: `0xdd62ed3e${pad32(holder)}${pad32(spender)}` }, "latest"] }));
 }
 
+/** Used only when no node would give a gas estimate: 0.02 USDC covers any single escrow transaction on Arc with room to spare. */
+export const ROUGH_GAS_USDC = 20_000n;
+
 /**
- * Before any wallet prompt: is there enough USDC on Arc for this deposit (plus a little for gas, which Arc also
- * charges in USDC)? Failing here is free; failing inside the wallet costs a confusing error or a reverted transaction.
+ * Before any wallet prompt: is there enough USDC on Arc for what this transaction moves (`amount`) plus its gas,
+ * which Arc also charges in USDC? `gasFee` is the most the transaction can cost (gas limit x max fee, in 6-decimal
+ * USDC units) when the app could estimate it, and a rough allowance otherwise.
+ * Failing here is free; failing inside the wallet costs a confusing error or a reverted transaction.
  */
-export async function assertUsdc(request: Request, holder: string, amount: bigint) {
+export async function assertUsdc(request: Request, holder: string, amount: bigint, gasFee?: bigint) {
   let have: bigint;
   try {
     have = await usdcBalance(request, holder);
   } catch {
     return; // The wallet's RPC wouldn't answer a read. Let the transaction itself decide.
   }
-  const gas = 20_000n; // 0.02 USDC covers approve + deposit on Arc with room to spare
+  const gas = gasFee ?? ROUGH_GAS_USDC;
   if (have < amount + gas) {
     const hint = ARC.faucet ? `Get test USDC from ${ARC.faucet} (choose ${ARC.name}), then try again.` : `Add USDC to this wallet on ${ARC.name}, then try again.`;
-    throw new WalletStepError("insufficient_usdc", `This wallet has ${usdcText(have)} USDC on ${ARC.name}. This step needs ${usdcText(amount)} plus a few cents for gas. ${hint}`);
+    const fee = gasFee === undefined ? "a few cents for the network fee" : `up to ${usdcFine(gas)} USDC for the network fee`;
+    const needs = gas === 0n ? usdcText(amount) : amount > 0n ? `${usdcText(amount)} plus ${fee}` : fee;
+    throw new WalletStepError("insufficient_usdc", `This wallet has ${usdcText(have)} USDC on ${ARC.name}. This step needs ${needs} (${ARC.name} charges its network fee in USDC). ${hint}`);
   }
+}
+
+/** Small amounts with enough places to be meaningful: 20000 -> "0.02", 1234 -> "0.0013" (rounded up). */
+export function usdcFine(base: bigint) {
+  if (base >= 10_000n || base === 0n) return usdcText(base + (base % 10_000n === 0n ? 0n : 9_999n));
+  const s = ((base + 99n) / 100n).toString().padStart(5, "0");
+  return `${s.slice(0, -4)}.${s.slice(-4)}`;
 }

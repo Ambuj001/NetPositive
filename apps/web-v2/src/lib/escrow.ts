@@ -10,8 +10,7 @@
  */
 import { ARC, ARC_USDC, assertOnArc, assertUsdc, switchToArc, usdcAllowance } from "./arc.ts";
 import { ST, decodeGetEscrow, encodeGetEscrow, type EscrowRecord } from "./onchain.ts";
-
-type Rpc = (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
+import { httpRpc, prepareTx, refusesFeeFields, toHex, weiToUsdcBaseUnits, quantity, type Rpc } from "./txgas.ts";
 
 export const SELECTORS = {
   approve: "0x095ea7b3", // approve(address,uint256)
@@ -92,11 +91,46 @@ async function waitForReceipt(request: Rpc, hash: string, what: string) {
   throw new PendingTxError(hash);
 }
 
-async function send(request: Rpc, tx: { from: string; to: string; data: string }, what: string, onHash?: (hash: string) => void) {
+/**
+ * Second node for gas and fee reads when the wallet's own node refuses them: the configured Arc RPC, over fetch.
+ * `undefined` means "not built yet"; tests set it to null (or a stub) with `setTxFallbackRpc`.
+ */
+let fallbackRpc: Rpc | null | undefined;
+export function setTxFallbackRpc(rpc: Rpc | null) {
+  fallbackRpc = rpc;
+}
+function fallback(): Rpc | null {
+  if (fallbackRpc === undefined) fallbackRpc = typeof fetch === "function" ? httpRpc(ARC.rpc) : null;
+  return fallbackRpc;
+}
+
+/**
+ * The one place a transaction is sent. Before the wallet is asked for anything:
+ *  - the wallet must be on the configured Arc network;
+ *  - `eth_estimateGas` must succeed (a revert becomes a readable error and nothing is sent);
+ *  - the wallet must hold `spends` USDC plus the most this transaction can cost in gas (Arc charges gas in USDC).
+ * The transaction then carries its own gas limit (estimate x 1.2) and EIP-1559 fees, so a wallet whose estimator
+ * doesn't cover Arc can still show a fee and enable Confirm.
+ */
+async function send(request: Rpc, tx: { from: string; to: string; data: string }, what: string, opts: { onHash?: (hash: string) => void; spends?: bigint } = {}) {
   await assertOnArc(request);
-  const hash = await request({ method: "eth_sendTransaction", params: [{ ...tx, value: "0x0" }] });
+  // The amount alone first: "not enough USDC" is clearer than the revert the estimate would report for it.
+  if (opts.spends) await assertUsdc(request, tx.from, opts.spends, 0n);
+  const prepared = await prepareTx(request, tx, what, fallback());
+  await assertUsdc(request, tx.from, opts.spends ?? 0n, prepared.maxCostWei === null ? undefined : weiToUsdcBaseUnits(prepared.maxCostWei));
+  const base = { ...tx, value: "0x0" };
+  let hash: unknown;
+  try {
+    hash = await request({ method: "eth_sendTransaction", params: [{ ...base, ...prepared.fields }] });
+  } catch (error) {
+    // A wallet that doesn't take EIP-1559 fields for this network refuses before showing anything. Try once more
+    // with a plain gas price, which every wallet understands.
+    if (!prepared.fields.maxFeePerGas || !refusesFeeFields(error)) throw error;
+    const legacy = { ...base, ...(prepared.fields.gas ? { gas: prepared.fields.gas } : {}), gasPrice: toHex(quantity(prepared.fields.maxFeePerGas) ?? 0n) };
+    hash = await request({ method: "eth_sendTransaction", params: [legacy] });
+  }
   if (typeof hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new Error("Your wallet didn't return a transaction hash.");
-  onHash?.(hash);
+  opts.onHash?.(hash);
   await waitForReceipt(request, hash, what);
   return hash;
 }
@@ -143,15 +177,14 @@ export async function lockUsdc(request: Rpc, t: LockTerms): Promise<string> {
   const existing = await readEscrowVia(request, t.escrow, t.escrowId).catch(() => null);
   if (existing && existing.status !== ST.None) throw new Error("The escrow already has a record under this order's id. Stopping; nothing was sent.");
 
-  await assertUsdc(request, t.from, t.total);
   // USDC lets an allowance be raised without resetting it first, and one left over from an earlier attempt is reused.
   const allowed = await usdcAllowance(request, t.from, t.escrow).catch(() => 0n);
   if (allowed < t.total) {
     t.onStep?.("approve");
-    await send(request, { from: t.from, to: ARC_USDC, data: encodeApprove(t.escrow, t.total) }, "approval");
+    await send(request, { from: t.from, to: ARC_USDC, data: encodeApprove(t.escrow, t.total) }, "approval", { spends: t.total });
   }
   t.onStep?.("deposit");
-  return send(request, { from: t.from, to: t.escrow, data: encodeDeposit(t.escrowRef, t.token, t.amount, t.ttlSeconds, t.total) }, "deposit", t.onDepositHash);
+  return send(request, { from: t.from, to: t.escrow, data: encodeDeposit(t.escrowRef, t.token, t.amount, t.ttlSeconds, t.total) }, "deposit", { onHash: t.onDepositHash, spends: t.total });
 }
 
 /* ------------------------------------------------- the other escrow steps */
@@ -249,12 +282,12 @@ export async function escrowStep(request: Rpc, step: EscrowStep, a: StepArgs): P
             : encodeDispute(a.escrowId, a.hash);
   // Opening a dispute locks the order's dispute stake inside the same transaction, so the escrow needs an allowance for it.
   // The stake comes back unless the dispute is decided against the spender.
-  if (step === "dispute" && record.bond > 0n) {
-    await assertUsdc(request, a.from, record.bond);
+  const stake = step === "dispute" ? record.bond : 0n;
+  if (stake > 0n) {
     const allowed = await usdcAllowance(request, a.from, a.escrow).catch(() => 0n);
-    if (allowed < record.bond) await send(request, { from: a.from, to: ARC_USDC, data: encodeApprove(a.escrow, record.bond) }, "stake approval");
+    if (allowed < stake) await send(request, { from: a.from, to: ARC_USDC, data: encodeApprove(a.escrow, stake) }, "stake approval", { spends: stake });
   }
-  return send(request, { from: a.from, to: a.escrow, data }, STEP_NAME[step]);
+  return send(request, { from: a.from, to: a.escrow, data }, STEP_NAME[step], { spends: stake });
 }
 
 /** 32-byte hash accepted by POST /requests/:id/fund when a development server runs the mock escrow. Never used in a production build. */

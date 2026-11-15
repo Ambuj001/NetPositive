@@ -5,7 +5,7 @@ import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from "react
 import { ARC, ARC_USDC } from "../lib/chain";
 import { useApp } from "../lib/store";
 import { readSession } from "../lib/session";
-import { formatChainBalance } from "../lib/wallet";
+import { ON_MOBILE, formatChainBalance } from "../lib/wallet";
 import { useRates, inr } from "../lib/rates";
 import { WorldIdNotice, useWorldId } from "../lib/world";
 import { CardsPrompt } from "./CardsPrompt";
@@ -44,6 +44,7 @@ export function Shell() {
     <div className="relative min-h-dvh overflow-x-clip bg-canvas">
       <Announcement />
       <Nav />
+      <NetworkNotice />
       <HomeGate />
       {!walletOpen && <WorldIdNotice className="fixed bottom-5 left-5 z-[60] w-[min(380px,calc(100vw-40px))] shadow-[0_24px_60px_-20px_rgba(12,13,15,0.35)]" />}
       <main>
@@ -74,7 +75,7 @@ function Announcement() {
   return (
     <div className="relative z-[51] flex h-9 items-center justify-center gap-3 bg-sunken px-10 text-[13px] text-mute">
       <span className="hidden size-1.5 rounded-full bg-pos sm:inline-block" />
-      <span className="truncate">
+      <span className="min-w-0 truncate">
         {usdt ? (
           <>
             USDT on P2P right now <span className="tabular font-medium text-fg">{inr(usdt)}</span>. Buy for less with the card you already have.
@@ -164,7 +165,7 @@ function Nav() {
                 <WalletLogo id={walletId} icon={walletIcon} name={walletName || "W"} className="size-7" />
                 <span className="hidden text-left leading-tight sm:block">
                   <span className="block font-mono text-[11px] text-mute">{address}</span>
-                  <span className="tabular block text-[12.5px] font-medium">{walletBalance ? formatChainBalance(walletBalance) : onArc ? "Arc" : "Connected"}</span>
+                  <span className="tabular block text-[12.5px] font-medium">{!onArc ? "Wrong network" : walletBalance ? formatChainBalance(walletBalance) : ARC.name}</span>
                 </span>
                 {humanVerified ? (
                   <ShieldCheck className="size-4 text-brand-ink" aria-label="Verified human" />
@@ -210,6 +211,49 @@ function Nav() {
         )}
       </AnimatePresence>
     </header>
+  );
+}
+
+/* ------------------------------------------------------- wrong network */
+
+/**
+ * The wallet is connected but on another chain. Browsing still works; say so plainly and offer the switch. Every
+ * escrow step also switches back by itself before it sends anything (see `switchToArc`).
+ */
+function NetworkNotice() {
+  const { address, onArc, chain, switchToArc, walletLimited, walletName, toast } = useApp();
+  const { pathname } = useLocation();
+  const [busy, setBusy] = useState(false);
+  if (!address || onArc || !chain || pathname === "/" || pathname === "/brand") return null;
+  return (
+    <div role="status" className="border-b border-amber/30 bg-amber/10 px-5 py-2.5 text-[13px] text-amber-ink">
+      <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-x-4 gap-y-2 md:px-3">
+        <span className="min-w-0">
+          Your wallet is on {chain}. NetPositive's escrow runs on {ARC.name}
+          {walletLimited ? `, which ${walletName} can't use. Connect another wallet to trade.` : ". Your next transaction will ask to switch back."}
+        </span>
+        {!walletLimited && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await switchToArc();
+              } catch (e) {
+                toast({ title: "Couldn't switch network", body: (e as Error)?.message?.slice(0, 260) || `Switch to ${ARC.name} in your wallet.`, tone: "rose" });
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-fg px-3 py-1 text-[12.5px] font-medium text-white disabled:opacity-60"
+          >
+            {busy && <LoaderCircle className="size-3 animate-spin" />}
+            Switch to {ARC.name}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -453,42 +497,52 @@ function WalletModal() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 30, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 30 }}
-            className="relative w-full overflow-hidden rounded-t-[24px] bg-surface shadow-[0_40px_120px_-30px_rgba(12,13,15,0.45)] ring-1 ring-line sm:max-w-[420px] sm:rounded-[24px]"
+            className="relative max-h-[92dvh] w-full max-w-full overflow-x-hidden overflow-y-auto rounded-t-[24px] bg-surface pb-[env(safe-area-inset-bottom)] shadow-[0_40px_120px_-30px_rgba(12,13,15,0.45)] ring-1 ring-line sm:max-w-[420px] sm:rounded-[24px]"
           >
-            <div className="flex items-center justify-between border-b border-line px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <Mark className="size-6" />
-                <h3 className="text-[17px] font-semibold tracking-[-0.02em]">{address ? "Your account" : "Connect a wallet"}</h3>
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Mark className="size-6 shrink-0" />
+                <h3 className="truncate text-[17px] font-semibold tracking-[-0.02em]">{address ? "Your account" : "Connect a wallet"}</h3>
               </div>
-              <button onClick={closeWallet} className="grid size-8 place-items-center rounded-full text-mute hover:bg-sunken hover:text-fg" aria-label="Close">
+              <button onClick={closeWallet} className="grid size-9 shrink-0 place-items-center rounded-full text-mute hover:bg-sunken hover:text-fg" aria-label="Close">
                 <X className="size-4" />
               </button>
             </div>
 
             {!address ? (
-              <div className="p-4 pt-3">
-                <div className="max-h-[min(460px,62vh)] space-y-1 overflow-y-auto pr-1" data-testid="wallet-list">
+              <div className="p-3 pt-3 sm:p-4 sm:pt-3">
+                {ON_MOBILE && !choices.some((c) => c.status === "installed") && (
+                  <p className="mx-2 mb-1 rounded-xl bg-sunken px-3 py-2.5 text-[12.5px] leading-relaxed text-mute">
+                    Phone browsers don't have a wallet built in. Open this page inside your wallet app, then connect there.
+                  </p>
+                )}
+                <div className="max-h-[min(460px,56dvh)] space-y-1 overflow-x-hidden overflow-y-auto pr-1" data-testid="wallet-list">
                   {choices.map((w, i) => {
                     const waiting = pending === w.id;
                     const prev = choices[i - 1];
+                    const group = (s: typeof w.status) => (s === "installed" ? 0 : s === "app" ? 1 : 2);
                     const header =
-                      i === 0 && w.status === "installed"
-                        ? "Detected in this browser"
-                        : w.status !== "installed" && (!prev || prev.status === "installed")
-                          ? i === 0
-                            ? "Choose a wallet"
-                            : "More wallets"
-                          : null;
+                      prev && group(prev.status) === group(w.status)
+                        ? null
+                        : w.status === "installed"
+                          ? "Detected in this browser"
+                          : w.status === "app"
+                            ? "Open in wallet app"
+                            : i === 0
+                              ? "Choose a wallet"
+                              : "More ways to connect";
                     const tag =
                       w.status === "installed"
                         ? { t: "Ready", c: "text-brand-ink bg-brand-soft" }
                         : w.status === "popup"
                           ? { t: "Popup", c: "text-iris bg-iris/8" }
                           : w.status === "qr"
-                            ? { t: "QR", c: "text-iris bg-iris/8" }
+                            ? { t: ON_MOBILE ? "Connect" : "QR", c: "text-iris bg-iris/8" }
+                            : w.status === "app"
+                              ? { t: "Open", c: "text-brand-ink bg-brand-soft" }
                             : w.status === "install"
                               ? { t: "Get", c: "text-mute bg-sunken" }
-                              : { t: "Setup", c: "text-amber-ink bg-amber/12" };
+                              : { t: "Dev", c: "text-amber-ink bg-amber/12" };
                     return (
                       <div key={w.id}>
                         {header && <div className={cx("px-2 pb-1.5 text-[12px] font-medium text-dim", i > 0 ? "pt-4" : "pt-2")}>{header}</div>}
@@ -497,24 +551,24 @@ function WalletModal() {
                           onClick={() => doConnect(w)}
                           data-testid={`wallet-${w.id}`}
                           className={cx(
-                            "flex w-full items-center gap-3 rounded-2xl p-2.5 pr-3 text-left transition hover:bg-sunken disabled:cursor-wait",
+                            "flex min-h-[56px] w-full min-w-0 items-center gap-3 rounded-2xl p-2.5 pr-3 text-left transition hover:bg-sunken disabled:cursor-wait",
                             waiting && "bg-sunken ring-1 ring-brand",
                             pending && !waiting && "opacity-40",
                           )}
                         >
                           <WalletLogo id={w.id} name={w.name} icon={w.icon} />
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[15px] font-medium">{w.name}</span>
+                            <span className="block truncate text-[15px] font-medium">{w.name}</span>
                             <span className={cx("block truncate text-[12.5px]", waiting ? "text-brand-ink" : "text-dim")}>
-                              {waiting ? (w.status === "qr" ? "Scan the QR code with your phone…" : `Approve in ${w.name}…`) : w.hint}
+                              {waiting ? (w.status === "qr" ? (ON_MOBILE ? "Choose your wallet app…" : "Scan the QR code with your phone…") : `Approve in ${w.name}…`) : w.hint}
                             </span>
                           </span>
                           {waiting ? (
-                            <LoaderCircle className="size-4 animate-spin text-brand-ink" />
+                            <LoaderCircle className="size-4 shrink-0 animate-spin text-brand-ink" />
                           ) : (
-                            <span className={cx("flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium", tag.c)}>
+                            <span className={cx("flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium", tag.c)}>
                               {tag.t}
-                              {w.status === "install" && <ArrowUpRight className="size-3" />}
+                              {(w.status === "install" || w.status === "app") && <ArrowUpRight className="size-3" />}
                             </span>
                           )}
                         </button>
@@ -536,12 +590,12 @@ function WalletModal() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3 p-5">
+              <div className="space-y-3 p-4 sm:p-5">
                 <div className="rounded-2xl bg-sunken p-4">
                   <div className="flex items-center gap-3">
                     <WalletLogo id={walletId} icon={walletIcon} name={walletName} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[15px] font-medium">{walletName}</div>
+                      <div className="truncate text-[15px] font-medium">{walletName}</div>
                       <div className="truncate font-mono text-[12.5px] text-mute" title={fullAddress}>
                         {address}
                       </div>
@@ -562,10 +616,10 @@ function WalletModal() {
                       {copied ? <Check className="size-3.5 text-brand-ink" /> : <Copy className="size-3.5" />}
                     </button>
                   </div>
-                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3 text-[13px]">
-                    <span className="flex items-center gap-2 text-mute">
-                      <span className={cx("size-2 rounded-full", onArc ? "bg-pos" : "bg-amber")} />
-                      {chain || "Unknown network"}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-line pt-3 text-[13px]">
+                    <span className="flex min-w-0 items-center gap-2 text-mute">
+                      <span className={cx("size-2 shrink-0 rounded-full", onArc ? "bg-pos" : "bg-amber")} />
+                      <span className="truncate">{chain || "Unknown network"}</span>
                     </span>
                     {!onArc ? (
                       <button
@@ -588,14 +642,14 @@ function WalletModal() {
                         Switch to {ARC.name}
                       </button>
                     ) : (
-                      <span className="flex items-center gap-3">
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <button
                           onClick={async () => {
                             try {
                               // EIP-747: asks the wallet to list Arc USDC so a payout shows up in the token list.
                               await walletRequest({ method: "wallet_watchAsset", params: { type: "ERC20", options: { address: ARC_USDC, symbol: "USDC", decimals: 6 } } });
                             } catch {
-                              toast({ title: "Your wallet didn't add the token", body: "On Arc, USDC is also the gas coin, so most wallets already show it as the main balance.", tone: "amber" });
+                              toast({ title: "Your wallet didn't add the token", body: `On ${ARC.name}, USDC is also the gas coin, so most wallets already show it as the main balance.`, tone: "amber" });
                             }
                           }}
                           className="text-mute hover:text-fg"
@@ -610,7 +664,7 @@ function WalletModal() {
                   </div>
                   {walletLimited && (
                     <p className="mt-3 rounded-xl bg-amber/12 px-3 py-2.5 text-[12.5px] leading-relaxed text-amber-ink">
-                      {walletName} can sign in and verify, but it can't use {ARC.name}. USDC paid to this address on Arc won't show up in {walletName}, and it can't lock USDC. For trading, connect MetaMask, Rabby, Coinbase Wallet or OKX Wallet.
+                      {walletName} can sign in and verify, but it can't use {ARC.name}. USDC paid to this address on {ARC.name} won't show up in {walletName}, and it can't lock USDC. For trading, connect MetaMask, Rabby, Coinbase Wallet or OKX Wallet.
                     </p>
                   )}
                 </div>
@@ -665,7 +719,7 @@ function WalletModal() {
                   <WorldIdNotice className="mt-3" />
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {pathname === "/" && (
                     <Button className="flex-1" to="/trade" onClick={closeWallet}>
                       Open app

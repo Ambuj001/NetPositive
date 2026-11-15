@@ -7,6 +7,7 @@ import { api, onchainStepText, type ApiRequest } from "./api";
 import { WalletStepError } from "./arc";
 import { EscrowConfigError, chainMismatch, pickEscrow, type EscrowTarget } from "./chain";
 import { PendingTxError, escrowStep, type EscrowStep } from "./escrow";
+import { serverErrorText } from "./terms";
 
 type Rpc = (args: { method: string; params?: unknown[] | object }) => Promise<unknown>;
 
@@ -48,6 +49,8 @@ export function stepError(e: unknown, fallback: string): string {
   if (code === 4001 || /user rejected|user denied|rejected the request/i.test(text)) return "You declined the request in your wallet. Nothing was sent.";
   const onchain = onchainStepText(e);
   if (onchain) return onchain;
+  const server = serverErrorText(e);
+  if (server) return server;
   if (e instanceof WalletStepError || e instanceof EscrowConfigError || e instanceof PendingTxError) return e.message;
   return e instanceof Error && e.message ? e.message.slice(0, 400) : fallback;
 }

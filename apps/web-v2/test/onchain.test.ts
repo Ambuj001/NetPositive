@@ -187,7 +187,10 @@ test("USDC preflight: too little USDC is caught before any wallet prompt, with t
   const poor = wallet({ balance: 3_200_000n });
   await assert.rejects(assertUsdc(poor.request, SPENDER, 5_370_000n), (e: unknown) => e instanceof WalletStepError && e.kind === "insufficient_usdc" && /has 3\.20 USDC/.test(e.message) && /needs 5\.37/.test(e.message) && /faucet\.circle\.com/.test(e.message));
   await assertUsdc(wallet({ balance: 5_400_000n }).request, SPENDER, 5_370_000n);
-  await assert.rejects(assertUsdc(wallet({ balance: 5_370_000n }).request, SPENDER, 5_370_000n), /gas/); // exact amount leaves nothing for gas
+  await assert.rejects(assertUsdc(wallet({ balance: 5_370_000n }).request, SPENDER, 5_370_000n), /network fee/); // exact amount leaves nothing for gas
+  // With a real fee estimate the check is exact, and says how much.
+  await assertUsdc(wallet({ balance: 5_372_640n }).request, SPENDER, 5_370_000n, 2_640n);
+  await assert.rejects(assertUsdc(wallet({ balance: 5_372_639n }).request, SPENDER, 5_370_000n, 2_640n), /needs 5\.37 plus up to 0\.0027 USDC for the network fee/);
   assert.equal(await usdcAllowance(wallet({ allowance: 9n }).request, SPENDER, "0x" + "22".repeat(20)), 9n);
   assert.equal(usdcText(5_370_000n), "5.37");
   assert.equal(usdcText(20_000n), "0.02");

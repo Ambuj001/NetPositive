@@ -13,10 +13,11 @@ import { MOCK_NOTE } from "../lib/escrowFlow";
 import { useLockOrder, type LockPhase, type LockResult, type ServerTerms } from "../lib/lockOrder";
 import { toOrder } from "../lib/orderbook";
 import { suggestionsFor } from "../lib/suggestions";
+import { useMarketRate } from "../lib/rates";
 import { useApp } from "../lib/store";
+import { checkAmount, feePercent, limitsLine, toBaseUnits } from "../lib/terms";
+import { useTerms } from "../lib/useTerms";
 
-/** Rupees per USDC when a spender posts a new request. */
-export const RATE = 93.98;
 /** The smallest quick-pick order: a ₹250 voucher. */
 export const SMALL_INR = 250;
 export const PLACES = [
@@ -69,7 +70,11 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
   const inputRef = useRef<HTMLInputElement>(null);
 
   const push = (...m: Msg[]) => setMsgs((all) => [...all, ...m]);
-  const qt = quote(amount ?? 0, RATE);
+  // Priced at the live market rate from the backend's rates API, with the fee the escrow charges right now.
+  const market = useMarketRate();
+  const { terms, feeBps, estimated } = useTerms();
+  const qt = quote(amount ?? 0, market.rate ?? 0, feeBps);
+  const blocked = terms && amount && market.rate ? checkAmount(terms, toBaseUnits(qt.buyerReceives)) : null;
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
@@ -122,12 +127,23 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
   /** Start a new order for this store at this amount: opens the review. Nothing is locked until they confirm there. */
   const startOrder = (n: number) => {
     setAmount(n);
+    if (!market.rate) {
+      push(bot(say(market.loading ? "The live rate is still loading. Try again in a moment." : "The live market rate isn't available right now, so I can't price a new order. Try again shortly, or set your own rate with a Limit order in the panel on the right.")));
+      return;
+    }
+    if (terms) {
+      const check = checkAmount(terms, toBaseUnits(quote(n, market.rate, feeBps).buyerReceives));
+      if (!check.ok) {
+        push(bot(say(check.text)));
+        return;
+      }
+    }
     lock.reset();
     setReview(true);
   };
 
   const confirm = async () => {
-    if (!amount || !place || lock.phase) return;
+    if (!amount || !place || lock.phase || !market.rate || (blocked && !blocked.ok && !lock.held)) return;
     const res = await lock.run({ brandApi: place.api, amountInr: amount, usdcReceives: qt.buyerReceives, usdcTotal: qt.sellerLocks });
     if (!res) return;
     finish(res);
@@ -293,6 +309,11 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
         lock={qt.sellerLocks}
         receives={qt.buyerReceives}
         fee={qt.fee}
+        rate={market.rate}
+        feeBps={feeBps}
+        feeEstimated={estimated}
+        limits={terms ? limitsLine(terms) : null}
+        blocked={blocked && !blocked.ok ? blocked.text : null}
         phase={lock.phase}
         error={lock.error}
         server={lock.terms}
@@ -409,7 +430,11 @@ export function ReviewModal({
   error,
   server,
   publishOnly,
-  rate = RATE,
+  rate,
+  feeBps,
+  feeEstimated,
+  limits,
+  blocked,
   onClose,
   onConfirm,
 }: {
@@ -425,8 +450,16 @@ export function ReviewModal({
   /** The server's own amount, fee and total for this order, once it has answered. Shown before the wallet prompt. */
   server?: ServerTerms | null;
   publishOnly: boolean;
-  /** INR per USDC shown on the order. Defaults to the market rate. */
-  rate?: number;
+  /** INR per USDC shown on the order. Null when no rate is available: the order can't be priced or locked. */
+  rate: number | null;
+  /** The escrow's fee in basis points, from the server's terms. */
+  feeBps: number;
+  /** True while the terms are loading or unreachable: the fee shown is the usual one, not confirmed. */
+  feeEstimated: boolean;
+  /** "Orders from 1 to 500 USDC.", when the terms are known. */
+  limits?: string | null;
+  /** Why this order can't be locked (paused, outside the limits, over the launch cap). Hides the lock button. */
+  blocked?: string | null;
   onClose: () => void;
   onConfirm: () => void;
 }) {
@@ -462,8 +495,8 @@ export function ReviewModal({
             <div className="mt-4 space-y-2 rounded-2xl bg-fg/[0.02] p-4 text-[13px] ring-1 ring-fg/[0.06]">
               <Line k={server ? "You lock (confirmed by the server)" : "You lock (estimate)"} v={`${server ? server.total : usdt(lock)} USDC`} mint />
               <Line k="Gift-card buyer receives" v={`${server ? server.receives : usdt(receives)} USDC`} />
-              <Line k="Fee" v={`${server ? server.fee : usdt(fee)} USDC`} />
-              <Line k="Rate" v={`₹${rate.toFixed(2)} / USDC`} />
+              <Line k={server ? "Fee" : `Fee · ${feePercent(feeBps)}${feeEstimated ? " (estimated)" : ""}`} v={`${server ? server.fee : usdt(fee)} USDC`} />
+              <Line k="Rate" v={rate ? `₹${rate.toFixed(2)} / USDC` : "Unavailable"} />
             </div>
             <p className="mt-3 text-[12px] leading-relaxed text-mute">
               {server
@@ -487,8 +520,11 @@ export function ReviewModal({
                 })}
               </div>
             )}
-            {error && <p className="mt-3 text-[12.5px] leading-relaxed text-rose-ink">{error}</p>}
-            {!phase && (
+            {limits && !server && <p className="mt-2 text-[12px] text-dim">{limits}</p>}
+            {!rate && !publishOnly && <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-amber-ink">The live market rate isn't available right now, so this order can't be priced. Try again shortly.</p>}
+            {blocked && !publishOnly && <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-amber-ink">{blocked}</p>}
+            {error && <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-rose-ink">{error}</p>}
+            {!phase && (publishOnly || (!!rate && !blocked)) && (
               <Button className="mt-5 w-full" size="lg" onClick={onConfirm} icon={publishOnly ? <ArrowRight className="size-4" /> : <Lock className="size-4" />}>
                 {publishOnly ? "Publish order" : "Lock USDC & post order"}
               </Button>

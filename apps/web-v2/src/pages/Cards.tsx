@@ -18,7 +18,7 @@ const FACES = [
 const BLANK = { issuer: "", name: "", points: "1", unit: "100", cash: "1", travel: "1" };
 
 export default function Cards() {
-  const { cards, setCards, toast, fullAddress, token, signIn, signingIn } = useApp();
+  const { cards, cardsAreExamples, setCards, toast, fullAddress, token, signIn, signingIn } = useApp();
   const [selected, setSelected] = useState(cards[0]?.id ?? "");
   const [value, setValue] = useState<"cash" | "travel">("cash");
   // /cards?add=1 (from the "add your cards" pop-up) opens the add dialog straight away.
@@ -82,9 +82,14 @@ export default function Cards() {
           {/* card stack */}
           <section className="hairline rounded-[26px] bg-surface/70 p-6 backdrop-blur-xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-[16px] font-semibold">My cards</h2>
-              <span className="text-[12px] text-dim">{cards.length} saved</span>
+              <h2 className="text-[16px] font-semibold">{cardsAreExamples ? "Example cards" : "My cards"}</h2>
+              <span className="text-[12px] text-dim">{cardsAreExamples ? "none saved yet" : `${cards.length} saved`}</span>
             </div>
+            {cardsAreExamples && (
+              <p className="mt-3 rounded-xl bg-amber/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-amber-ink" data-testid="example-cards-note">
+                These are example cards, not yours. Their reward rates are illustrative. Add your own cards to see real routes; the examples go away as soon as you add or change one.
+              </p>
+            )}
             <div className="mt-5 space-y-4">
               {cards.map((c, i) => {
                 const on = c.id === card?.id;

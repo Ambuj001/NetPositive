@@ -63,10 +63,12 @@ export const bps = (n: number | null | undefined) => (typeof n === "number" ? `$
 
 /**
  * The "market" rate for a new order: the live USDT P2P buy price for ₹10k (what a card holder would otherwise pay
- * for a dollar), falling back to the given constant when the feed is down. Rounded to 2 places.
+ * for a dollar), rounded to 2 places. `rate` is null while the feed is loading or down: the app then says the rate
+ * is unavailable instead of pricing an order with a made-up number.
  */
-export function useMarketRate(fallback: number) {
-  const { data } = useRates();
+export function useMarketRate() {
+  const { data, loading } = useRates();
   const live = data?.assets?.USDT?.p2p?.buy?.price;
-  return { rate: typeof live === "number" && live > 0 ? Math.round(live * 100) / 100 : fallback, live: typeof live === "number" };
+  const rate = typeof live === "number" && live > 0 ? Math.round(live * 100) / 100 : null;
+  return { rate, loading: loading && rate === null };
 }
