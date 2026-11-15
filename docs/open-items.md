@@ -14,7 +14,9 @@ What changed, and what it settles from the sections below:
 - **Timeouts:** an open order expires after `ESCROW_ORDER_TTL_SECONDS`; a bound buyer has the contract's fulfil window; after `markDelivered` the spender has the review window to release or dispute, then the buyer is paid. The old "refund after 7 days whatever happened" is gone.
 - **Disputes:** only the spender can open one, on-chain, after delivery. **The dispute stake is part of the contract** (`disputeBond` per token, 1 USDC by default): `dispute()` locks it from the spender; the arbiter's ruling pays it to the buyer if the spender was wrong, and every other ending returns it. `DISPUTE_BOND_USDC` in the backend is for the mock only and must be 0 in chain mode.
 
-Still open for V2: the INR/USDC rate check (section 1, decision 1) is unchanged; a buyer can mark an order delivered without delivering, which forces the spender to dispute inside the review window (a buyer bond would fix it); `backend/scripts/full-e2e.mjs` real-chain mode is still written for contract "A"; `CodeMailbox` must be redeployed against the V2 address before it can be used.
+Since then: the INR/USDC pair of a new order is checked against the live USD/INR rate (within 15% in production), and `GET /escrow/terms` gives the app the fee and limits from the contract.
+
+Still open for V2: a buyer can mark an order delivered without delivering, which forces the spender to dispute inside the review window (a buyer bond would fix it); `backend/scripts/full-e2e.mjs` real-chain mode is still written for contract "A"; `CodeMailbox` must be redeployed against the V2 address before it can be used.
 
 Tests: `forge test` in `contracts/` (59), `npm run chain:v2:local` in `backend/` (backend in chain mode against the V2 bytecode on anvil, 21 checks).
 
