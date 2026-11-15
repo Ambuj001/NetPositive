@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AssistantBar } from "../components/AssistantBar";
 import { BuyRequestCard } from "../components/BuyRequest";
-import { BrandMark, cx } from "../components/ui";
+import { BrandMark, Pill, Segmented, Skeleton, cx } from "../components/ui";
 import { brand } from "../lib/data";
 import { inr, quote, usdt } from "../lib/engine";
 import { brandIdFromApi } from "../lib/api";
@@ -76,16 +76,16 @@ export function BuyView() {
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
         {/* ---------------------------------------------------- order book */}
         <div className="min-w-0 space-y-4">
-          <section className="hairline rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl md:p-5">
+          <section className="panel p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <h1 className="text-[17px] font-semibold tracking-tight">Available orders</h1>
-                <span className="rounded-md bg-fg/[0.06] px-1.5 py-0.5 font-mono text-[11px] text-mute">{open.length}</span>
+                <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Available orders</h2>
+                <span className="rounded-full bg-sunken px-2 py-0.5 font-mono text-[11px] text-mute tabular">{open.length}</span>
                 <SourceTag source={source} onRetry={reload} />
               </div>
-              <label className="flex h-9 items-center gap-2 rounded-full bg-fg/[0.03] px-3.5 text-[13px] ring-1 ring-fg/[0.07] focus-within:ring-brand/40">
-                <Search className="size-3.5 text-dim" />
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search store or wallet" className="w-40 bg-transparent outline-none placeholder:text-dim" aria-label="Search orders by store or wallet" />
+              <label className="field flex h-9 w-full items-center gap-2 rounded-full px-3.5 text-[13px] sm:w-56">
+                <Search className="size-3.5 shrink-0 text-dim" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search store or wallet" className="w-full min-w-0 bg-transparent outline-none placeholder:text-dim" aria-label="Search orders by store or wallet" />
               </label>
             </div>
 
@@ -96,7 +96,7 @@ export function BuyView() {
                   <button
                     key={o.brandId}
                     onClick={() => setQ(b.name)}
-                    className="group relative flex items-center gap-2.5 rounded-xl bg-fg/[0.025] px-3 py-2.5 text-left ring-1 ring-fg/[0.07] transition hover:bg-fg/[0.05] hover:ring-fg/15"
+                    className="group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left ring-1 ring-line transition-colors duration-200 hover:bg-sunken hover:ring-line-2"
                   >
                     <BrandMark id={o.brandId} size={26} />
                     <span className="min-w-0 flex-1">
@@ -112,12 +112,12 @@ export function BuyView() {
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[520px] text-[13.5px]">
                 <thead>
-                  <tr className="border-b border-fg/[0.06] text-left text-[11.5px] text-dim">
-                    <th className="pb-2 font-normal">Store · from voucher buyer</th>
-                    <th className="pb-2 text-right font-normal">Value</th>
-                    <th className="pb-2 text-right font-normal">You receive</th>
-                    <th className="pb-2 text-right font-normal">Rate / USDC</th>
-                    <th className="w-10 pb-3" />
+                  <tr className="border-b border-line text-left text-[12px] text-mute">
+                    <th className="pb-2.5 font-normal">Store · from voucher buyer</th>
+                    <th className="pb-2.5 text-right font-normal">Value</th>
+                    <th className="pb-2.5 text-right font-normal">You receive</th>
+                    <th className="pb-2.5 text-right font-normal">Rate / USDC</th>
+                    <th className="w-10 pb-2.5" />
                   </tr>
                 </thead>
                 <tbody>
@@ -132,33 +132,33 @@ export function BuyView() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
                           onClick={() => go(o)}
-                          className={cx("group cursor-pointer border-b border-fg/[0.05] transition last:border-0 hover:bg-fg/[0.03]", isMatch && "bg-brand/[0.035]")}
+                          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), go(o))}
+                          tabIndex={0}
+                          aria-label={`Open ${b.name} ${inr(o.amount)} order`}
+                          className={cx("group cursor-pointer border-b border-line outline-none transition-colors last:border-0 hover:bg-sunken focus-visible:bg-sunken", isMatch && "bg-brand-soft/60")}
                         >
-                          <td className="py-2.5">
+                          <td className="py-3">
                             <span className="flex items-center gap-3">
-                              <BrandMark id={o.brandId} size={26} />
+                              <BrandMark id={o.brandId} size={32} />
                               <span className="min-w-0">
                                 <span className="flex items-center gap-2">
                                   <span className="font-medium">{b.name}</span>
-                                  {isMine(o) ? (
-                                    <span className="rounded-full bg-fg/[0.07] px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-mute uppercase">yours</span>
-                                  ) : (
-                                    isMatch && <span className="rounded-full bg-brand/10 px-1.5 py-0.5 font-mono text-[9px] tracking-wider text-brand-ink uppercase">match</span>
-                                  )}
+                                  {isMine(o) ? <Pill className="px-2 py-0.5 text-[9.5px]">yours</Pill> : isMatch && <Pill tone="mint" className="px-2 py-0.5 text-[9.5px]">match</Pill>}
                                 </span>
-                                <span className="block font-mono text-[11px] text-dim" title={o.spender}>
+                                <span className="block truncate font-mono text-[11px] text-dim" title={o.spender}>
                                   from {o.seller}
                                 </span>
                               </span>
                             </span>
                           </td>
-                          <td className="py-2.5 text-right text-mute tabular">{inr(o.amount)}</td>
-                          <td className="py-2.5 text-right tabular">
+                          <td className="py-3 text-right text-mute tabular">{inr(o.amount)}</td>
+                          <td className="py-3 text-right tabular">
                             <span className="font-medium">{usdt(quote(o.amount, o.rate).buyerReceives)}</span> <span className="text-[10px] text-dim">USDC</span>
                           </td>
-                          <td className="py-2.5 text-right text-mute tabular">₹{o.rate.toFixed(2)}</td>
-                          <td className="py-2.5 text-right">
+                          <td className="py-3 text-right text-mute tabular">₹{o.rate.toFixed(2)}</td>
+                          <td className="py-3 text-right">
                             <ArrowUpRight className="ml-auto size-3.5 text-dim transition group-hover:text-brand-ink" />
                           </td>
                         </motion.tr>
@@ -167,9 +167,10 @@ export function BuyView() {
                   </AnimatePresence>
                 </tbody>
               </table>
-              {rows.length === 0 && <div className="py-10 text-center text-[13px] text-mute">{open.length ? "No orders match your search." : source === "offline" ? "The order book can't be reached right now." : source === "loading" ? "Loading orders…" : "No open orders right now."}</div>}
+              {rows.length === 0 && source === "loading" && <RowSkeletons />}
+              {rows.length === 0 && source !== "loading" && <div className="py-10 text-center text-[13px] text-mute">{open.length ? "No orders match your search." : source === "offline" ? "The order book can't be reached right now." : "No open orders right now."}</div>}
             </div>
-            <p className="mt-3 text-[11.5px] text-dim">Whole vouchers. No partial fills.</p>
+            <p className="mt-3 text-[12px] text-dim">Whole vouchers. No partial fills.</p>
           </section>
 
           <AssistantBar
@@ -199,26 +200,24 @@ export function BuyView() {
 
         {/* ---------------------------------------------------- buy panel */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="hairline rounded-[22px] bg-surface/80 p-5 backdrop-blur-xl">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-[20px] font-semibold tracking-tight">Buy USDC</h2>
-              <span className="grid size-8 place-items-center rounded-full bg-[#2775ca] font-display text-[13px] font-bold text-white" aria-hidden>
-                $
-              </span>
+          <div className="panel p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[20px] font-semibold tracking-[-0.02em]">Buy USDC</h2>
+              <Segmented
+                id="buy-type"
+                label="Order type"
+                value={tab}
+                onChange={setTab}
+                options={[
+                  { value: "market", label: "Market" },
+                  { value: "limit", label: "Limit" },
+                ]}
+              />
             </div>
 
-            <div className="mt-3 flex gap-6 border-b border-fg/[0.07] text-[13px]">
-              {(["market", "limit"] as const).map((t) => (
-                <button key={t} onClick={() => setTab(t)} className={cx("relative pb-3 capitalize transition", tab === t ? "text-fg" : "text-mute hover:text-fg")}>
-                  {t}
-                  {tab === t && <motion.span layoutId="buytab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand" />}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 text-[12.5px] text-mute">You spend</div>
+            <div className="mt-5 text-[12.5px] text-mute">You spend</div>
             <div className="mt-1.5 flex items-baseline gap-2" aria-live="polite">
-              <span className="font-display text-2xl text-mute">₹</span>
+              <span className="font-display text-[22px] text-mute">₹</span>
               <span className="w-full min-w-0 font-display text-[36px] leading-none font-semibold tracking-tight tabular" aria-label={`Amount to spend: ${spend} rupees`}>
                 {spend.toLocaleString("en-IN")}
               </span>
@@ -232,14 +231,14 @@ export function BuyView() {
                   role="radio"
                   aria-checked={spend === p}
                   onClick={() => setSpend(p)}
-                  className={cx("h-10 rounded-xl text-[13px] ring-1 transition tabular", spend === p ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
+                  className={cx("h-9 rounded-full text-[13px] ring-1 transition-colors duration-200 tabular", spend === p ? "bg-brand-soft text-brand-ink ring-brand/40" : "text-mute ring-line-2 hover:bg-sunken hover:text-fg")}
                 >
                   {inr(p)}
                 </button>
               ))}
             </div>
 
-            <div className="mt-4">
+            <div className="mt-5">
               <div className="text-[12.5px] text-mute">Voucher you hold (pick one)</div>
               <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Voucher you hold">
                 {[{ id: "none", n: open.length }, ...voucherOptions].map(({ id, n }) => {
@@ -253,14 +252,15 @@ export function BuyView() {
                       onClick={() => setVoucher(id)}
                       title={id !== "none" && n === 0 ? "No open orders for this voucher right now" : undefined}
                       className={cx(
-                        "flex h-9 items-center gap-2 rounded-xl px-3 text-[12.5px] ring-1 transition",
-                        on ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20",
+                        "flex h-9 items-center gap-2 rounded-full pr-3 pl-1.5 text-[12.5px] ring-1 transition-colors duration-200",
+                        id === "none" && "pl-3",
+                        on ? "bg-brand-soft text-brand-ink ring-brand/40" : "text-mute ring-line-2 hover:bg-sunken hover:text-fg",
                         !on && id !== "none" && n === 0 && "opacity-50",
                       )}
                     >
-                      {id !== "none" && <BrandMark id={id} size={18} />}
+                      {id !== "none" && <BrandMark id={id} size={22} className="rounded-full" />}
                       {id === "none" ? "None" : brand(id).name}
-                      {id !== "none" && <span className="font-mono text-[10px] text-dim">{n}</span>}
+                      {id !== "none" && <span className="font-mono text-[10.5px] text-dim tabular">{n}</span>}
                     </button>
                   );
                 })}
@@ -279,8 +279,8 @@ export function BuyView() {
             />
 
             {tab === "limit" && (
-              <div className="mt-4 flex items-center justify-between rounded-xl bg-fg/[0.03] px-3.5 py-2.5 ring-1 ring-fg/[0.07]">
-                <span className="text-[12.5px] text-mute">Max rate</span>
+              <label className="field mt-4 flex h-11 items-center justify-between px-3.5">
+                <span className="text-[13px] text-mute">Max rate</span>
                 <span className="flex items-center gap-1 text-[14px] tabular">
                   ₹
                   <input
@@ -288,12 +288,12 @@ export function BuyView() {
                     step="0.1"
                     value={limit}
                     onChange={(e) => setLimit(Number(e.target.value) || 0)}
-                    className="w-16 bg-transparent text-right outline-none"
+                    className="w-20 bg-transparent text-right font-medium outline-none"
                     aria-label="Maximum rupees per USDC"
                   />
-                  <span className="text-[11px] text-dim">/ USDC</span>
+                  <span className="text-[11.5px] text-dim">/ USDC</span>
                 </span>
-              </div>
+              </label>
             )}
 
           </div>
@@ -303,32 +303,49 @@ export function BuyView() {
   );
 }
 
-function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void }) {
+/** Where the order book came from. "Live" is a green signal; demo and unreachable are buttons that retry. */
+export function SourceTag({ source, onRetry, long }: { source: Source; onRetry: () => void; long?: boolean }) {
+  const base = "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10.5px] font-medium tracking-[0.1em] uppercase ring-1";
   if (source === "live")
     return (
-      <span className="flex items-center gap-1.5 rounded-full bg-brand/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">
-        <span className="size-1.5 animate-pulse rounded-full bg-brand" /> live
+      <span className={cx(base, "bg-pos/10 text-pos-ink ring-pos/30")}>
+        <span className="relative flex size-1.5">
+          <span className="absolute inset-0 animate-ping rounded-full bg-pos opacity-60" />
+          <span className="relative size-1.5 rounded-full bg-pos" />
+        </span>
+        {long ? "Live order book" : "live"}
       </span>
     );
   if (source === "demo")
     return (
-      <button
-        onClick={onRetry}
-        title="Backend not reachable. These are made-up sample orders, shown in development only. Click to retry."
-        className="flex items-center gap-1.5 rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25"
-      >
-        demo data · not real <RefreshCw className="size-2.5" />
+      <button onClick={onRetry} title="Backend not reachable. These are made-up sample orders, shown in development only. Click to retry." className={cx(base, "bg-amber/12 text-amber-ink ring-amber/35 transition-colors hover:bg-amber/20")}>
+        {long ? "Demo data · not real orders" : "demo data · not real"} <RefreshCw className="size-3" />
       </button>
     );
   if (source === "offline")
     return (
-      <button
-        onClick={onRetry}
-        title="The order book server didn't answer. Click to retry."
-        className="flex items-center gap-1.5 rounded-full bg-rose/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-rose-ink uppercase ring-1 ring-rose/25"
-      >
-        unreachable <RefreshCw className="size-2.5" />
+      <button onClick={onRetry} title="The order book server didn't answer. Click to retry." className={cx(base, "bg-rose/8 text-rose-ink ring-rose/25 transition-colors hover:bg-rose/15")}>
+        {long ? "Order book unreachable" : "unreachable"} <RefreshCw className="size-3" />
       </button>
     );
   return null;
+}
+
+function RowSkeletons() {
+  return (
+    <div aria-hidden className="divide-y divide-line">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-center gap-3 py-3">
+          <Skeleton className="size-8 rounded-xl" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="h-3.5 w-14" />
+          <Skeleton className="h-3.5 w-20" />
+          <Skeleton className="h-3.5 w-14" />
+        </div>
+      ))}
+    </div>
+  );
 }

@@ -1,7 +1,8 @@
-import { ArrowLeft, ArrowUpRight, CircleAlert, ImagePlus, LoaderCircle, PenLine, ShieldAlert, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CircleAlert, ImagePlus, LoaderCircle, PenLine, ShieldAlert, ShieldCheck, Wallet, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { AppHead, AppPage, BrandMark, Button, Pill, cx } from "../components/ui";
+import { AppHead, AppPage, BrandMark, Button, Callout, EmptyState, Panel, Pill, Skeleton, Stepper, cx, enter } from "../components/ui";
+import { motion } from "motion/react";
 import { STATUS, api, brandIdFromApi, type ApiRequest } from "../lib/api";
 import { brand } from "../lib/data";
 import {
@@ -22,12 +23,12 @@ import {
 import { disputerOf, hasDispute, outcomeLine, roleIn, screenFor, stakeLine, stakeNotice } from "../lib/disputeView";
 import { usdcShort } from "../lib/terms";
 import { useTerms } from "../lib/useTerms";
-import { inr } from "../lib/engine";
+import { inr, usdt } from "../lib/engine";
 import { MOCK_NOTE, sendEscrowStep } from "../lib/escrowFlow";
 import { useApp } from "../lib/store";
 
 const SHOT_WARNING = "Screenshots can show the voucher code. Only the two of you and the team can see them, but crop anything you don't need.";
-const field = "w-full rounded-2xl bg-fg/[0.03] px-3.5 text-[14px] text-fg ring-1 ring-fg/10 outline-none transition placeholder:text-dim focus:ring-brand/40";
+const field = "field px-3.5";
 
 /** /dispute lists your orders that can be disputed or are disputed. /dispute/:id is one order. */
 export default function DisputePage() {
@@ -36,9 +37,7 @@ export default function DisputePage() {
     <AppPage>
       {/* One dispute reads as a single column of text and forms, so it keeps a readable width inside the shared frame. */}
       {id ? (
-        <div className="max-w-3xl">
-          <OrderDispute id={id} />
-        </div>
+        <OrderDispute id={id} />
       ) : (
         <DisputeList />
       )}
@@ -59,18 +58,18 @@ function SignedIn({ children }: { children: (token: string) => ReactNode }) {
     );
   if (!token)
     return (
-      <Button variant="outline" onClick={signIn} disabled={signingIn} icon={signingIn ? <LoaderCircle className="size-4 animate-spin" /> : <PenLine className="size-4" />}>
+      <Button variant="outline" onClick={signIn} pending={signingIn} icon={<PenLine className="size-4" />}>
         {signingIn ? "Check your wallet…" : "Sign in"}
       </Button>
     );
   return <>{children(token)}</>;
 }
 
-function Notice({ children, tone = "rose" }: { children: ReactNode; tone?: "rose" | "mint" }) {
+function Notice({ children, tone = "rose" }: { children: ReactNode; tone?: "rose" | "mint" | "pos" }) {
   return (
-    <div role="alert" className={cx("flex items-start gap-2 rounded-2xl px-3.5 py-3 text-[13px] ring-1", tone === "rose" ? "bg-rose/[0.07] text-rose-ink ring-rose/25" : "bg-brand/[0.07] text-brand-ink ring-brand/25")}>
-      <CircleAlert className="mt-0.5 size-4 shrink-0" /> <span className="min-w-0 break-words">{children}</span>
-    </div>
+    <Callout role="alert" tone={tone} icon={tone === "rose" ? <CircleAlert /> : <ShieldCheck />}>
+      {children}
+    </Callout>
   );
 }
 
@@ -121,31 +120,52 @@ function Orders({ token }: { token: string }) {
   }, [token]);
 
   if (error) return <Notice>{error}</Notice>;
-  if (!rows) return <div className="flex items-center gap-2 text-[13px] text-mute"><LoaderCircle className="size-4 animate-spin" /> Loading your orders…</div>;
-  if (!rows.length)
+  if (!rows)
     return (
-      <div className="hairline rounded-[18px] bg-surface/70 px-5 py-4 text-[13.5px] text-mute backdrop-blur-xl">
-        Nothing to dispute right now. An order shows up here once its voucher code has been submitted. <Link to="/track" className="text-brand-ink hover:underline">See your orders</Link>
+      <div className="grid gap-3 lg:grid-cols-2" aria-busy="true" aria-label="Loading your orders">
+        {[0, 1].map((i) => (
+          <div key={i} className="panel flex items-center gap-3 p-4">
+            <Skeleton className="size-9 rounded-xl" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+            <Skeleton className="h-6 w-24 rounded-full" />
+          </div>
+        ))}
       </div>
     );
+  if (!rows.length)
+    return (
+      <EmptyState
+        icon={<ShieldCheck />}
+        title="Nothing to dispute right now"
+        body="An order shows up here once its voucher code has been submitted."
+        action={
+          <Button size="sm" variant="outline" to="/track" icon={<ArrowUpRight className="size-3.5" />}>
+            See your orders
+          </Button>
+        }
+      />
+    );
   return (
-    <div className="grid gap-3 lg:grid-cols-2">
+    <motion.div {...enter} className="grid gap-3 lg:grid-cols-2">
       {rows.map((r) => {
         const b = brand(brandIdFromApi(r.brand));
         const st = STATUS[r.status];
         return (
-          <Link key={r.id} to={`/dispute/${encodeURIComponent(r.id)}`} className="hairline flex items-center gap-3 rounded-[18px] bg-surface/70 p-3.5 backdrop-blur-xl transition hover:bg-surface">
+          <Link key={r.id} to={`/dispute/${encodeURIComponent(r.id)}`} className="panel panel-hover flex items-center gap-3 p-4">
             <BrandMark id={brandIdFromApi(r.brand)} size={36} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14.5px] font-medium">{b.name} {inr(r.amountInr)}</span>
-              <span className="block truncate font-mono text-[11px] text-dim">{r.id}</span>
+              <span className="block truncate text-[15px] font-semibold tabular">{b.name} {inr(r.amountInr)}</span>
+              <span className="block truncate font-mono text-[11px] text-dim" title={r.id}>{r.id}</span>
             </span>
             <Pill tone={hasDispute(r as DisputeRequest) ? "rose" : (st.tone as "mint")}>{hasDispute(r as DisputeRequest) ? "Disputed" : roleIn(r as DisputeRequest, fullAddress) === "spender" ? "Can dispute" : "In review"}</Pill>
-            <ArrowUpRight className="size-4 text-dim" />
+            <ArrowUpRight className="size-4 shrink-0 text-dim" />
           </Link>
         );
       })}
-    </div>
+    </motion.div>
   );
 }
 
@@ -180,23 +200,40 @@ function OrderDispute({ id }: { id: string }) {
 
   return (
     <>
-      <Link to="/dispute" className="inline-flex items-center gap-1.5 text-[12.5px] text-mute hover:text-fg">
+      <Link to="/dispute" className="inline-flex h-8 items-center gap-1.5 text-[13px] text-mute transition-colors hover:text-fg">
         <ArrowLeft className="size-3.5" /> All disputes
       </Link>
       {error && <div className="mt-4"><Notice>{error}</Notice></div>}
-      {!req && !error && <div className="mt-6 flex items-center gap-2 text-[13px] text-mute"><LoaderCircle className="size-4 animate-spin" /> Loading…</div>}
+      {!req && !error && (
+        <div className="mt-3" aria-busy="true">
+          <div className="flex items-center gap-4">
+            <Skeleton className="size-11 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-3.5 w-40" />
+            </div>
+          </div>
+          <Panel className="mt-5 space-y-3 sm:p-6">
+            <Skeleton className="h-6 w-44" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-11 w-full" />
+          </Panel>
+        </div>
+      )}
       {req && b && (
-        <>
-          <div className="mt-4 flex items-center gap-3">
+        <motion.div {...enter}>
+          <div className="mt-3 flex items-center gap-4">
             <BrandMark id={brandIdFromApi(req.brand)} size={44} />
             <div className="min-w-0 flex-1">
-              <h1 className="truncate font-display text-2xl font-semibold tracking-tight">{b.name} {inr(req.amountInr)}</h1>
-              <div className="truncate font-mono text-[11px] text-dim">{req.id}</div>
+              <h1 className="truncate font-display text-[24px] leading-tight font-semibold tracking-[-0.02em] tabular md:text-[28px]">{b.name} {inr(req.amountInr)}</h1>
+              <div className="truncate font-mono text-[11.5px] text-dim" title={req.id}>{req.id}</div>
             </div>
             <Pill tone={hasDispute(req) ? "rose" : "mute"}>{STATUS[req.status].label}</Pill>
           </div>
 
-          <div className="hairline mt-5 rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl">
+          <div className="mt-5 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-5">
+          <Panel className="sm:p-6">
             <SignedIn>
               {(token) =>
                 screen?.kind === "raise" ? (
@@ -208,10 +245,41 @@ function OrderDispute({ id }: { id: string }) {
                 )
               }
             </SignedIn>
+          </Panel>
+          <OrderSummary req={req} />
           </div>
-        </>
+        </motion.div>
       )}
     </>
+  );
+}
+
+/** The order beside the dispute: what is at stake, straight from the order record. */
+function OrderSummary({ req }: { req: DisputeRequest }) {
+  return (
+    <Panel as="aside" className="lg:sticky lg:top-24">
+      <div className="label">The order</div>
+      <dl className="mt-2 divide-y divide-line text-[13.5px]">
+        <div className="flex items-center justify-between gap-4 py-2.5">
+          <dt className="text-mute">Voucher</dt>
+          <dd className="tabular">{inr(req.amountInr)}</dd>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-2.5">
+          <dt className="text-mute">USDC buyer is paid</dt>
+          <dd className="font-semibold tabular">{usdt(Number(req.amountUsdc) || 0)} USDC</dd>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-2.5">
+          <dt className="text-mute">Status</dt>
+          <dd>{STATUS[req.status].label}</dd>
+        </div>
+      </dl>
+      <Button size="sm" variant="outline" className="mt-3 w-full" to={`/track?id=${encodeURIComponent(req.id)}`} icon={<ArrowUpRight className="size-3.5" />}>
+        Open the order page
+      </Button>
+      <Link to="/docs#disputes" className="mt-3 block text-center text-[12.5px] text-mute transition-colors hover:text-fg">
+        How disputes work
+      </Link>
+    </Panel>
   );
 }
 
@@ -295,40 +363,42 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight"><ShieldAlert className="size-5 text-rose-ink" /> Raise a dispute</h2>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-mute">
+        <h2 className="flex items-center gap-2.5 text-[20px] font-semibold tracking-[-0.02em]"><ShieldAlert className="size-5 text-rose-ink" /> Raise a dispute</h2>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-mute">
           Your wallet sends one transaction that freezes the escrow, so nothing is paid out while it is open. The arbiter then decides how the escrow is split. If they agree with you, the other person gets a strike. If the dispute is found to be false, your account is banned.
         </p>
-        <p className="mt-2 rounded-xl bg-amber/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-amber-ink" data-testid="dispute-stake">
-          {stakeNotice(stake, usdcShort)}
-          {stake !== null && stake > 0n ? " Your wallet may ask twice: once to approve the stake, then to open the dispute." : ""}
-        </p>
+        <Callout tone="amber" className="mt-3">
+          <span data-testid="dispute-stake">
+            {stakeNotice(stake, usdcShort)}
+            {stake !== null && stake > 0n ? " Your wallet may ask twice: once to approve the stake, then to open the dispute." : ""}
+          </span>
+        </Callout>
       </div>
       {stakeAsked && <Notice>{STAKE_UNSUPPORTED}</Notice>}
 
       <label className="block">
         <span className="mb-1.5 block text-[12.5px] text-mute">What's wrong?</span>
-        <select value={category} onChange={(e) => setCategory(e.target.value as Category | "")} disabled={busy} className={cx(field, "h-12")}>
+        <select value={category} onChange={(e) => setCategory(e.target.value as Category | "")} disabled={busy} className={cx(field, "h-11")}>
           <option value="" className="bg-surface">Choose…</option>
           {CATEGORIES.map((c) => <option key={c.value} value={c.value} className="bg-surface">{c.label}</option>)}
         </select>
       </label>
 
       <label className="block">
-        <span className="mb-1.5 flex justify-between text-[12.5px] text-mute"><span>Tell us what happened</span><span className="tabular text-dim">{reason.length}/{REASON_MAX}</span></span>
-        <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={REASON_MAX} rows={4} disabled={busy} placeholder="For example: the brand site says this code was already redeemed." className={cx(field, "resize-none py-3")} />
+        <span className="mb-1.5 flex justify-between text-[12.5px] text-mute"><span>Tell us what happened</span><span className="text-dim tabular">{reason.length}/{REASON_MAX}</span></span>
+        <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={REASON_MAX} rows={4} disabled={busy} placeholder="For example: the brand site says this code was already redeemed." className={cx(field, "resize-none py-2.5")} />
       </label>
 
       <div>
         <div className="mb-1.5 text-[12.5px] text-mute">Screenshots (optional, up to {MAX_SHOTS})</div>
         <div className="flex flex-wrap items-center gap-2">
           {files.map((f, i) => (
-            <button key={i} type="button" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))} disabled={busy} className="rounded-full bg-fg/[0.05] px-3 py-1.5 text-[12px] ring-1 ring-fg/10 hover:bg-fg/[0.09]" title="Remove">
-              {f.name.slice(0, 22)} ✕
+            <button key={i} type="button" onClick={() => setFiles((all) => all.filter((_, j) => j !== i))} disabled={busy} className="inline-flex h-9 max-w-[220px] items-center gap-1.5 rounded-full bg-sunken pr-2.5 pl-3.5 text-[12.5px] transition-colors hover:bg-sunken-2" title={`Remove ${f.name}`}>
+              <span className="truncate">{f.name}</span> <X className="size-3.5 shrink-0 text-mute" />
             </button>
           ))}
           {files.length < MAX_SHOTS && (
-            <label className={cx("flex h-9 cursor-pointer items-center gap-2 rounded-full px-3.5 text-[12.5px] text-mute ring-1 ring-fg/12 hover:text-fg", busy && "pointer-events-none opacity-40")}>
+            <label className={cx("flex h-9 cursor-pointer items-center gap-2 rounded-full px-3.5 text-[12.5px] text-mute ring-1 ring-line-2 transition-colors hover:bg-sunken hover:text-fg focus-within:ring-brand", busy && "pointer-events-none opacity-40")}>
               <ImagePlus className="size-4" /> Add
               <input type="file" accept={SHOT_TYPES.join(",")} multiple className="sr-only" onChange={(e) => { void pick(e.target.files); e.target.value = ""; }} />
             </label>
@@ -343,8 +413,17 @@ function RaiseForm({ req, token, onDone }: { req: DisputeRequest; token: string;
         <span>I understand my account is banned if the team finds my dispute false.</span>
       </label>
 
+      {busy && (
+        <Stepper
+          steps={(["chain", "submit", "upload"] as const).map((k, i, all) => ({
+            key: k,
+            label: k === "chain" ? "Freeze the escrow from your wallet" : k === "submit" ? "Send your reason" : "Upload screenshots",
+            state: all.indexOf(step as (typeof all)[number]) > i ? "done" : step === k ? "now" : "todo",
+          }))}
+        />
+      )}
       {error && <Notice>{error}</Notice>}
-      <Button className="w-full" size="lg" disabled={!ready || busy} onClick={() => void submit()} icon={busy ? <LoaderCircle className="size-4 animate-spin" /> : undefined}>
+      <Button className="w-full" size="lg" variant="dark" disabled={!ready} pending={busy} onClick={() => void submit()}>
         {label}
       </Button>
     </div>
@@ -386,17 +465,19 @@ function DisputeView({ req, token, onChanged }: { req: DisputeRequest; token: st
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-display text-xl font-semibold tracking-tight">{iRaised ? "You raised this dispute" : "This order is disputed"}</h2>
+        <h2 className="text-[20px] font-semibold tracking-[-0.02em]">{iRaised ? "You raised this dispute" : "This order is disputed"}</h2>
         {d?.category && <p className="mt-1 text-[13px] text-mute">{categoryLabel(d.category)}</p>}
       </div>
 
-      {(d?.reason || req.disputeReason) && <p className="whitespace-pre-wrap rounded-2xl bg-fg/[0.03] p-3.5 text-[14px] leading-relaxed ring-1 ring-fg/[0.07]">{d?.reason ?? req.disputeReason}</p>}
+      {(d?.reason || req.disputeReason) && <p className="well p-4 text-[14px] leading-relaxed whitespace-pre-wrap">{d?.reason ?? req.disputeReason}</p>}
       <p className="text-[12.5px] text-mute">{stakeLine(req, fullAddress)}</p>
 
       {outcome ? (
-        <Notice tone={outcome.good ? "mint" : "rose"}>{outcome.text}{req.resolution?.note ? ` Note from the team: ${req.resolution.note}` : ""}</Notice>
+        <Notice tone={outcome.good ? "pos" : "rose"}>{outcome.text}{req.resolution?.note ? ` Note from the team: ${req.resolution.note}` : ""}</Notice>
       ) : (
-        <p className="text-[13px] text-amber-ink">Waiting for the team to decide. Nothing moves until they do.</p>
+        <Callout tone="amber" icon={<LoaderCircle className="animate-spin" />}>
+          Waiting for the team to decide. Nothing moves until they do.
+        </Callout>
       )}
 
       <div>
@@ -434,7 +515,7 @@ function DisputeView({ req, token, onChanged }: { req: DisputeRequest; token: st
       {d?.response?.text ? (
         <div>
           <div className="mb-1.5 text-[12.5px] text-mute">{iRaised ? "Their reply" : "Your reply"}</div>
-          <p className="whitespace-pre-wrap rounded-2xl bg-fg/[0.03] p-3.5 text-[14px] leading-relaxed ring-1 ring-fg/[0.07]">{d.response.text}</p>
+          <p className="well p-4 text-[14px] leading-relaxed whitespace-pre-wrap">{d.response.text}</p>
         </div>
       ) : (
         open &&
@@ -442,8 +523,8 @@ function DisputeView({ req, token, onChanged }: { req: DisputeRequest; token: st
         roleIn(req, fullAddress) && (
           <form className="space-y-2.5" onSubmit={(e) => { e.preventDefault(); if (text.trim().length >= REASON_MIN) void run(() => disputeApi.respond(req.id, token, text.trim())); }}>
             <label className="block text-[12.5px] text-mute">Your side (you can reply once)</label>
-            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={REASON_MAX} rows={3} placeholder="Explain what happened from your side." className={cx(field, "resize-none py-3")} />
-            <Button type="submit" size="sm" variant="outline" disabled={busy || text.trim().length < REASON_MIN}>Send reply</Button>
+            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={REASON_MAX} rows={3} placeholder="Explain what happened from your side." className={cx(field, "resize-none py-2.5")} />
+            <Button type="submit" size="sm" variant="outline" disabled={text.trim().length < REASON_MIN} pending={busy}>Send reply</Button>
           </form>
         )
       )}
@@ -472,9 +553,9 @@ function Shot({ reqId, ev, token, mine }: { reqId: string; ev: Evidence; token: 
     };
   }, [reqId, ev.id, token]);
   return (
-    <a href={url || undefined} target="_blank" rel="noreferrer" className="group relative block aspect-square overflow-hidden rounded-xl bg-fg/[0.04] ring-1 ring-fg/10" title={ev.note ?? "Open"}>
-      {url ? <img src={url} alt="Screenshot" className="size-full object-cover transition group-hover:scale-105" /> : <span className="grid size-full place-items-center"><LoaderCircle className="size-4 animate-spin text-dim" /></span>}
-      <span className="absolute bottom-1 left-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9.5px] text-white">{mine ? "you" : "them"}</span>
+    <a href={url || undefined} target="_blank" rel="noreferrer" className="group relative block aspect-square overflow-hidden rounded-xl bg-sunken ring-1 ring-line" title={ev.note ?? "Open"}>
+      {url ? <img src={url} alt="Screenshot" className="np-fade-in size-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" /> : <span className="skeleton block size-full rounded-none" />}
+      <span className="absolute bottom-1.5 left-1.5 rounded-full bg-ink/70 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-white uppercase">{mine ? "you" : "them"}</span>
     </a>
   );
 }

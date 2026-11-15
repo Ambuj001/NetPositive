@@ -1,6 +1,7 @@
-import { animate, motion, useInView, useMotionValue, useSpring, useTransform } from "motion/react";
+import { AnimatePresence, animate, motion, useInView, useMotionValue, useSpring, useTransform } from "motion/react";
 import { clsx } from "clsx";
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
+import { Check, Copy, LoaderCircle, X } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { findBrand, brand as getBrand } from "../lib/data";
 
@@ -41,11 +42,13 @@ type BtnProps = ComponentProps<"button"> & {
   to?: string;
   href?: string;
   icon?: ReactNode;
+  /** A step is running: the icon becomes a spinner, the button is disabled and says so to screen readers. */
+  pending?: boolean;
 };
 
-export function Button({ variant = "primary", size = "md", className, children, to, href, icon, ...rest }: BtnProps) {
+export function Button({ variant = "primary", size = "md", className, children, to, href, icon, pending, disabled, ...rest }: BtnProps) {
   const cls = cx(
-    "group relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium tracking-[-0.01em] transition-[background-color,box-shadow,transform,color] duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+    "group relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium tracking-[-0.01em] transition-[background-color,box-shadow,transform,color,opacity] duration-200 ease-out-np active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 aria-busy:opacity-70",
     size === "sm" && "h-9 px-4 text-[13.5px]",
     size === "md" && "h-11 px-5 text-[14.5px]",
     size === "lg" && "h-13 px-7 text-[15.5px]",
@@ -56,10 +59,14 @@ export function Button({ variant = "primary", size = "md", className, children, 
     variant === "ghost" && "text-mute hover:bg-sunken hover:text-fg",
     className,
   );
+  const shownIcon = pending ? <Spinner /> : icon;
   const inner = (
     <>
-      {children}
-      {icon && <span className="transition-transform duration-200 group-hover:translate-x-0.5">{icon}</span>}
+      {/* A changed label fades in rather than snapping. */}
+      <span key={typeof children === "string" ? children : undefined} className="np-fade-in inline-flex min-w-0 items-center gap-2">
+        {children}
+      </span>
+      {shownIcon && <span className={cx("inline-flex shrink-0", !pending && "transition-transform duration-200 group-hover:translate-x-0.5")}>{shownIcon}</span>}
     </>
   );
   if (to)
@@ -77,7 +84,7 @@ export function Button({ variant = "primary", size = "md", className, children, 
     );
   }
   return (
-    <button className={cls} {...rest}>
+    <button className={cls} disabled={disabled || pending} aria-busy={pending || undefined} {...rest}>
       {inner}
     </button>
   );
@@ -86,10 +93,32 @@ export function Button({ variant = "primary", size = "md", className, children, 
 /* ------------------------------------------------------------------ Card */
 export function Card({ className, children, glow: _glow, ...rest }: ComponentProps<"div"> & { glow?: string }) {
   return (
-    <div className={cx("relative overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(12,13,15,0.04)]", className)} {...rest}>
+    <div className={cx("panel overflow-hidden", className)} {...rest}>
       <div className="relative h-full">{children}</div>
     </div>
   );
+}
+
+/* ----------------------------------------------------------------- Tones */
+
+/**
+ * The five tones every status, badge and notice maps to. "mint" and "iris" are historical names for the brand blue;
+ * "pos" is the green kept for gains and live signals; amber means "waiting / take care"; rose means "stop / problem".
+ */
+export type Tone = "mint" | "iris" | "pos" | "amber" | "rose" | "mute";
+export const TONE_PILL: Record<Tone, string> = {
+  mint: "text-brand-ink bg-brand-soft ring-brand/25",
+  iris: "text-brand-ink bg-brand-soft ring-brand/25",
+  pos: "text-pos-ink bg-pos/10 ring-pos/30",
+  amber: "text-amber-ink bg-amber/12 ring-amber/35",
+  rose: "text-rose-ink bg-rose/8 ring-rose/25",
+  mute: "text-mute bg-sunken ring-line",
+};
+export const TONE_DOT: Record<Tone, string> = { mint: "bg-brand", iris: "bg-brand", pos: "bg-pos", amber: "bg-amber", rose: "bg-rose", mute: "bg-dim" };
+
+/** An order status's tone. A finished trade is a gain for the person paid, so "released" reads green. */
+export function statusTone(status: string, fallback: Tone): Tone {
+  return status === "released" ? "pos" : fallback;
 }
 
 /* ----------------------------------------------------------------- Pill */
@@ -99,18 +128,12 @@ export function Pill({
   className,
   dot,
 }: {
-  tone?: "mint" | "amber" | "iris" | "rose" | "mute";
+  tone?: Tone;
   children: ReactNode;
   className?: string;
   dot?: boolean;
 }) {
-  const t = {
-    mint: "text-brand-ink bg-brand-soft ring-brand/30",
-    amber: "text-amber-ink bg-amber/12 ring-amber/35",
-    iris: "text-iris bg-iris/8 ring-iris/25",
-    rose: "text-rose-ink bg-rose/8 ring-rose/25",
-    mute: "text-mute bg-sunken ring-line",
-  }[tone];
+  const t = TONE_PILL[tone];
   return (
     <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] ring-1", t, className)}>
       {dot && (
@@ -399,5 +422,333 @@ export function AppHead({ title, sub, right, children }: { title: ReactNode; sub
       </div>
       {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
     </div>
+  );
+}
+
+/* =================================================================== in-app primitives
+ * Everything below is shared by the trade flow, the dashboards and every overlay, so they look and move as one app.
+ * Type: page title 24/28, card title 17, body 13.5–14, meta 12, mono labels 10.5 uppercase.
+ * Radii: pills for buttons and badges, 16 px cards, 12 px wells and inputs, 24 px dialogs.
+ * Motion: EASE, 150–250 ms, opacity and a few pixels of travel; nothing blocks input; reduced motion turns it off.
+ */
+
+export const EASE = [0.16, 1, 0.3, 1] as const;
+export const DUR = { fast: 0.15, base: 0.2, slow: 0.25 } as const;
+/** Enter: fade up 6 px. Used for page sections, list items and swapped card content. */
+export const enter = { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -4 }, transition: { duration: DUR.base, ease: EASE } } as const;
+
+export function Spinner({ className }: { className?: string }) {
+  return <LoaderCircle className={cx("size-3.5 animate-spin", className)} aria-hidden />;
+}
+
+/** A card. `pad` false when the content brings its own padding (tables, lists). */
+export function Panel({ className, children, pad = true, as: As = "div", ...rest }: ComponentProps<"div"> & { pad?: boolean; as?: "div" | "section" | "aside" }) {
+  return (
+    <As className={cx("panel", pad && "p-4 sm:p-5", className)} {...rest}>
+      {children}
+    </As>
+  );
+}
+
+/** The head row of a card: a title (or mono label) on the left, a small control on the right. */
+export function PanelHead({ title, label, right, sub, className }: { title?: ReactNode; label?: ReactNode; right?: ReactNode; sub?: ReactNode; className?: string }) {
+  return (
+    <div className={className}>
+      <div className="flex min-h-7 items-center justify-between gap-3">
+        {title ? <h2 className="min-w-0 text-[17px] font-semibold tracking-[-0.02em]">{title}</h2> : <div className="label min-w-0">{label}</div>}
+        {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
+      </div>
+      {sub && <p className="mt-1 text-[13px] leading-relaxed text-mute">{sub}</p>}
+    </div>
+  );
+}
+
+/** A grey placeholder in the shape of content that is still loading. */
+export function Skeleton({ className }: { className?: string }) {
+  return <span aria-hidden className={cx("skeleton block", className)} />;
+}
+
+/** A notice inside a card or form. One look for every tone. */
+export function Callout({ tone = "mute", icon, children, className, role }: { tone?: Tone; icon?: ReactNode; children: ReactNode; className?: string; role?: string }) {
+  const t = {
+    mint: "bg-brand-soft text-brand-ink",
+    iris: "bg-brand-soft text-brand-ink",
+    pos: "bg-pos/10 text-pos-ink",
+    amber: "bg-amber/12 text-amber-ink",
+    rose: "bg-rose/8 text-rose-ink",
+    mute: "bg-sunken text-mute",
+  }[tone];
+  return (
+    <div role={role} className={cx("flex items-start gap-2.5 rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed", t, className)}>
+      {icon && <span className="mt-[3px] flex shrink-0 [&>svg]:size-3.5">{icon}</span>}
+      <div className="min-w-0 flex-1 break-words">{children}</div>
+    </div>
+  );
+}
+
+/** Nothing to show (yet): a title, one line and an optional action. Same size on every page. */
+export function EmptyState({ icon, title, body, action, className }: { icon?: ReactNode; title: ReactNode; body?: ReactNode; action?: ReactNode; className?: string }) {
+  return (
+    <div className={cx("panel flex flex-col items-center px-6 py-10 text-center", className)}>
+      {icon && <span className="mb-3 grid size-10 place-items-center rounded-full bg-sunken text-mute [&>svg]:size-[18px]">{icon}</span>}
+      <div className="text-[15px] font-medium">{title}</div>
+      {body && <div className="mt-1 max-w-md text-[13px] leading-relaxed text-mute">{body}</div>}
+      {action && <div className="mt-4 flex flex-wrap justify-center gap-2">{action}</div>}
+    </div>
+  );
+}
+
+/** A pill-shaped segmented control (tabs that switch a view or a mode). */
+export function Segmented<T extends string>({ value, options, onChange, label, id, size = "sm", className }: { value: T; options: readonly { value: T; label: ReactNode; icon?: ReactNode }[]; onChange: (v: T) => void; label: string; id: string; size?: "sm" | "md"; className?: string }) {
+  return (
+    <div className={cx("inline-flex rounded-full bg-sunken p-1", className)} role="tablist" aria-label={label}>
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => onChange(o.value)}
+            className={cx("relative flex flex-1 items-center justify-center gap-1.5 rounded-full font-medium whitespace-nowrap transition-colors duration-200", size === "sm" ? "h-8 px-3.5 text-[12.5px]" : "h-9 px-4 text-[13px]", on ? "text-fg" : "text-mute hover:text-fg")}
+          >
+            {on && <motion.span layoutId={`seg-${id}`} className="absolute inset-0 rounded-full bg-surface shadow-[0_1px_2px_rgba(12,13,15,0.08),0_0_0_1px_rgba(12,13,15,0.06)]" transition={{ duration: DUR.slow, ease: EASE }} />}
+            <span className="relative flex items-center gap-1.5">
+              {o.icon}
+              {o.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Animates its own height when what is inside changes, so a card grows or shrinks instead of jumping. */
+export function AutoHeight({ children, className }: { children: ReactNode; className?: string }) {
+  const inner = useRef<HTMLDivElement>(null);
+  const [h, setH] = useState<number | "auto">("auto");
+  useLayoutEffect(() => {
+    const el = inner.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <motion.div className={cx("overflow-hidden", className)} initial={false} animate={{ height: h }} transition={{ duration: DUR.slow, ease: EASE }}>
+      <div ref={inner}>{children}</div>
+    </motion.div>
+  );
+}
+
+/** Content that is replaced as a whole (a new step, a new state): the old fades out, the new fades up. */
+export function Swap({ k, children, className }: { k: string; children: ReactNode; className?: string }) {
+  return (
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.div key={k} className={className} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: DUR.base, ease: EASE }}>
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/* ---------------------------------------------------------------- Stepper */
+
+export type StepState = "done" | "now" | "todo";
+
+/** Progress through a multi-step action (approve → deposit → publish, seal → mark → send). */
+export function Stepper({ steps, className, compact }: { steps: { key: string; label: ReactNode; state: StepState }[]; className?: string; compact?: boolean }) {
+  return (
+    <ol className={cx(compact ? "space-y-1.5" : "space-y-2", className)}>
+      {steps.map((s, i) => (
+        <li key={s.key} className={cx("flex items-center gap-3 rounded-xl transition-colors duration-200", compact ? "" : "px-3 py-2.5", !compact && (s.state === "now" ? "bg-brand-soft" : "bg-sunken"))} aria-current={s.state === "now" ? "step" : undefined}>
+          <span className={cx("relative grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-medium tabular transition-colors duration-200", s.state === "done" ? "bg-brand text-white" : s.state === "now" ? "bg-surface text-brand-ink ring-1 ring-brand/40" : "bg-surface text-dim ring-1 ring-line-2")}>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span key={s.state} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }} transition={{ duration: DUR.fast, ease: EASE }} className="grid place-items-center">
+                {s.state === "done" ? <Check className="size-3.5" strokeWidth={2.5} /> : s.state === "now" ? <LoaderCircle className="size-3.5 animate-spin" /> : i + 1}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+          <span className={cx("min-w-0 text-[13px] leading-snug", s.state === "todo" ? "text-mute" : "text-fg", s.state === "now" && "font-medium")}>{s.label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/* ----------------------------------------------------------------- Copy */
+
+export function CopyButton({ text, label, className }: { text: string; label: string; className?: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setOk(true);
+          setTimeout(() => setOk(false), 1400);
+        } catch {
+          /* clipboard blocked */
+        }
+      }}
+      className={cx("grid size-7 shrink-0 place-items-center rounded-full text-dim transition-colors hover:bg-sunken hover:text-fg", className)}
+    >
+      {ok ? <Check className="size-3.5 text-brand-ink" /> : <Copy className="size-3.5" />}
+    </button>
+  );
+}
+
+/* ----------------------------------------------------------------- Dialog */
+
+/** Open dialogs, newest last. Only the top one answers Escape and Tab; the page stays locked while any is open. */
+const dialogStack: string[] = [];
+let savedOverflow = "";
+
+/**
+ * Every overlay in the app: centred card on wider screens, a sheet from the bottom on phones. Backdrop, radius, header
+ * and close button, focus trap, Escape, scroll lock and enter/exit motion are the same everywhere. The body scrolls
+ * inside the dialog, so nothing is cut off at phone height.
+ * `dismissible` false while a step runs: then neither Escape, the backdrop nor the close button closes it.
+ */
+export function Dialog({
+  open,
+  onClose,
+  title,
+  description,
+  icon,
+  children,
+  footer,
+  size = "sm",
+  dismissible = true,
+  bodyClassName,
+  label,
+  testId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  description?: ReactNode;
+  icon?: ReactNode;
+  children?: ReactNode;
+  footer?: ReactNode;
+  size?: "sm" | "md";
+  dismissible?: boolean;
+  bodyClassName?: string;
+  /** Accessible name when the title is not plain text. */
+  label?: string;
+  testId?: string;
+}) {
+  const id = useId();
+  const box = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  const canClose = useRef(dismissible);
+  canClose.current = dismissible;
+
+  useEffect(() => {
+    if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    dialogStack.push(id);
+    if (dialogStack.length === 1) {
+      savedOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
+    // Focus the first field, else the first button that isn't the close button, once the dialog is in the page.
+    const t = requestAnimationFrame(() => {
+      const el = box.current;
+      if (!el || el.contains(document.activeElement)) return;
+      const first = el.querySelector<HTMLElement>("[data-autofocus],input:not([disabled]),textarea:not([disabled]),select:not([disabled])") ?? el.querySelector<HTMLElement>("button:not([disabled]):not([data-close]),a[href]") ?? el;
+      first.focus({ preventScroll: true });
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (dialogStack[dialogStack.length - 1] !== id) return;
+      const el = box.current;
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        if (canClose.current) close.current();
+      }
+      if (e.key === "Tab" && el) {
+        const f = [...el.querySelectorAll<HTMLElement>("button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),a[href],[tabindex]:not([tabindex='-1'])")].filter((x) => x.offsetParent !== null);
+        if (!f.length) return;
+        const first = f[0];
+        const last = f[f.length - 1];
+        if (e.shiftKey && (document.activeElement === first || !el.contains(document.activeElement))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      cancelAnimationFrame(t);
+      document.removeEventListener("keydown", onKey);
+      const i = dialogStack.lastIndexOf(id);
+      if (i >= 0) dialogStack.splice(i, 1);
+      if (dialogStack.length === 0) document.body.style.overflow = savedOverflow;
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, [open, id]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-fg/30 backdrop-blur-[3px] sm:items-center sm:p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: DUR.base, ease: EASE }}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && canClose.current) close.current();
+          }}
+        >
+          <motion.div
+            ref={box}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={label ? undefined : `${id}-t`}
+            aria-label={label}
+            aria-describedby={description ? `${id}-d` : undefined}
+            tabIndex={-1}
+            data-testid={testId}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: DUR.slow, ease: EASE }}
+            className={cx(
+              "relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-surface shadow-[0_40px_120px_-30px_rgba(12,13,15,0.45)] ring-1 ring-line outline-none sm:max-h-[min(88dvh,820px)] sm:rounded-3xl",
+              size === "sm" ? "sm:max-w-[440px]" : "sm:max-w-[520px]",
+            )}
+          >
+            <div className="flex shrink-0 items-start gap-3 px-5 pt-5 pb-1 sm:px-6 sm:pt-6">
+              {icon && <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sunken text-fg [&>svg]:size-[18px]">{icon}</span>}
+              <div className={cx("min-w-0 flex-1", icon && "pt-1")}>
+                <h2 id={`${id}-t`} className="text-[18px] leading-snug font-semibold tracking-[-0.02em]">
+                  {title}
+                </h2>
+                {description && (
+                  <div id={`${id}-d`} className="mt-1 text-[13.5px] leading-relaxed text-mute">
+                    {description}
+                  </div>
+                )}
+              </div>
+              <button type="button" data-close onClick={() => canClose.current && close.current()} disabled={!dismissible} className="-mt-1 -mr-2 grid size-9 shrink-0 place-items-center rounded-full text-mute transition-colors hover:bg-sunken hover:text-fg disabled:opacity-30" aria-label="Close">
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className={cx("min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-3 pb-5 sm:px-6 sm:pb-6", !footer && "pb-[max(20px,env(safe-area-inset-bottom))]", bodyClassName)}>{children}</div>
+            {footer && <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-line px-5 py-4 pb-[max(16px,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-end sm:px-6">{footer}</div>}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

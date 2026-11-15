@@ -3,7 +3,7 @@ import { ArrowRight, Bot, Check, LoaderCircle, Lock, RotateCcw, SendHorizontal, 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BuyerList } from "../components/BuyRequest";
-import { BrandMark, Button, cx } from "../components/ui";
+import { BrandMark, Button, Callout, DUR, Dialog, EASE, Pill, Stepper, cx } from "../components/ui";
 import { api, type BuyIntent } from "../lib/api";
 import { ARC } from "../lib/chain";
 import type { Order } from "../lib/data";
@@ -193,30 +193,29 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
 
   return (
     <>
-      <div className="hairline relative flex h-[min(660px,calc(100dvh_-_190px))] min-h-[440px] flex-col overflow-hidden rounded-[22px] bg-surface/85 backdrop-blur-xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(0,0,255,0.14), transparent)" }} />
-        <div className="relative flex items-center gap-3 border-b border-fg/[0.06] px-5 py-4">
-          <span className="relative grid size-10 place-items-center rounded-2xl bg-brand/10 text-brand-ink ring-1 ring-fg/10">
-            <Bot className="size-5" />
-            <span className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full bg-brand ring-2 ring-surface" />
+      <div className="panel relative flex h-[min(660px,calc(100dvh_-_190px))] min-h-[440px] flex-col overflow-hidden">
+        <div className="relative flex items-center gap-3 border-b border-line px-4 py-3.5 sm:px-5">
+          <span className="relative grid size-9 place-items-center rounded-xl bg-brand text-white">
+            <Bot className="size-[18px]" />
+            <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full bg-pos ring-2 ring-surface" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-semibold">NetPositive AI</div>
-            <div className="truncate text-[11.5px] text-mute">Spend USDC</div>
+            <div className="text-[15px] font-semibold tracking-[-0.01em]">NetPositive AI</div>
+            <div className="truncate text-[12px] text-mute">Spend USDC</div>
           </div>
-          <button type="button" onClick={onRestart} disabled={!!lock.held} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-fg/10 transition hover:text-fg disabled:opacity-40" aria-label="Start over" title="Start over">
+          <button type="button" onClick={onRestart} disabled={!!lock.held} className="grid size-9 place-items-center rounded-full text-mute transition-colors hover:bg-sunken hover:text-fg disabled:opacity-40" aria-label="Start over" title="Start over">
             <RotateCcw className="size-4" />
           </button>
-          <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full text-mute ring-1 ring-fg/10 transition hover:text-fg" aria-label="Close assistant" title="Close">
+          <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full text-mute transition-colors hover:bg-sunken hover:text-fg" aria-label="Close assistant" title="Close">
             <X className="size-4" />
           </button>
         </div>
 
         <div ref={scroller} className="relative flex-1 space-y-4 overflow-y-auto px-4 py-5 md:px-6" aria-live="polite">
           {msgs.map((m) => (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={cx("flex gap-2.5", m.from === "user" && "justify-end")}>
+            <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DUR.base, ease: EASE }} className={cx("flex gap-2.5", m.from === "user" && "justify-end")}>
               {m.from === "bot" && (
-                <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-brand-ink">
+                <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-brand-soft text-brand-ink">
                   <Sparkles className="size-3.5" />
                 </span>
               )}
@@ -227,7 +226,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
                       key={i}
                       className={cx(
                         "w-fit max-w-full rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap",
-                        m.from === "user" ? "ml-auto rounded-br-md bg-brand text-white" : "rounded-tl-md bg-fg/[0.045] text-fg/90 ring-1 ring-fg/[0.06]",
+                        m.from === "user" ? "ml-auto rounded-br-md bg-brand text-white" : "rounded-tl-md bg-sunken text-fg",
                       )}
                     >
                       {b.text}
@@ -254,10 +253,10 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           <AnimatePresence>
             {busy && (
               <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2.5">
-                <span className="grid size-7 place-items-center rounded-full bg-brand/10 text-brand-ink">
+                <span className="grid size-7 place-items-center rounded-full bg-brand-soft text-brand-ink">
                   <Sparkles className="size-3.5" />
                 </span>
-                <span className="flex gap-1 rounded-2xl bg-fg/[0.04] px-4 py-3 ring-1 ring-fg/[0.06]">
+                <span className="flex gap-1 rounded-2xl rounded-tl-md bg-sunken px-4 py-3">
                   {[0, 1, 2].map((i) => (
                     <motion.span key={i} className="size-1.5 rounded-full bg-mute" animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }} transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }} />
                   ))}
@@ -267,11 +266,11 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
           </AnimatePresence>
         </div>
 
-        <div className="relative border-t border-fg/[0.06] p-3 md:p-4">
+        <div className="relative border-t border-line p-3 md:p-4">
           {quick.length > 0 && !busy && (
             <div className="scrollbar-none mb-3 flex gap-2 overflow-x-auto">
               {quick.map((q) => (
-                <button key={q.label} type="button" onClick={q.on} className="shrink-0 rounded-full px-3.5 py-1.5 text-[12.5px] text-fg/85 ring-1 ring-fg/12 transition hover:bg-fg/[0.06] hover:ring-fg/25">
+                <button key={q.label} type="button" onClick={q.on} className="h-8 shrink-0 rounded-full px-3.5 text-[12.5px] text-fg ring-1 ring-line-2 transition-colors duration-200 hover:bg-sunken">
                   {q.label}
                 </button>
               ))}
@@ -282,7 +281,7 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
               e.preventDefault();
               submit();
             }}
-            className="flex items-center gap-2 rounded-2xl bg-fg/[0.04] p-1.5 pl-4 ring-1 ring-fg/10 transition focus-within:ring-brand/45"
+            className="field flex items-center gap-2 rounded-full p-1 pl-4"
           >
             <input
               ref={inputRef}
@@ -291,10 +290,10 @@ export function SpendChat({ book, onRestart, onClose }: { book: Order[]; onResta
               placeholder={step === "place" ? "Where do you want to spend?" : step === "amount" ? "Type 250, 500, 1000, or 2000" : "This order is set."}
               maxLength={500}
               disabled={step === "matched" || step === "posted"}
-              className="h-10 flex-1 bg-transparent text-[14.5px] outline-none placeholder:text-dim disabled:cursor-not-allowed"
+              className="h-9 min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-dim disabled:cursor-not-allowed"
               aria-label="Message the assistant"
             />
-            <button type="submit" disabled={!input.trim() || busy || step === "matched" || step === "posted"} className="grid size-10 place-items-center rounded-xl bg-brand text-white transition disabled:opacity-30" aria-label="Send">
+            <button type="submit" disabled={!input.trim() || busy || step === "matched" || step === "posted"} className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-white transition-opacity duration-200 hover:bg-brand-2 disabled:opacity-30" aria-label="Send">
               {busy ? <LoaderCircle className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
             </button>
           </form>
@@ -353,7 +352,7 @@ async function loadBuyers(place: Place, amount: number) {
 
 function CreateOrderPrompt({ amount, place, disabled, onCreate }: { amount: number; place: string; disabled: boolean; onCreate: () => void }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-fg/[0.03] p-4 ring-1 ring-fg/[0.07] sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 rounded-2xl p-4 ring-1 ring-line sm:flex-row sm:items-center">
       <div className="flex-1 text-[13px] leading-relaxed text-mute">
         Nothing fits? Create a new {place} {amountLabel(amount)} order. You'll review it before any USDC is locked.
       </div>
@@ -366,13 +365,13 @@ function CreateOrderPrompt({ amount, place, disabled, onCreate }: { amount: numb
 
 function Posted({ orderId }: { orderId: string }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-brand/[0.06] p-4 ring-1 ring-brand/30 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 rounded-2xl bg-brand-soft p-4 sm:flex-row sm:items-center">
       <span className="grid size-10 place-items-center rounded-full bg-brand text-white">
         <Check className="size-5" />
       </span>
       <div className="flex-1">
         <div className="text-[14px] font-medium">Request {orderId} is live</div>
-        <div className="text-[12px] text-mute">A gift-card buyer can fill it. Your USDC stays locked until you redeem their voucher.</div>
+        <div className="text-[12.5px] text-mute">A gift-card buyer can fill it. Your USDC stays locked until you redeem their voucher.</div>
       </div>
       <Button size="sm" to={`/track?id=${encodeURIComponent(orderId)}`} icon={<ArrowRight className="size-3.5" />}>
         Track order
@@ -382,23 +381,23 @@ function Posted({ orderId }: { orderId: string }) {
 }
 
 function OrdersInChat({ orders, selectedId, place }: { orders: Order[]; selectedId: string | null; place: string }) {
-  if (!orders.length) return <div className="rounded-2xl bg-fg/[0.03] px-4 py-3 text-[13px] text-mute ring-1 ring-fg/[0.06]">No open orders for {place}.</div>;
+  if (!orders.length) return <div className="rounded-2xl px-4 py-3 text-[13px] text-mute ring-1 ring-line">No open orders for {place}.</div>;
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {orders.map((o) => {
         const on = o.id === selectedId;
         const b = brand(o.brandId);
         return (
-          <div key={o.id} className={cx("flex items-center gap-3 rounded-2xl p-3 ring-1", on ? "bg-brand/[0.07] ring-brand/50" : "bg-fg/[0.03] ring-fg/[0.07]")}>
-            <BrandMark id={o.brandId} size={38} />
+          <div key={o.id} className={cx("flex items-center gap-3 rounded-2xl p-3 ring-1", on ? "bg-brand-soft ring-brand/40" : "ring-line")}>
+            <BrandMark id={o.brandId} size={36} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13.5px] font-medium">
                 {b.name} {inr(o.amount)}
               </span>
-              <span className="block font-mono text-[11px] text-dim">{o.id}</span>
+              <span className="block truncate font-mono text-[11px] text-dim" title={o.id}>{o.id}</span>
             </span>
             {o.demo ? (
-              <span className="rounded-full bg-amber/10 px-2 py-0.5 font-mono text-[9.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25">demo</span>
+              <Pill tone="amber">demo</Pill>
             ) : on ? (
               <Button size="sm" to={`/track?id=${encodeURIComponent(o.id)}`}>
                 Open
@@ -464,84 +463,80 @@ export function ReviewModal({
   onConfirm: () => void;
 }) {
   const rank = phase ? LOCK_STEPS.findIndex((s) => s.key === phase) : -1;
+  const working = !!phase;
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div className="fixed inset-0 z-[70] grid place-items-center bg-fg/30 p-4 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-          <motion.div
-            role="dialog"
-            aria-modal
-            aria-label="Review order"
-            onClick={(e) => e.stopPropagation()}
-            initial={{ y: 24, scale: 0.97, opacity: 0 }}
-            animate={{ y: 0, scale: 1, opacity: 1 }}
-            exit={{ y: 16, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 280, damping: 26 }}
-            className="hairline w-full max-w-[440px] rounded-[26px] bg-surface p-6"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-xl font-semibold tracking-tight">Review order</h3>
-              <button type="button" onClick={onClose} disabled={!!phase || publishOnly} className="grid size-8 place-items-center rounded-full text-mute hover:bg-fg/5 disabled:opacity-40" aria-label="Close">
-                <X className="size-4" />
-              </button>
-            </div>
-            <div className="mt-5 flex items-center gap-3 rounded-2xl bg-fg/[0.03] p-3 ring-1 ring-fg/[0.07]">
-              <BrandMark id={brandId} size={40} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-medium">{title}</div>
-                <div className="text-[12px] text-dim">You spend USDC. A USDC buyer purchases the gift card for you.</div>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2 rounded-2xl bg-fg/[0.02] p-4 text-[13px] ring-1 ring-fg/[0.06]">
-              <Line k={server ? "You lock (confirmed by the server)" : "You lock (estimate)"} v={`${server ? server.total : usdt(lock)} USDC`} mint />
-              <Line k="Gift-card buyer receives" v={`${server ? server.receives : usdt(receives)} USDC`} />
-              <Line k={server ? "Fee" : `Fee · ${feePercent(feeBps)}${feeEstimated ? " (estimated)" : ""}`} v={`${server ? server.fee : usdt(fee)} USDC`} />
-              <Line k="Rate" v={rate ? `₹${rate.toFixed(2)} / USDC` : "Unavailable"} />
-            </div>
-            <p className="mt-3 text-[12px] leading-relaxed text-mute">
-              {server
-                ? `Your wallet will ask to approve and deposit exactly ${server.total} USDC on ${ARC.name}. If it shows a different amount, reject it.`
-                : "The server sets the final fee and total. They are shown here before your wallet asks for anything, and the order stops if the total differs from this estimate by more than a cent."}{" "}
-              After you confirm the voucher works, you release the USDC to the person who bought the gift card.
-            </p>
-            {phase && (
-              <div className="mt-4 space-y-2">
-                {LOCK_STEPS.map((s, i) => {
-                  const done = i < rank;
-                  const on = i === rank;
-                  return (
-                    <div key={s.key} className={cx("flex items-center gap-3 rounded-xl p-3 ring-1", on ? "bg-brand/[0.05] ring-brand/40" : "ring-fg/[0.06]")}>
-                      <span className={cx("grid size-6 place-items-center rounded-full", done ? "bg-brand text-white" : on ? "text-brand-ink" : "text-dim")}>
-                        {done ? <Check className="size-3.5" /> : on ? <LoaderCircle className="size-4 animate-spin" /> : <Lock className="size-3.5" />}
-                      </span>
-                      <span className={cx("text-[13.5px]", on || done ? "text-fg" : "text-dim")}>{s.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {limits && !server && <p className="mt-2 text-[12px] text-dim">{limits}</p>}
-            {!rate && !publishOnly && <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-amber-ink">The live market rate isn't available right now, so this order can't be priced. Try again shortly.</p>}
-            {blocked && !publishOnly && <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-amber-ink">{blocked}</p>}
-            {error && <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-rose-ink">{error}</p>}
-            {!phase && (publishOnly || (!!rate && !blocked)) && (
-              <Button className="mt-5 w-full" size="lg" onClick={onConfirm} icon={publishOnly ? <ArrowRight className="size-4" /> : <Lock className="size-4" />}>
-                {publishOnly ? "Publish order" : "Lock USDC & post order"}
-              </Button>
-            )}
-            {phase && <p className="mt-3 text-center text-[12px] text-dim">Confirm each prompt in your wallet: one approval, then the deposit.</p>}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      dismissible={!working && !publishOnly}
+      title="Review order"
+      description="Nothing is locked until you confirm here and in your wallet."
+      testId="review-order"
+      footer={
+        working ? (
+          <p className="w-full text-center text-[12.5px] text-mute">Confirm each prompt in your wallet: one approval, then the deposit.</p>
+        ) : publishOnly || (!!rate && !blocked) ? (
+          <Button className="w-full" size="lg" onClick={onConfirm} icon={publishOnly ? <ArrowRight className="size-4" /> : <Lock className="size-4" />}>
+            {publishOnly ? "Publish order" : "Lock USDC & post order"}
+          </Button>
+        ) : (
+          <Button className="w-full" variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        )
+      }
+    >
+      <div className="flex items-center gap-3 rounded-xl p-3 ring-1 ring-line">
+        <BrandMark id={brandId} size={40} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14.5px] font-medium">{title}</div>
+          <div className="text-[12.5px] text-mute">You spend USDC. A USDC buyer purchases the gift card for you.</div>
+        </div>
+      </div>
+      <dl className="well mt-3 divide-y divide-line px-3.5 text-[13.5px]">
+        <Line k={server ? "You lock (confirmed by the server)" : "You lock (estimate)"} v={`${server ? server.total : usdt(lock)} USDC`} strong />
+        <Line k="Gift-card buyer receives" v={`${server ? server.receives : usdt(receives)} USDC`} />
+        <Line k={server ? "Fee" : `Fee · ${feePercent(feeBps)}${feeEstimated ? " (estimated)" : ""}`} v={`${server ? server.fee : usdt(fee)} USDC`} />
+        <Line k="Rate" v={rate ? `₹${rate.toFixed(2)} / USDC` : "Unavailable"} />
+      </dl>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-mute">
+        {server
+          ? `Your wallet will ask to approve and deposit exactly ${server.total} USDC on ${ARC.name}. If it shows a different amount, reject it.`
+          : "The server sets the final fee and total. They are shown here before your wallet asks for anything, and the order stops if the total differs from this estimate by more than a cent."}{" "}
+        After you confirm the voucher works, you release the USDC to the person who bought the gift card.
+      </p>
+      {limits && !server && <p className="mt-2 text-[12px] text-dim">{limits}</p>}
+      <AnimatePresence initial={false}>
+        {working && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: DUR.slow, ease: EASE }} className="overflow-hidden">
+            <Stepper className="mt-4" steps={LOCK_STEPS.map((st, i) => ({ key: st.key, label: st.label, state: i < rank ? "done" : i === rank ? "now" : "todo" }))} />
           </motion.div>
-        </motion.div>
+        )}
+      </AnimatePresence>
+      {!rate && !publishOnly && (
+        <Callout role="alert" tone="amber" className="mt-3">
+          The live market rate isn't available right now, so this order can't be priced. Try again shortly.
+        </Callout>
       )}
-    </AnimatePresence>
+      {blocked && !publishOnly && (
+        <Callout role="alert" tone="amber" className="mt-3">
+          {blocked}
+        </Callout>
+      )}
+      {error && (
+        <Callout role="alert" tone="rose" className="mt-3">
+          {error}
+        </Callout>
+      )}
+    </Dialog>
   );
 }
 
-function Line({ k, v, mint }: { k: string; v: string; mint?: boolean }) {
+function Line({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
   return (
-    <div className="flex justify-between gap-3">
-      <span className="text-mute">{k}</span>
-      <span className={cx("tabular", mint && "font-semibold text-brand-ink")}>{v}</span>
+    <div className="flex items-center justify-between gap-3 py-2.5">
+      <dt className="text-mute">{k}</dt>
+      <dd className={cx("text-right tabular", strong && "font-semibold text-fg")}>{v}</dd>
     </div>
   );
 }

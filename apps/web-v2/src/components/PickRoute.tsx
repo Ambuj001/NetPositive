@@ -1,4 +1,4 @@
-import { BadgeCheck, FingerprintPattern, LoaderCircle } from "lucide-react";
+import { BadgeCheck, FingerprintPattern } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, api, brandIdFromApi, type ApiRequest } from "../lib/api";
@@ -8,7 +8,7 @@ import { ledgerFromRequest } from "../lib/orderbook";
 import { saveRoute } from "../lib/route";
 import { useApp } from "../lib/store";
 import { useWorldId } from "../lib/world";
-import { Button, Card, Pill, cx } from "./ui";
+import { Button, Callout, Panel, Pill, cx } from "./ui";
 
 /**
  * "Pick how to buy it": the buyer ranks their saved cards for this voucher, picks a route and accepts the order.
@@ -55,45 +55,49 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
   }
 
   return (
-    <Card glow="rgba(245,181,68,0.10)" className="p-6 md:p-7">
-      <h2 className="font-display text-2xl font-semibold tracking-tight">Pick how to buy it</h2>
-      <p className="mt-1.5 text-[14px] leading-relaxed text-mute">
+    <Panel className="sm:p-6">
+      <h2 className="text-[20px] font-semibold tracking-[-0.02em]">Pick how to buy it</h2>
+      <p className="mt-1 text-[13.5px] leading-relaxed text-mute">
         {cardsAreExamples ? "Ranked from example cards (you haven't saved any yet)" : "Ranked from your saved cards"} for a {inr(req.amountInr)} {b.name} voucher.
       </p>
       {cardsAreExamples && (
-        <p className="mt-2 rounded-xl bg-amber/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-amber-ink">
+        <Callout tone="amber" className="mt-3">
           Example cards only: these may not be cards you hold. <Link to="/cards" className="underline">Add your cards</Link> to rank your real options.
-        </p>
+        </Callout>
       )}
 
-      <div className="mt-6">
+      <div className="mt-5">
         {routes.length === 0 ? (
-          <div className="rounded-2xl bg-fg/[0.03] p-4 text-[13.5px] text-mute ring-1 ring-fg/[0.07]">
-            You have no saved cards yet. <Link to="/cards" className="text-amber-ink hover:underline">Add a card</Link> to see how to buy this voucher.
+          <div className="well p-4 text-[13.5px] text-mute">
+            You have no saved cards yet. <Link to="/cards" className="link text-fg">Add a card</Link> to see how to buy this voucher.
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2" role="radiogroup" aria-label="How to buy it">
             {routes.slice(0, 4).map((r, i) => (
               <button
                 key={r.cardId + r.channel.id}
                 type="button"
                 onClick={() => setPick(i)}
                 disabled={busy}
-                className={cx("flex w-full items-center gap-4 rounded-2xl p-4 text-left ring-1 transition", pick === i ? "bg-amber/[0.07] ring-amber/50" : "bg-fg/[0.02] ring-fg/[0.07] hover:ring-fg/15")}
+                role="radio"
+                aria-checked={pick === i}
+                className={cx("flex w-full items-center gap-4 rounded-xl p-3.5 text-left ring-1 transition-colors duration-200", pick === i ? "bg-brand-soft ring-brand/40" : "ring-line hover:bg-sunken hover:ring-line-2")}
               >
-                <span className={cx("grid size-5 place-items-center rounded-full ring-1", pick === i ? "bg-amber ring-amber" : "ring-fg/20")}>{pick === i && <span className="size-2 rounded-full bg-canvas" />}</span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 text-[14px] font-medium">
-                    {r.cardLabel} · {r.channel.name}
-                    {i === 0 && <Pill tone="amber">best</Pill>}
+                <span className={cx("grid size-5 shrink-0 place-items-center rounded-full ring-1 transition-colors", pick === i ? "bg-brand ring-brand" : "bg-surface ring-line-2")}>{pick === i && <span className="size-2 rounded-full bg-white" />}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 text-[14px] font-medium">
+                    <span className="min-w-0 truncate">
+                      {r.cardLabel} · {r.channel.name}
+                    </span>
+                    {i === 0 && <Pill tone="pos">best</Pill>}
                   </div>
-                  <div className="mt-0.5 text-[12px] text-mute">
+                  <div className="mt-0.5 text-[12.5px] text-mute tabular">
                     {r.points.toLocaleString("en-IN")} pts{r.discountInr ? ` + ${inr(r.discountInr)} off` : ""} · {r.txns} × {inr(r.channel.denomination > req.amountInr ? req.amountInr : r.channel.denomination)}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <div className="text-[16px] font-semibold tabular">{r.pctTravel.toFixed(1)}%</div>
-                  <div className="font-mono text-[10.5px] text-dim">₹{effectivePrice(req.amountInr, r.travelInr, buyerReceives).toFixed(2)}/USDC</div>
+                  <div className="font-mono text-[11px] text-dim tabular">₹{effectivePrice(req.amountInr, r.travelInr, buyerReceives).toFixed(2)}/USDC</div>
                 </div>
               </button>
             ))}
@@ -101,40 +105,24 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
         )}
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center">
         {required ? (
-          <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-brand-ink" : "text-mute")}>
-            {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
+          <div className={cx("flex flex-1 items-center gap-2 text-[13px]", humanVerified ? "text-brand-ink" : "text-mute")}>
+            {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-brand-ink" />}
             {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
           </div>
         ) : (
           <div className="flex-1" />
         )}
-        <Button variant="amber" size="lg" onClick={() => void accept()} disabled={busy || phase !== "idle" || (!!fullAddress && !chosen)}>
-          {phase === "world" ? (
-            <>
-              <LoaderCircle className="size-4 animate-spin" /> Waiting for World App…
-            </>
-          ) : phase === "signing" ? (
-            <>
-              <LoaderCircle className="size-4 animate-spin" /> Starting World ID…
-            </>
-          ) : busy ? (
-            <>
-              <LoaderCircle className="size-4 animate-spin" /> Accepting…
-            </>
-          ) : !fullAddress ? (
-            "Connect wallet"
-          ) : (
-            "Accept order"
-          )}
+        <Button onClick={() => void accept()} disabled={!!fullAddress && !chosen} pending={busy || phase !== "idle"} className="sm:min-w-[170px]">
+          {phase === "world" ? "Waiting for World App…" : phase === "signing" ? "Starting World ID…" : busy ? "Accepting…" : !fullAddress ? "Connect wallet" : "Accept order"}
         </Button>
       </div>
       {error && (
-        <p role="alert" className="mt-3 text-[12.5px] leading-relaxed text-rose-ink">
+        <Callout role="alert" tone="rose" className="mt-3">
           {error}
-        </p>
+        </Callout>
       )}
-    </Card>
+    </Panel>
   );
 }

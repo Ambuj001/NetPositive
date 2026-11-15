@@ -1,10 +1,9 @@
-import { AnimatePresence, motion } from "motion/react";
 import { stakeNotice } from "../lib/disputeView";
 import { usdcShort } from "../lib/terms";
 import { useTerms } from "../lib/useTerms";
-import { Check, Eye, EyeOff, LoaderCircle, LogOut, ShieldCheck, Undo2, X } from "lucide-react";
+import { AlertTriangle, Check, Copy, Eye, EyeOff, LogOut, ShieldAlert, ShieldCheck, Undo2, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Button, cx } from "../components/ui";
+import { Button, Callout, Dialog, Spinner, cx } from "../components/ui";
 import { api, type ApiRequest, type DisputeCategory } from "../lib/api";
 import { inr, usdt } from "../lib/engine";
 import { useApp } from "../lib/store";
@@ -66,15 +65,10 @@ function permitProblem(typedData: unknown, contract: string | null): string | nu
   return null;
 }
 
-/** A neutral panel, used only for things the person opened themselves (a confirmation, the dispute form). */
-export function ActionBox({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx("rounded-2xl bg-fg/[0.03] p-3.5 ring-1 ring-fg/[0.07]", className)}>{children}</div>;
-}
-
 /** A secondary action: a quiet text button for the "More actions" row under the primary button. */
 export function QuietButton({ onClick, disabled, icon, children }: { onClick: () => void; disabled?: boolean; icon?: ReactNode; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] text-mute transition hover:bg-sunken hover:text-fg disabled:pointer-events-none disabled:opacity-40">
+    <button type="button" onClick={onClick} disabled={disabled} className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] text-mute ring-1 ring-line transition-colors duration-200 hover:bg-sunken hover:text-fg disabled:pointer-events-none disabled:opacity-40 [&>svg]:size-3.5">
       {icon}
       {children}
     </button>
@@ -82,9 +76,30 @@ export function QuietButton({ onClick, disabled, icon, children }: { onClick: ()
 }
 
 /** The error of the step just tried, directly under its button. Cleared when the step is tried again. */
-const Err = ({ text, className }: { text: string; className?: string }) => (text ? <p role="alert" className={cx("mt-2 text-[12.5px] leading-relaxed text-rose-ink", className)}>{text}</p> : null);
+const Err = ({ text, className }: { text: string; className?: string }) =>
+  text ? (
+    <Callout tone="rose" role="alert" icon={<AlertTriangle />} className={cx("mt-3", className)}>
+      {text}
+    </Callout>
+  ) : null;
 const Hint = ({ children }: { children: ReactNode }) => <p className="mt-2 text-[12px] leading-relaxed text-mute">{children}</p>;
-const Spin = () => <LoaderCircle className="size-3.5 animate-spin" />;
+const Spin = () => <Spinner />;
+
+/** Key/value rows inside a confirmation: what will happen, in numbers. */
+function Facts({ rows }: { rows: [string, ReactNode, string?][] }) {
+  return (
+    <dl className="well divide-y divide-line px-3.5 text-[13px]">
+      {rows.map(([k, v, title]) => (
+        <div key={k} className="flex items-center justify-between gap-4 py-2.5">
+          <dt className="text-mute">{k}</dt>
+          <dd className="min-w-0 truncate text-right tabular" title={title}>
+            {v}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 /* ------------------------------------------------------------------- Ready */
 
@@ -123,7 +138,7 @@ export function ReadyAction({ req, token, signIn, signingIn, onUpdated, viewer, 
 
   return (
     <div>
-      <Button size="sm" onClick={() => void go()} disabled={busy || signingIn} icon={busy || signingIn ? <Spin /> : <Check className="size-3.5" />}>
+      <Button onClick={() => void go()} pending={busy || signingIn} icon={<Check className="size-4" />}>
         {busy || signingIn ? "Check your wallet…" : again ? "Sign Ready again" : "Press Ready"}
       </Button>
       <Err text={err} />
@@ -158,7 +173,7 @@ export function BindAction({ req, onDone }: { req: ApiRequest; onDone: (n: Notic
 
   return (
     <div>
-      <Button size="sm" onClick={() => void go()} disabled={busy} icon={busy ? <Spin /> : <ShieldCheck className="size-3.5" />}>
+      <Button onClick={() => void go()} pending={busy} icon={<ShieldCheck className="size-4" />}>
         {busy ? "Check your wallet…" : "Confirm on-chain"}
       </Button>
       <Err text={err} />
@@ -194,26 +209,34 @@ export function CancelAction({ req, token, signIn, signingIn, withTx, locked, on
       }
     });
 
+  const working = busy || signingIn;
   return (
     <>
-      {!confirming ? (
-        <QuietButton onClick={() => { setErr(""); setConfirming(true); }} disabled={signingIn} icon={<X className="size-3.5" />}>
-          {withTx ? "Cancel and get my USDC back" : "Cancel this order"}
-        </QuietButton>
-      ) : (
-        <ActionBox className="w-full basis-full">
-          <p className="text-[12.5px] leading-relaxed">{withTx ? `Your wallet confirms one transaction on ${ARC.name}. The escrow then returns ${locked}, fee included, to your wallet. This works only while no USDC buyer is bound on-chain.` : "No USDC was deposited, so there is no transaction."}</p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="amber" onClick={() => void go()} disabled={busy || signingIn} icon={busy || signingIn ? <Spin /> : <X className="size-3.5" />}>
-              {busy || signingIn ? "Check your wallet…" : withTx ? "Yes, cancel and refund me" : "Yes, cancel"}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setErr(""); setConfirming(false); }} disabled={busy}>
+      <QuietButton onClick={() => { setErr(""); setConfirming(true); }} disabled={signingIn} icon={<X />}>
+        {withTx ? "Cancel and get my USDC back" : "Cancel this order"}
+      </QuietButton>
+      <Dialog
+        open={confirming}
+        onClose={() => { setErr(""); setConfirming(false); }}
+        dismissible={!working}
+        icon={<X />}
+        title={withTx ? "Cancel and get your USDC back?" : "Cancel this order?"}
+        description={withTx ? `Your wallet confirms one transaction on ${ARC.name}. The escrow then returns ${locked}, fee included, to your wallet. This works only while no USDC buyer is bound on-chain.` : "No USDC was deposited, so there is no transaction."}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setErr(""); setConfirming(false); }} disabled={working}>
               Keep the order
             </Button>
-          </div>
-          <Err text={err} />
-        </ActionBox>
-      )}
+            <Button variant="dark" onClick={() => void go()} pending={working}>
+              {working ? "Check your wallet…" : withTx ? "Yes, cancel and refund me" : "Yes, cancel"}
+            </Button>
+          </>
+        }
+      >
+        {withTx && <Facts rows={[["Returned to you", locked], ["Order", <span className="font-mono text-[12px]">{req.id}</span>, req.id]]} />}
+        {working && <p className="mt-3 text-[12.5px] text-mute">Confirm in your wallet, then wait for {ARC.name}. Keep this page open.</p>}
+        <Err text={err} />
+      </Dialog>
     </>
   );
 }
@@ -232,8 +255,8 @@ export function BuyerExit({ req, kind, onDone }: { req: ApiRequest; kind: "unass
   const amount = `${usdt(Number(req.amountUsdc) || 0)} USDC`;
   const copy =
     kind === "unassign"
-      ? { button: "Step away from this order", icon: <LogOut className="size-3.5" />, yes: "Yes, step away", text: `You give up this order before delivering. The order goes back to the book for another USDC buyer (or back to the voucher buyer when it expires). You won't be paid ${amount}. Don't buy the voucher after this.` }
-      : { button: "Give the money back", icon: <Undo2 className="size-3.5" />, yes: "Yes, refund the voucher buyer", text: `The escrow returns all the locked USDC to the voucher buyer and you are not paid ${amount}. Use this if the voucher didn't work or you can't deliver. It can't be undone.` };
+      ? { button: "Step away from this order", title: "Step away from this order?", icon: <LogOut />, yes: "Yes, step away", text: `You give up this order before delivering. The order goes back to the book for another USDC buyer (or back to the voucher buyer when it expires). You won't be paid ${amount}. Don't buy the voucher after this.` }
+      : { button: "Give the money back", title: "Give the money back?", icon: <Undo2 />, yes: "Yes, refund the voucher buyer", text: `The escrow returns all the locked USDC to the voucher buyer and you are not paid ${amount}. Use this if the voucher didn't work or you can't deliver. It can't be undone.` };
 
   const go = () =>
     run(async () => {
@@ -249,24 +272,31 @@ export function BuyerExit({ req, kind, onDone }: { req: ApiRequest; kind: "unass
 
   return (
     <>
-      {!confirming ? (
-        <QuietButton onClick={() => { setErr(""); setConfirming(true); }} icon={copy.icon}>
-          {copy.button}
-        </QuietButton>
-      ) : (
-        <ActionBox className="w-full basis-full">
-          <p className="text-[12.5px] leading-relaxed">{copy.text} Your wallet confirms one transaction on {ARC.name}.</p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="amber" onClick={() => void go()} disabled={busy} icon={busy ? <Spin /> : undefined}>
-              {busy ? "Check your wallet…" : copy.yes}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setErr(""); setConfirming(false); }} disabled={busy}>
+      <QuietButton onClick={() => { setErr(""); setConfirming(true); }} icon={copy.icon}>
+        {copy.button}
+      </QuietButton>
+      <Dialog
+        open={confirming}
+        onClose={() => { setErr(""); setConfirming(false); }}
+        dismissible={!busy}
+        icon={copy.icon}
+        title={copy.title}
+        description={`${copy.text} Your wallet confirms one transaction on ${ARC.name}.`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => { setErr(""); setConfirming(false); }} disabled={busy}>
               Not now
             </Button>
-          </div>
-          <Err text={err} />
-        </ActionBox>
-      )}
+            <Button variant="dark" onClick={() => void go()} pending={busy}>
+              {busy ? "Check your wallet…" : copy.yes}
+            </Button>
+          </>
+        }
+      >
+        <Facts rows={[["You give up", amount], ["Order", <span className="font-mono text-[12px]">{req.id}</span>, req.id]]} />
+        {busy && <p className="mt-3 text-[12.5px] text-mute">Confirm in your wallet, then wait for {ARC.name}. Keep this page open.</p>}
+        <Err text={err} />
+      </Dialog>
     </>
   );
 }
@@ -302,7 +332,7 @@ export function SettleActions({ req, token, signIn, signingIn, onUpdated, codeIn
   if (!token) {
     return (
       <div>
-        <Button size="sm" onClick={() => void signIn()} disabled={signingIn} icon={signingIn ? <Spin /> : undefined}>
+        <Button onClick={() => void signIn()} pending={signingIn}>
           {signingIn ? "Check your wallet…" : "Sign in to release"}
         </Button>
         <Hint>A free signature that proves this wallet is the voucher buyer.</Hint>
@@ -313,7 +343,7 @@ export function SettleActions({ req, token, signIn, signingIn, onUpdated, codeIn
   return (
     <div className="space-y-3">
       {codeIn && <VoucherPeek req={req} token={token} />}
-      <Button size="sm" onClick={() => setConfirming(true)} icon={<ShieldCheck className="size-3.5" />}>
+      <Button onClick={() => setConfirming(true)} icon={<ShieldCheck className="size-4" />}>
         Release the USDC
       </Button>
       <ConfirmSettle req={req} token={token} open={confirming} onClose={() => setConfirming(false)} onUpdated={onUpdated} codeIn={codeIn} />
@@ -326,12 +356,10 @@ export function DisputeAction({ req, token, signIn, signingIn, onUpdated }: Comm
   const [open, setOpen] = useState(false);
   return (
     <>
-      {!open && (
-        <QuietButton onClick={() => (token ? setOpen(true) : void signIn())} disabled={signingIn} icon={signingIn ? <Spin /> : undefined}>
-          {signingIn ? "Check your wallet…" : token ? "Raise a dispute" : "Sign in to dispute"}
-        </QuietButton>
-      )}
-      {open && token && <DisputeForm req={req} token={token} onCancel={() => setOpen(false)} onUpdated={onUpdated} />}
+      <QuietButton onClick={() => (token ? setOpen(true) : void signIn())} disabled={signingIn} icon={signingIn ? <Spin /> : <ShieldAlert />}>
+        {signingIn ? "Check your wallet…" : token ? "Raise a dispute" : "Sign in to dispute"}
+      </QuietButton>
+      {token && <DisputeForm req={req} token={token} open={open} onCancel={() => setOpen(false)} onUpdated={onUpdated} />}
     </>
   );
 }
@@ -359,33 +387,74 @@ function VoucherPeek({ req, token }: { req: ApiRequest; token: string }) {
     }
   }
 
+  // The sealed code, as a dark "LED" slip: hidden until asked for, revealed with a short fade.
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-mute">
-        Check the voucher before you release.
+    <div className="overflow-hidden rounded-xl bg-ink text-white">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+        <div className="min-w-0">
+          <div className="font-mono text-[10.5px] tracking-[0.12em] text-white/50 uppercase">Voucher code</div>
+          <div className="mt-0.5 text-[12.5px] text-white/70">Check the voucher before you release.</div>
+        </div>
         {state.kind === "code" ? (
-          <button onClick={() => setState({ kind: "hidden" })} className="inline-flex items-center gap-1 text-fg/80 hover:text-fg">
+          <button onClick={() => setState({ kind: "hidden" })} className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] text-white/80 ring-1 ring-white/20 transition-colors hover:bg-white/10 hover:text-white">
             <EyeOff className="size-3.5" /> Hide
           </button>
         ) : (
-          <button onClick={() => void show()} disabled={state.kind === "loading"} className="inline-flex items-center gap-1 text-brand-ink hover:brightness-110 disabled:opacity-50">
+          <button onClick={() => void show()} disabled={state.kind === "loading"} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[12.5px] font-medium text-ink transition-colors hover:bg-white/90 disabled:opacity-60">
             {state.kind === "loading" ? <Spin /> : <Eye className="size-3.5" />} {state.kind === "loading" ? "Unlocking…" : "Show the code"}
           </button>
         )}
       </div>
-      {state.kind === "loading" && <p className="mt-1.5 text-[12px] text-mute">{state.text}</p>}
+      {state.kind === "loading" && <p className="np-fade-in border-t border-white/10 px-4 py-2.5 text-[12px] text-white/60">{state.text}</p>}
       {state.kind === "code" && (
-        <dl className="mt-2 space-y-1 rounded-xl bg-canvas px-3 py-2 font-mono text-[12.5px] ring-1 ring-fg/10">
-          <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">Code</dt><dd className="min-w-0 break-all whitespace-pre-wrap select-all text-fg">{state.code}</dd></div>
-          {state.pin && <div className="flex gap-3"><dt className="w-10 shrink-0 text-dim">PIN</dt><dd className="select-all text-fg">{state.pin}</dd></div>}
+        <dl className="np-fade-in led-bg space-y-2 border-t border-white/10 px-4 py-3.5 font-mono">
+          <div className="flex items-start gap-3">
+            <dt className="w-9 shrink-0 pt-0.5 text-[10.5px] tracking-[0.12em] text-white/45 uppercase">Code</dt>
+            <dd className="min-w-0 flex-1 text-[15px] tracking-[0.06em] break-all whitespace-pre-wrap select-all">{state.code}</dd>
+            <CopyCode text={state.code} label="Copy the code" />
+          </div>
+          {state.pin && (
+            <div className="flex items-start gap-3">
+              <dt className="w-9 shrink-0 pt-0.5 text-[10.5px] tracking-[0.12em] text-white/45 uppercase">PIN</dt>
+              <dd className="min-w-0 flex-1 text-[15px] tracking-[0.06em] select-all">{state.pin}</dd>
+              <CopyCode text={state.pin} label="Copy the PIN" />
+            </div>
+          )}
         </dl>
       )}
-      {state.kind === "error" && <p role="alert" className="mt-1.5 text-[12px] text-rose-ink">{state.message}</p>}
+      {state.kind === "error" && (
+        <p role="alert" className="np-fade-in border-t border-white/10 px-4 py-2.5 text-[12.5px] text-[#ff9b9e]">
+          {state.message}
+        </p>
+      )}
     </div>
   );
 }
 
-function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; token: string; onCancel: () => void; onUpdated: Common["onUpdated"] }) {
+function CopyCode({ text, label }: { text: string; label: string }) {
+  const [ok, setOk] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setOk(true);
+          setTimeout(() => setOk(false), 1400);
+        } catch {
+          /* clipboard blocked */
+        }
+      }}
+      className="grid size-7 shrink-0 place-items-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+    >
+      {ok ? <Check className="size-3.5 text-pos" /> : <Copy className="size-3.5" />}
+    </button>
+  );
+}
+
+function DisputeForm({ req, token, open, onCancel, onUpdated }: { req: ApiRequest; token: string; open: boolean; onCancel: () => void; onUpdated: Common["onUpdated"] }) {
   const { fullAddress, walletRequest, walletName } = useApp();
   const [reason, setReason] = useState("");
   const { busy, run } = useBusy();
@@ -410,30 +479,38 @@ function DisputeForm({ req, token, onCancel, onUpdated }: { req: ApiRequest; tok
     });
 
   return (
-    <ActionBox className="w-full basis-full">
-      <div className="text-[12.5px] font-medium">What's wrong with the voucher?</div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      dismissible={!busy}
+      size="md"
+      icon={<ShieldAlert />}
+      title="What's wrong with the voucher?"
+      description={`Your wallet freezes the escrow with a transaction. ${stakeNotice(terms?.disputeBond ?? null, usdcShort)} Raise it before the review window ends. To add screenshots, use the dispute page afterwards.`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="dark" onClick={() => void submit()} disabled={!ok} pending={busy}>
+            {busy ? "Check your wallet…" : "Raise dispute"}
+          </Button>
+        </>
+      }
+    >
+      <div className="flex flex-wrap gap-1.5">
         {REASONS.map((r) => (
-          <button key={r.text} type="button" onClick={() => setReason(r.text)} className={cx("rounded-full px-2.5 py-1 text-[11.5px] ring-1 transition", reason === r.text ? "bg-rose/15 text-rose-ink ring-rose/40" : "text-mute ring-fg/10 hover:text-fg")}>
+          <button key={r.text} type="button" onClick={() => setReason(r.text)} disabled={busy} aria-pressed={reason === r.text} className={cx("h-8 rounded-full px-3 text-[12.5px] ring-1 transition-colors duration-200", reason === r.text ? "bg-brand-soft text-brand-ink ring-brand/40" : "text-mute ring-line-2 hover:bg-sunken hover:text-fg")}>
             {r.text}
           </button>
         ))}
       </div>
-      <label className="mt-2 block">
-        <span className="sr-only">Describe the problem</span>
-        <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} rows={3} placeholder="Describe the problem (at least 5 characters)" className="w-full resize-none rounded-lg bg-canvas px-3 py-2 text-[13px] ring-1 ring-fg/10 outline-none placeholder:text-dim focus:ring-rose/40" />
+      <label className="mt-3 block">
+        <span className="mb-1.5 block text-[12.5px] text-mute">Describe the problem</span>
+        <textarea value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} rows={4} disabled={busy} placeholder="At least 5 characters" className="field resize-none px-3.5 py-2.5" />
       </label>
-      <p className="mt-1 text-[11.5px] text-mute">Your wallet freezes the escrow with a transaction. {stakeNotice(terms?.disputeBond ?? null, usdcShort)} Raise it before the review window ends. To add screenshots, use the dispute page afterwards.</p>
-      <div className="mt-2.5 flex items-center gap-2">
-        <Button size="sm" variant="amber" onClick={() => void submit()} disabled={!ok || busy} icon={busy ? <Spin /> : undefined}>
-          {busy ? "Check your wallet…" : "Raise dispute"}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>
-          Cancel
-        </Button>
-      </div>
       <Err text={err} />
-    </ActionBox>
+    </Dialog>
   );
 }
 
@@ -471,85 +548,47 @@ function ConfirmSettle({ req, token, open, onClose, onUpdated, codeIn }: { req: 
     });
 
   return (
-    <Modal open={open} onClose={busy ? () => undefined : onClose} labelledBy="settle-title">
-      <h2 id="settle-title" className="font-display text-[20px] font-semibold tracking-tight">
-        Release {amount} to the USDC buyer?
-      </h2>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-mute">
-        This pays the USDC buyer for the {inr(req.amountInr)} voucher. Your wallet asks you to confirm one transaction on {ARC.name}; the escrow then sends the locked USDC to them, and <strong className="font-medium text-fg">it can't be undone</strong>.
-      </p>
-      {!codeIn && <p className="mt-2 rounded-lg bg-amber/10 px-3 py-2 text-[12.5px] text-amber-ink ring-1 ring-amber/25">The code hasn't arrived on NetPositive yet. Release only if you already have a working voucher.</p>}
-      <dl className="mt-4 divide-y divide-fg/[0.06] rounded-xl bg-fg/[0.03] px-3.5 text-[13px] ring-1 ring-fg/[0.07]">
-        <div className="flex justify-between gap-4 py-2.5"><dt className="text-mute">Amount</dt><dd className="font-semibold tabular">{amount}</dd></div>
-        <div className="flex justify-between gap-4 py-2.5"><dt className="text-mute">Paid to the USDC buyer</dt><dd className="min-w-0 break-all text-right font-mono text-[12px]" title={buyer}>{buyer ? short(buyer) : "—"}</dd></div>
-        <div className="flex justify-between gap-4 py-2.5"><dt className="text-mute">Order</dt><dd className="font-mono text-[12px]">{req.id}</dd></div>
-      </dl>
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-fg/[0.03] p-3 ring-1 ring-fg/[0.07] has-[:checked]:ring-brand/40">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      dismissible={!busy}
+      icon={<ShieldCheck />}
+      title={`Release ${amount} to the USDC buyer?`}
+      description={
+        <>
+          This pays the USDC buyer for the {inr(req.amountInr)} voucher. Your wallet asks you to confirm one transaction on {ARC.name}; the escrow then sends the locked USDC to them, and <strong className="font-medium text-fg">it can't be undone</strong>.
+        </>
+      }
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Not yet
+          </Button>
+          <Button onClick={() => void release()} disabled={!checked} pending={busy}>
+            {busy ? "Releasing…" : `Release ${amount}`}
+          </Button>
+        </>
+      }
+    >
+      {!codeIn && (
+        <Callout tone="amber" icon={<AlertTriangle />} className="mb-3">
+          The code hasn't arrived on NetPositive yet. Release only if you already have a working voucher.
+        </Callout>
+      )}
+      <Facts
+        rows={[
+          ["Amount", <span className="font-semibold">{amount}</span>],
+          ["Paid to the USDC buyer", <span className="font-mono text-[12px]">{buyer ? short(buyer) : "—"}</span>, buyer],
+          ["Order", <span className="font-mono text-[12px]">{req.id}</span>, req.id],
+        ]}
+      />
+      <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl p-3 ring-1 ring-line-2 transition-colors has-[:checked]:bg-brand-soft has-[:checked]:ring-brand/40">
         <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={busy} className="mt-0.5 size-4 accent-[#0000ff]" />
         <span className="text-[13px] leading-relaxed">I've received the voucher and checked that it works.</span>
       </label>
       <p className="mt-2 text-[12px] text-mute">If it doesn't work, close this and raise a dispute instead.</p>
-      {err && <p role="alert" className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-[12.5px] text-rose-ink ring-1 ring-rose/25">{err}</p>}
-      {busy && <p className="mt-3 text-[12.5px] text-amber-ink">Confirm in your wallet, then wait for {ARC.name}. This can take up to a minute. Keep this page open.</p>}
-      <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-        <Button size="sm" variant="ghost" onClick={onClose} disabled={busy}>
-          Not yet
-        </Button>
-        <Button size="sm" onClick={() => void release()} disabled={!checked || busy} icon={busy ? <Spin /> : undefined}>
-          {busy ? "Releasing…" : `Release ${amount}`}
-        </Button>
-      </div>
-    </Modal>
-  );
-}
-
-/* ------------------------------------------------------------------- Modal */
-
-function Modal({ open, onClose, labelledBy, children }: { open: boolean; onClose: () => void; labelledBy: string; children: ReactNode }) {
-  const box = useRef<HTMLDivElement>(null);
-  const opener = useRef<Element | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    opener.current = document.activeElement;
-    const el = box.current;
-    el?.querySelector<HTMLElement>("input,button:not([disabled])")?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-      if (e.key === "Tab" && el) {
-        const f = [...el.querySelectorAll<HTMLElement>("button:not([disabled]),input:not([disabled]),a[href]")];
-        if (!f.length) return;
-        const first = f[0];
-        const last = f[f.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-      (opener.current as HTMLElement | null)?.focus?.();
-    };
-  }, [open, onClose]);
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div className="fixed inset-0 z-[80] grid place-items-center bg-black/70 px-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-          <motion.div ref={box} role="dialog" aria-modal="true" aria-labelledby={labelledBy} initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }} className="hairline relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[24px] bg-surface p-6 shadow-2xl">
-            <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4 grid size-7 place-items-center rounded-full text-dim hover:bg-fg/5 hover:text-fg">
-              <X className="size-4" />
-            </button>
-            {children}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      <Err text={err} />
+      {busy && <p className="mt-3 text-[12.5px] text-mute">Confirm in your wallet, then wait for {ARC.name}. This can take up to a minute. Keep this page open.</p>}
+    </Dialog>
   );
 }

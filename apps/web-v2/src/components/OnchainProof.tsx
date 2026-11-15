@@ -54,29 +54,29 @@ export function OnchainProof({ req, view, onRefresh, className, details }: { req
             : null;
 
   return (
-    <div data-testid="onchain-proof" data-tone={tone} className={cx("hairline rounded-[22px] p-4 backdrop-blur-xl sm:p-5", tone === "bad" ? "bg-rose/[0.06] ring-1 ring-rose/30" : "bg-surface/70", className)}>
+    <div data-testid="onchain-proof" data-tone={tone} className={cx("panel p-4 sm:p-5", tone === "bad" && "border-rose/40 bg-rose/[0.04]", className)}>
       <div className="flex items-center justify-between gap-2">
         <div className="label">On-chain escrow</div>
         {view.kind !== "loading" && view.kind !== "mock" && (
-          <button onClick={onRefresh} className="grid size-6 shrink-0 place-items-center rounded-full text-mute hover:bg-fg/5 hover:text-fg" aria-label="Check again">
+          <button onClick={onRefresh} className="-my-1 grid size-7 shrink-0 place-items-center rounded-full text-mute transition-colors hover:bg-sunken hover:text-fg" aria-label="Check again" title="Check again">
             <RefreshCw className="size-3.5" />
           </button>
         )}
       </div>
-      <div className="mt-1.5 flex items-start gap-2">
+      <div className="mt-2 flex items-start gap-2.5">
         <Icon className={cx("mt-0.5 size-4 shrink-0", view.kind === "loading" && "animate-spin", tone === "good" ? "text-pos-ink" : tone === "bad" ? "text-rose-ink" : "text-mute")} />
         <div className="min-w-0 flex-1">
-          <div className={cx("text-[13.5px] font-medium", tone === "good" && "text-pos-ink", tone === "bad" && "text-rose-ink")}>{title}</div>
-          {sub && <p className="mt-0.5 text-[12px] leading-relaxed text-mute">{sub}</p>}
+          <div className={cx("text-[14px] font-medium", tone === "good" && "text-pos-ink", tone === "bad" && "text-rose-ink")}>{title}</div>
+          {sub && <p className="mt-0.5 text-[12.5px] leading-relaxed text-mute">{sub}</p>}
         </div>
       </div>
 
       {view.kind !== "loading" && (
-        <details className="group mt-3 border-t border-fg/[0.06] pt-2.5">
-          <summary className="flex cursor-pointer list-none items-center gap-1 text-[12px] text-mute select-none hover:text-fg">
-            How this was checked <ChevronDown className="size-3.5 transition group-open:rotate-180" />
+        <details className="group mt-4 border-t border-line pt-3">
+          <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-[12.5px] text-mute select-none hover:text-fg">
+            How this was checked <ChevronDown className="size-3.5 transition-transform duration-200 group-open:rotate-180" />
           </summary>
-          <div className="mt-2.5 space-y-2.5 text-[12px]">
+          <div className="np-fade-in mt-2.5 space-y-2.5 text-[12px]">
             {verdict && <p className="leading-relaxed text-mute">{verdict.detail}</p>}
             {view.kind === "error" && <p className="leading-relaxed text-mute">{view.text}</p>}
             {view.kind === "mock" && <p className="leading-relaxed text-mute">This development server runs with mock escrow, so there is no deposit on-chain to check.</p>}
@@ -90,7 +90,7 @@ export function OnchainProof({ req, view, onRefresh, className, details }: { req
               </dl>
             )}
             {contract && (
-              <a href={`${ARC.explorer}/address/${contract}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-mono text-[11px] text-mute hover:text-fg">
+              <a href={`${ARC.explorer}/address/${contract}`} target="_blank" rel="noopener noreferrer" title={contract} className="inline-flex items-center gap-1 font-mono text-[11px] text-mute hover:text-fg">
                 VoucherEscrow {contract.slice(0, 8)}…{contract.slice(-4)} · {ARC.name} <ExternalLink className="size-3" />
               </a>
             )}

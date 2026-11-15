@@ -1,3 +1,4 @@
+import { MotionConfig } from "motion/react";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Shell } from "./components/Shell";
 import { AppProvider } from "./lib/store";
@@ -22,6 +23,8 @@ function TradeRedirect() {
 
 export default function App() {
   return (
+    // Every motion component follows the reader's "reduce motion" setting (CSS animations do too, see index.css).
+    <MotionConfig reducedMotion="user">
     <AppProvider>
       <WorldIdProvider>
         <BrowserRouter>
@@ -57,5 +60,6 @@ export default function App() {
         </BrowserRouter>
       </WorldIdProvider>
     </AppProvider>
+    </MotionConfig>
   );
 }

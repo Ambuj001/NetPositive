@@ -1,11 +1,11 @@
-import { motion } from "motion/react";
-import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, ChevronDown, Clock, Copy, LoaderCircle, Minus, RefreshCw, Search, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, ChevronDown, CircleCheck, Clock, Minus, RefreshCw, Search, Undo2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BuyOnPortal } from "../components/BuyOnPortal";
 import { OnchainProof } from "../components/OnchainProof";
 import { PickRoute } from "../components/PickRoute";
-import { AppPage, BrandMark, Button, Pill, Row, cx } from "../components/ui";
+import { AppPage, AutoHeight, BrandMark, Button, Callout, CopyButton, DUR, EASE, EmptyState, Panel, PanelHead, Pill, Row, Skeleton, Spinner, Swap, TONE_DOT, TONE_PILL, cx, enter, statusTone } from "../components/ui";
 import { ApiError, api, brandIdFromApi, STATUS, type ApiRequest } from "../lib/api";
 import { ARC } from "../lib/chain";
 import { brand } from "../lib/data";
@@ -24,14 +24,7 @@ import { SubmitCode, VaultSetup } from "./VoucherTransfer";
  * What to show and offer comes from `orderView`, the same function the order list uses.
  */
 
-const TONE: Record<Tone, string> = {
-  mint: "text-brand-ink bg-brand/10 ring-brand/25",
-  amber: "text-amber-ink bg-amber/10 ring-amber/25",
-  iris: "text-iris bg-iris/10 ring-iris/25",
-  rose: "text-rose-ink bg-rose/10 ring-rose/25",
-  mute: "text-mute bg-fg/[0.04] ring-fg/10",
-};
-const TONE_DOT: Record<Tone, string> = { mint: "bg-brand", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose", mute: "bg-fg/30" };
+const TONE: Record<Tone, string> = TONE_PILL;
 
 /** The server is asked every 10 s while the tab is visible, and again whenever the window regains focus. */
 const POLL_MS = 10_000;
@@ -104,14 +97,10 @@ export default function TrackDetail({ id }: { id: string }) {
 
   return (
     <AppPage>
-        <Link to="/track" className="inline-flex items-center gap-1.5 text-[12.5px] text-mute hover:text-fg">
+        <Link to="/track" className="inline-flex h-8 items-center gap-1.5 rounded-full text-[13px] text-mute transition-colors hover:text-fg">
           <ArrowLeft className="size-3.5" /> All orders
         </Link>
-        {load.kind === "loading" && (
-          <div className="mt-8 flex items-center gap-2 text-[13.5px] text-mute">
-            <LoaderCircle className="size-4 animate-spin" /> Loading order {id}…
-          </div>
-        )}
+        {load.kind === "loading" && <DetailSkeleton id={id} />}
         {load.kind === "notfound" && <Missing id={id} title={id ? "We couldn't find that order" : "Look up an order"} body={id ? `Nothing is saved on NetPositive under “${id}”. Check the ID and try again.` : "Paste an order ID to see where it stands."} />}
         {load.kind === "offline" && <Missing id={id} title="The NetPositive backend isn't reachable" body="Orders are read from the server, so there is nothing to show right now. Try again in a moment." retry={() => void fetchOrder(true)} />}
         {load.kind === "error" && <Missing id={id} title="Couldn't load this order" body={load.message} retry={() => void fetchOrder(true)} />}
@@ -122,20 +111,70 @@ export default function TrackDetail({ id }: { id: string }) {
 
 /* ------------------------------------------------------------------ states */
 
+/** The page's shape while the order loads, so nothing jumps when it arrives. */
+function DetailSkeleton({ id }: { id: string }) {
+  return (
+    <div className="mt-4" aria-busy="true" aria-label={`Loading order ${id}`}>
+      <div className="flex items-center gap-4">
+        <Skeleton className="size-11 rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-6 w-56 max-w-full" />
+          <Skeleton className="h-3.5 w-40" />
+        </div>
+        <Skeleton className="h-6 w-24 rounded-full" />
+      </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:gap-5">
+        <div className="space-y-4">
+          <Panel className="space-y-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-11 w-44 rounded-full" />
+          </Panel>
+          <Panel className="space-y-3">
+            <Skeleton className="h-3 w-20" />
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="size-5 rounded-full" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ))}
+          </Panel>
+        </div>
+        <div className="space-y-4">
+          {[0, 1].map((i) => (
+            <Panel key={i} className="space-y-3">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-2/3" />
+            </Panel>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Missing({ id, title, body, retry }: { id: string; title: string; body: string; retry?: () => void }) {
   return (
-    <div className="hairline mt-6 rounded-[24px] bg-surface/60 px-6 py-10 text-center">
-      <div className="text-[16px] font-medium">{title}</div>
-      <p className="mx-auto mt-1.5 max-w-md text-[13px] text-mute">{body}</p>
-      <div className="mt-5 flex justify-center">
-        <Lookup initial={id} />
-      </div>
-      {retry && (
-        <button onClick={retry} className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] text-mute hover:text-fg">
-          <RefreshCw className="size-3.5" /> Try again
-        </button>
-      )}
-    </div>
+    <motion.div {...enter} className="mt-6">
+      <EmptyState
+        icon={<Search />}
+        title={title}
+        body={body}
+        action={
+          <div className="flex w-full flex-col items-center gap-3">
+            <Lookup initial={id} />
+            {retry && (
+              <Button size="sm" variant="ghost" onClick={retry} icon={<RefreshCw className="size-3.5" />}>
+                Try again
+              </Button>
+            )}
+          </div>
+        }
+      />
+    </motion.div>
   );
 }
 
@@ -150,9 +189,9 @@ function Lookup({ initial = "" }: { initial?: string }) {
       }}
       className="flex w-full max-w-md items-center gap-2"
     >
-      <label className="flex h-10 flex-1 items-center gap-2 rounded-full bg-fg/[0.04] px-4 ring-1 ring-fg/10 focus-within:ring-brand/50">
-        <Search className="size-3.5 text-dim" />
-        <input value={v} onChange={(e) => setV(e.target.value)} placeholder="Order ID" aria-label="Order ID" className="w-full bg-transparent font-mono text-[12.5px] outline-none placeholder:text-dim" />
+      <label className="field flex h-9 flex-1 items-center gap-2 rounded-full px-3.5">
+        <Search className="size-3.5 shrink-0 text-dim" />
+        <input value={v} onChange={(e) => setV(e.target.value)} placeholder="Order ID" aria-label="Order ID" className="w-full min-w-0 bg-transparent font-mono text-[12.5px] outline-none placeholder:font-sans placeholder:text-dim" />
       </label>
       <Button type="submit" size="sm" disabled={!v.trim()}>
         Track
@@ -224,31 +263,37 @@ function Detail({ req, stale, updatedAt, refreshing, refetch, onApplied }: { req
   const chainFailed = chain.kind === "error" || chain.kind === "bad";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div {...enter}>
       {/* header */}
-      <div className="mt-4 flex flex-wrap items-center gap-3 sm:gap-4">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
         <BrandMark id={brandIdFromApi(req.brand)} size={44} />
         <div className="min-w-0 flex-1">
-          <h1 className="font-display text-[22px] leading-tight font-semibold tracking-[-0.02em] sm:text-[26px]">
+          <h1 className="font-display text-[24px] leading-tight font-semibold tracking-[-0.02em] tabular md:text-[28px]">
             {b.name} {inr(req.amountInr)}
           </h1>
-          <div className="mt-0.5 flex items-center gap-2 font-mono text-[11.5px] text-dim">
-            <span className="truncate">{req.id}</span>
-            <CopyBtn text={req.id} label="Copy order ID" />
+          <div className="mt-0.5 flex min-w-0 items-center gap-1 font-mono text-[11.5px] text-dim">
+            <span className="truncate" title={req.id}>
+              {req.id}
+            </span>
+            <CopyButton text={req.id} label="Copy order ID" className="size-6" />
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Pill tone={s.tone} dot={live}>
-            {s.label}
-          </Pill>
-          <span className="text-[11.5px] text-dim">{role === "spender" ? "You are the voucher buyer" : role === "buyer" ? "You are the USDC buyer" : "Not your order"}</span>
+        <div className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 sm:basis-auto sm:flex-col sm:items-end">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span key={req.status} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: DUR.fast, ease: EASE }}>
+              <Pill tone={statusTone(req.status, s.tone)} dot={live}>
+                {s.label}
+              </Pill>
+            </motion.span>
+          </AnimatePresence>
+          <span className="text-[12px] text-mute">{role === "spender" ? "You are the voucher buyer" : role === "buyer" ? "You are the USDC buyer" : "Not your order"}</span>
         </div>
       </div>
 
       {/* Phone: primary card, then amounts and the escrow, then history. Desktop: history under the primary card. */}
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-5">
         <div className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-1">
-          {notice && !chainFailed && <NoticeBar notice={notice} onClose={() => setNotice(null)} />}
+          <AnimatePresence initial={false}>{notice && !chainFailed && <NoticeBar key={notice.text} notice={notice} onClose={() => setNotice(null)} />}</AnimatePresence>
           <NowCard req={req} role={role} v={v} chain={chain} blocked={live && chainFailed} retryChain={() => void refreshChain()} onArc={onArc} hasWallet={!!fullAddress} openWallet={openWallet} onUpdated={onUpdated} onChainDone={onChainDone} refetch={() => void refetch(true)} />
           {role === "observer" && v.actions.includes("fill") && <PickRoute req={req} onAccepted={onApplied} onRefresh={() => void refetch(true)} />}
         </div>
@@ -262,15 +307,18 @@ function Detail({ req, stale, updatedAt, refreshing, refetch, onApplied }: { req
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-dim">
-        <span>
-          {stale ? <span className="text-amber-ink">Couldn't reach the server just now. Showing the last known state. </span> : null}
-          Updated {ago(updatedAt, now)}
-          {live ? ` · refreshes every ${POLL_MS / 1000} s` : " · settled, no longer refreshes"}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-[12px] text-mute">
+        <span className="flex items-center gap-2">
+          <span className={cx("size-1.5 shrink-0 rounded-full", stale ? "bg-amber" : live ? "bg-pos" : "bg-dim")} aria-hidden />
+          <span>
+            {stale ? <span className="text-amber-ink">Couldn't reach the server just now. Showing the last known state. </span> : null}
+            Updated {ago(updatedAt, now)}
+            {live ? ` · refreshes every ${POLL_MS / 1000} s` : " · settled, no longer refreshes"}
+          </span>
         </span>
-        <button onClick={() => { void refetch(true); void refreshChain(true); }} className="flex h-8 items-center gap-1.5 rounded-full px-3 text-mute ring-1 ring-fg/10 hover:text-fg">
-          <RefreshCw className={cx("size-3.5", refreshing && "animate-spin")} /> Refresh
-        </button>
+        <Button size="sm" variant="outline" onClick={() => { void refetch(true); void refreshChain(true); }} icon={<RefreshCw className={cx("size-3.5", refreshing && "animate-spin")} />}>
+          Refresh
+        </Button>
       </div>
     </motion.div>
   );
@@ -296,122 +344,215 @@ function NowCard({ req, role, v, chain, blocked, retryChain, onArc, hasWallet, o
   const details = role === "observer" ? v.notes.slice(1) : v.notes;
   const showVault = role === "spender" && (req.status === "pending_funding" || req.status === "open" || req.status === "accepted") && !A.has("ready");
 
+  // Which primary step is on screen. When it changes (Ready → confirm → deliver → release), the step block cross-fades.
+  // When the order moves on and the card is scrolled out of view above (e.g. after accepting from further down the
+  // page), bring it back into view so the next step is what the person sees.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const firstHeadline = useRef(v.headline);
+  useEffect(() => {
+    if (firstHeadline.current === v.headline) return;
+    firstHeadline.current = "";
+    const el = cardRef.current;
+    if (el && el.getBoundingClientRect().top < 72) el.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, [v.headline]);
+  const mainKey = ["ready", "bind", "buyVoucher", "deliver", "release", "openDispute"].filter((k) => (k === "release" ? releaseMain : A.has(k as never))).join("+") || "none";
+  const settled = isSettled(req.status);
+
   return (
-    <div className="hairline rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className={cx("label", v.actor === "you" && !v.stop && "text-brand-ink")}>{label}</div>
-        {v.deadline && <LiveDeadline d={v.deadline} role={role} />}
-      </div>
-      <div className={cx("mt-1.5 text-[18px] leading-snug font-semibold tracking-tight", v.stop ? "text-rose-ink" : "text-fg")}>{label === "Your move" ? cap(v.headline.replace(/^Your move: /, "")) : v.headline}</div>
-      <p className="mt-1 text-[13.5px] leading-relaxed text-fg/80">{v.body}</p>
-
-      {/* The one caution for this state. A failed escrow read or a mismatch replaces it. */}
-      {blocked ? (
-        <div role="alert" className={cx("mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed", chain.kind === "bad" ? "text-rose-ink" : "text-amber-ink")}>
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-          <div className="min-w-0 flex-1">
-            {/* The per-source reasons for a failed read are under "How this was checked" in the on-chain card. */}
-            <strong className="font-medium">{chain.kind === "bad" ? "The escrow can't be verified." : "The escrow couldn't be read from any source."}</strong> {chain.kind === "bad" ? chain.text : ""}{" "}
-            {role === "buyer" ? "Don't buy the voucher until this page can read the escrow." : "On-chain steps are hidden until it can be read."}{" "}
-            <button onClick={retryChain} className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:brightness-110">
-              <RefreshCw className="size-3" /> Try again
-            </button>
+    <Panel ref={cardRef} pad={false} className={cx("scroll-mt-24 overflow-hidden", v.actor === "you" && !v.stop && !settled && "border-brand/30 shadow-[0_1px_2px_rgba(12,13,15,0.04),0_0_0_3px_rgba(0,0,255,0.05)]")} data-testid="now-card">
+      <AutoHeight>
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <div className={cx("label flex items-center gap-2", v.actor === "you" && !v.stop && "text-brand-ink")}>
+              {v.actor === "you" && !v.stop && !settled && (
+                <span className="relative flex size-1.5">
+                  <span className="absolute inset-0 animate-ping rounded-full bg-brand opacity-50" />
+                  <span className="relative size-1.5 rounded-full bg-brand" />
+                </span>
+              )}
+              {label}
+            </div>
+            {v.deadline && <LiveDeadline d={v.deadline} role={role} />}
           </div>
-        </div>
-      ) : v.stop ? (
-        <p role="alert" className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed text-rose-ink">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> Don't buy the voucher and don't send any transaction for this order. Nothing has moved. Contact NetPositive support with the order ID.
-        </p>
-      ) : v.caution ? (
-        <p className="mt-3 flex items-start gap-2 text-[12.5px] leading-relaxed font-medium text-amber-ink">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" /> {v.caution}
-        </p>
-      ) : null}
+          <Swap k={v.headline}>
+            <div className={cx("mt-2 text-[20px] leading-snug font-semibold tracking-[-0.02em]", v.stop ? "text-rose-ink" : "text-fg")}>{label === "Your move" ? cap(v.headline.replace(/^Your move: /, "")) : v.headline}</div>
+            <p className="mt-1.5 max-w-[62ch] text-[14px] leading-relaxed text-mute">{v.body}</p>
+          </Swap>
 
-      {lead && <p className="mt-3 text-[12.5px] leading-relaxed text-mute">{lead}</p>}
-      {role === "observer" && !hasWallet && (
-        <div className="mt-3">
-          <Button size="sm" variant="outline" onClick={openWallet}>
-            Connect wallet
-          </Button>
-        </div>
-      )}
+          {settled && <Finished req={req} role={role} />}
 
-      {/* Session and wallet checks before any action: quiet lines, not warnings. */}
-      {role !== "observer" && v.needsSignIn && !(releaseMain && !token) && (
-        <p className="mt-3 text-[12.5px] leading-relaxed text-mute">
-          Connected as {short(fullAddress)} but not signed in with this wallet.{" "}
-          <button onClick={() => void signIn()} disabled={signingIn} className="font-medium text-fg underline underline-offset-2 hover:text-brand-ink disabled:opacity-50">
-            {signingIn ? "Check your wallet…" : "Sign in (free signature)"}
-          </button>
-        </p>
-      )}
-      {role !== "observer" && walletSteps && hasWallet && !onArc && chain.kind !== "mock" && <p className="mt-3 text-[12px] text-mute">Your wallet is on another network. It asks to switch to {ARC.name} first; nothing is sent before that.</p>}
+          {/* The one caution for this state. A failed escrow read or a mismatch replaces it. */}
+          {blocked ? (
+            <Callout role="alert" tone={chain.kind === "bad" ? "rose" : "amber"} icon={<AlertTriangle />} className="mt-4">
+              {/* The per-source reasons for a failed read are under "How this was checked" in the on-chain card. */}
+              <strong className="font-medium">{chain.kind === "bad" ? "The escrow can't be verified." : "The escrow couldn't be read from any source."}</strong> {chain.kind === "bad" ? chain.text : ""}{" "}
+              {role === "buyer" ? "Don't buy the voucher until this page can read the escrow." : "On-chain steps are hidden until it can be read."}{" "}
+              <button onClick={retryChain} className="inline-flex items-center gap-1 font-medium underline underline-offset-2">
+                <RefreshCw className="size-3" /> Try again
+              </button>
+            </Callout>
+          ) : v.stop ? (
+            <Callout role="alert" tone="rose" icon={<AlertTriangle />} className="mt-4">
+              Don't buy the voucher and don't send any transaction for this order. Nothing has moved. Contact NetPositive support with the order ID.
+            </Callout>
+          ) : v.caution ? (
+            <Callout tone="amber" icon={<AlertTriangle />} className="mt-4 font-medium">
+              {v.caution}
+            </Callout>
+          ) : null}
 
-      {hasMain && (
-        <div className="mt-4 space-y-4">
-          {A.has("ready") && <ReadyAction {...common} viewer={fullAddress} walletRequest={walletRequest} again={v.ready !== "none"} />}
-          {A.has("bind") && <BindAction req={req} onDone={onChainDone} />}
-          {A.has("buyVoucher") && (
-            <div>
-              <div className="mb-1.5 text-[12.5px] font-medium">1. Buy the voucher with your card</div>
-              <BuyOnPortal req={req} />
+          {lead && <p className="mt-3 text-[13px] leading-relaxed text-mute">{lead}</p>}
+          {role === "observer" && !hasWallet && (
+            <div className="mt-4">
+              <Button size="sm" variant="outline" onClick={openWallet}>
+                Connect wallet
+              </Button>
             </div>
           )}
-          {A.has("deliver") && (
-            <div>
-              {A.has("buyVoucher") && <div className="mb-1.5 text-[12.5px] font-medium">2. Submit its code</div>}
-              <SubmitCode req={req} onUpdated={onUpdated} deliveredOnChain={v.deliveredOnChain} />
+
+          {/* Session and wallet checks before any action: quiet lines, not warnings. */}
+          {role !== "observer" && v.needsSignIn && !(releaseMain && !token) && (
+            <p className="mt-3 text-[13px] leading-relaxed text-mute">
+              Connected as <span className="font-mono text-[12px]" title={fullAddress}>{short(fullAddress)}</span> but not signed in with this wallet.{" "}
+              <button onClick={() => void signIn()} disabled={signingIn} className="font-medium text-fg underline underline-offset-2 hover:text-brand-ink disabled:opacity-50">
+                {signingIn ? "Check your wallet…" : "Sign in (free signature)"}
+              </button>
+            </p>
+          )}
+          {role !== "observer" && walletSteps && hasWallet && !onArc && chain.kind !== "mock" && <p className="mt-3 text-[12.5px] text-mute">Your wallet is on another network. It asks to switch to {ARC.name} first; nothing is sent before that.</p>}
+
+          {hasMain && (
+            <Swap k={mainKey} className="mt-5">
+              <div className="space-y-5">
+                {A.has("ready") && <ReadyAction {...common} viewer={fullAddress} walletRequest={walletRequest} again={v.ready !== "none"} />}
+                {A.has("bind") && <BindAction req={req} onDone={onChainDone} />}
+                {A.has("buyVoucher") && (
+                  <div>
+                    <StepTitle n={1}>Buy the voucher with your card</StepTitle>
+                    <BuyOnPortal req={req} />
+                  </div>
+                )}
+                {A.has("deliver") && (
+                  <div className={cx(A.has("buyVoucher") && "border-t border-line pt-5")}>
+                    {A.has("buyVoucher") && <StepTitle n={2}>Submit its code</StepTitle>}
+                    <SubmitCode req={req} onUpdated={onUpdated} deliveredOnChain={v.deliveredOnChain} />
+                  </div>
+                )}
+                {releaseMain && <SettleActions {...common} codeIn={codeIn} />}
+                {A.has("openDispute") && (
+                  <Button variant="outline" to={`/dispute/${encodeURIComponent(req.id)}`} icon={<ArrowUpRight className="size-4" />}>
+                    Open the dispute page
+                  </Button>
+                )}
+              </div>
+            </Swap>
+          )}
+          {chain.kind === "loading" && role !== "observer" && !settled && (
+            <p className="mt-4 flex items-center gap-2 text-[12.5px] text-mute">
+              <Spinner /> Reading the escrow on {ARC.name}…
+            </p>
+          )}
+
+          {hasMore && (
+            <div className={cx("flex flex-wrap items-center gap-2", hasMain ? "mt-5 border-t border-line pt-4" : "mt-5")}>
+              <span className="mr-1 text-[12px] text-dim">More actions</span>
+              {A.has("release") && !releaseMain && <SettleActions {...common} codeIn={codeIn} quiet />}
+              {A.has("dispute") && <DisputeAction {...common} />}
+              {A.has("cancel") && <CancelAction {...common} withTx locked={locked} />}
+              {A.has("cancelNoTx") && <CancelAction {...common} withTx={false} locked={locked} />}
+              {A.has("unassign") && <BuyerExit req={req} kind="unassign" onDone={onChainDone} />}
+              {A.has("concede") && <BuyerExit req={req} kind="concede" onDone={onChainDone} />}
             </div>
           )}
-          {releaseMain && <SettleActions {...common} codeIn={codeIn} />}
-          {A.has("openDispute") && (
-            <Button size="sm" variant="outline" to={`/dispute/${encodeURIComponent(req.id)}`} icon={<ArrowUpRight className="size-3.5" />}>
-              Open the dispute page
-            </Button>
+          {showVault && <VaultSetup />}
+
+          {(v.deadline || details.length > 0 || v.serverBehind) && (
+            <details className="group mt-5 border-t border-line pt-3">
+              <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-[12.5px] text-mute select-none hover:text-fg">
+                Details <ChevronDown className="size-3.5 transition-transform duration-200 group-open:rotate-180" />
+              </summary>
+              <ul className="np-fade-in mt-2 space-y-1.5 text-[12.5px] leading-relaxed text-mute">
+                {v.deadline && <DeadlineDetail d={v.deadline} role={role} />}
+                {details.map((n) => (
+                  <li key={n.text}>{n.text}</li>
+                ))}
+                {v.serverBehind && (
+                  <li>
+                    <button onClick={refetch} className="inline-flex items-center gap-1.5 text-[12px] text-mute underline underline-offset-2 hover:text-fg">
+                      <RefreshCw className="size-3" /> Check the server again
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </details>
           )}
         </div>
-      )}
-      {chain.kind === "loading" && role !== "observer" && !isSettled(req.status) && (
-        <p className="mt-3 flex items-center gap-2 text-[12.5px] text-mute">
-          <LoaderCircle className="size-3.5 animate-spin" /> Reading the escrow on {ARC.name}…
-        </p>
-      )}
+      </AutoHeight>
+    </Panel>
+  );
+}
 
-      {hasMore && (
-        <div className={cx("flex flex-wrap items-center gap-x-1 gap-y-2", hasMain ? "mt-4 border-t border-fg/[0.06] pt-3" : "mt-4")}>
-          <span className="mr-1 text-[11.5px] text-dim">More actions</span>
-          {A.has("release") && !releaseMain && <SettleActions {...common} codeIn={codeIn} quiet />}
-          {A.has("dispute") && <DisputeAction {...common} />}
-          {A.has("cancel") && <CancelAction {...common} withTx locked={locked} />}
-          {A.has("cancelNoTx") && <CancelAction {...common} withTx={false} locked={locked} />}
-          {A.has("unassign") && <BuyerExit req={req} kind="unassign" onDone={onChainDone} />}
-          {A.has("concede") && <BuyerExit req={req} kind="concede" onDone={onChainDone} />}
-        </div>
-      )}
-      {showVault && <VaultSetup />}
-
-      {(v.deadline || details.length > 0 || v.serverBehind) && (
-        <details className="group mt-4 border-t border-fg/[0.06] pt-2.5">
-          <summary className="flex cursor-pointer list-none items-center gap-1 text-[12px] text-mute select-none hover:text-fg">
-            Details <ChevronDown className="size-3.5 transition group-open:rotate-180" />
-          </summary>
-          <ul className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed text-mute">
-            {v.deadline && <DeadlineDetail d={v.deadline} role={role} />}
-            {details.map((n) => (
-              <li key={n.text}>{n.text}</li>
-            ))}
-            {v.serverBehind && (
-              <li>
-                <button onClick={refetch} className="inline-flex items-center gap-1.5 text-[12px] text-mute underline underline-offset-2 hover:text-fg">
-                  <RefreshCw className="size-3" /> Check the server again
-                </button>
-              </li>
-            )}
-          </ul>
-        </details>
-      )}
+function StepTitle({ n, children }: { n: number; children: ReactNode }) {
+  return (
+    <div className="mb-2.5 flex items-center gap-2.5 text-[13.5px] font-medium">
+      <span className="grid size-5 place-items-center rounded-full bg-fg font-mono text-[10.5px] text-white">{n}</span>
+      {children}
     </div>
+  );
+}
+
+/**
+ * A settled order: a calm closing block with what moved and the transaction that moved it. Facts only from the order
+ * itself (its amounts and recorded transaction hashes).
+ */
+function Finished({ req, role }: { req: ApiRequest; role: Role }) {
+  const ledger = ledgerFromRequest(req);
+  const released = req.status === "released";
+  const refunded = req.status === "refunded";
+  const tx = released ? req.releaseTxHash : req.refundTxHash;
+  const realTx = tx && !tx.startsWith("reconciled") ? tx : null;
+  const rows: [string, string][] = released
+    ? [
+        [role === "buyer" ? "You were paid" : "Paid to the USDC buyer", `${usdt(ledger.buyerReceives)} USDC`],
+        ["Voucher", inr(req.amountInr)],
+        ...(ledger.fee > 0 ? ([["Fee", `${usdt(ledger.fee)} USDC`]] as [string, string][]) : []),
+      ]
+    : refunded || realTx
+      ? [
+          [role === "spender" ? "Returned to you" : "Returned to the voucher buyer", `${usdt(ledger.sellerLocks)} USDC`],
+          ["Voucher", inr(req.amountInr)],
+        ]
+      : [["Voucher", inr(req.amountInr)]];
+  return (
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DUR.slow, ease: EASE }} className="mt-5 overflow-hidden rounded-xl ring-1 ring-line" data-testid="finished">
+      <div className={cx("flex items-center gap-3 px-4 py-3.5", released ? "bg-pos/10" : "bg-sunken")}>
+        <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: DUR.slow, ease: EASE, delay: 0.05 }} className={cx("grid size-9 shrink-0 place-items-center rounded-full text-white", released ? "bg-pos" : "bg-fg")}>
+          {released ? <CircleCheck className="size-5" /> : <Undo2 className="size-[18px]" />}
+        </motion.span>
+        <div className="min-w-0">
+          <div className={cx("text-[14px] font-medium", released ? "text-pos-ink" : "text-fg")}>{released ? "Trade complete" : refunded ? "Refunded" : "Order closed"}</div>
+          <div className="text-[12.5px] text-mute">{when(req.updatedAt) ?? "Settled"}</div>
+        </div>
+      </div>
+      <dl className="divide-y divide-line px-4">
+        {rows.map(([k, val], i) => (
+          <div key={k} className="flex items-center justify-between gap-4 py-2.5 text-[13.5px]">
+            <dt className="text-mute">{k}</dt>
+            <dd className={cx("tabular", i === 0 ? "text-[15px] font-semibold" : "text-fg")}>{val}</dd>
+          </div>
+        ))}
+      </dl>
+      {realTx && (
+        <a href={`${EXPLORER}/tx/${realTx}`} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 text-[12.5px] text-mute transition-colors hover:bg-sunken hover:text-fg">
+          <span>
+            {released ? "Release" : "Refund"} transaction on {ARC.name}
+          </span>
+          <span className="inline-flex items-center gap-1 font-mono text-[12px]" title={realTx}>
+            {realTx.slice(0, 10)}… <ArrowUpRight className="size-3.5" />
+          </span>
+        </a>
+      )}
+    </motion.div>
   );
 }
 
@@ -453,11 +594,11 @@ function DeadlineDetail({ d, role }: { d: Deadline; role: Role }) {
 
 function Timeline({ stages, viewer }: { stages: Stage[]; viewer: string }) {
   return (
-    <details open className="hairline group rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl sm:p-5">
-      <summary className="label flex cursor-pointer list-none items-center gap-1 select-none">
-        History <ChevronDown className="size-3.5 transition group-open:rotate-180" />
+    <details open className="panel group p-4 sm:p-5">
+      <summary className="label flex w-fit cursor-pointer list-none items-center gap-1 select-none hover:text-fg">
+        History <ChevronDown className="size-3.5 transition-transform duration-200 group-open:rotate-180" />
       </summary>
-      <ol className="mt-3">
+      <ol className="mt-4">
         {stages.map((st, i) => (
           <StageRow key={st.key} st={st} viewer={viewer} last={i === stages.length - 1} />
         ))}
@@ -482,29 +623,29 @@ function StageRow({ st, viewer, last }: { st: Stage; viewer: string; last: boole
 
   return (
     <li className="relative flex gap-3 pb-3.5 last:pb-0">
-      {!last && <span className={cx("absolute top-6 bottom-0 left-[9.5px] w-px", done ? "bg-brand/40" : "bg-fg/[0.09]")} aria-hidden />}
+      {!last && <span className={cx("absolute top-6 bottom-0 left-[9.5px] w-px transition-colors duration-200", done ? "bg-brand/40" : "bg-line")} aria-hidden />}
       <span
         className={cx(
-          "relative mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ring-1",
-          done && "bg-brand/15 text-brand-ink ring-brand/40",
+          "relative mt-0.5 grid size-5 shrink-0 place-items-center rounded-full ring-1 transition-colors duration-200",
+          done && "bg-brand text-white ring-brand",
           done && st.tone !== "mint" && TONE[st.tone],
           active && TONE[st.tone],
-          future && "bg-transparent text-dim ring-fg/12",
-          skipped && "bg-transparent text-dim/60 ring-fg/[0.07]",
+          future && "bg-surface text-dim ring-line-2",
+          skipped && "bg-surface text-dim/60 ring-line",
         )}
       >
         {done ? <Check className="size-3" /> : skipped ? <Minus className="size-3" /> : active ? <span className={cx("size-1.5 rounded-full", TONE_DOT[st.tone])} /> : null}
       </span>
       <div className={cx("min-w-0 flex-1", skipped && "opacity-60")}>
         <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <div className={cx("text-[13px] font-medium", future || skipped ? "text-mute" : "text-fg")}>
+          <div className={cx("text-[13.5px] font-medium", future || skipped ? "text-mute" : "text-fg")}>
             {st.title}
             {next && <span className="ml-2 font-mono text-[9.5px] tracking-wider text-dim uppercase">next</span>}
             {skipped && <span className="ml-2 font-mono text-[9.5px] tracking-wider text-dim uppercase">didn't happen</span>}
           </div>
-          {time && <time className="font-mono text-[11px] text-dim" dateTime={st.at ?? undefined}>{time}</time>}
+          {time && <time className="text-[11.5px] text-dim tabular" dateTime={st.at ?? undefined}>{time}</time>}
         </div>
-        {!future && <p className="mt-0.5 text-[12px] leading-relaxed text-mute">{st.detail}</p>}
+        {!future && <p className="mt-0.5 text-[12.5px] leading-relaxed text-mute">{st.detail}</p>}
         {!future && st.facts.length > 0 && (
           <dl className="mt-1 space-y-0.5 text-[12px]">
             {st.facts.map((f) => (
@@ -520,7 +661,7 @@ function StageRow({ st, viewer, last }: { st: Stage; viewer: string; last: boole
             {st.actor && (
               <span className="inline-flex items-center gap-1.5">
                 <span className="font-mono">{short(st.actor)}</span>
-                {mine && <span className="rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">you</span>}
+                {mine && <YouTag />}
               </span>
             )}
             {st.tx && !st.tx.startsWith("reconciled") && (
@@ -537,7 +678,15 @@ function StageRow({ st, viewer, last }: { st: Stage; viewer: string; last: boole
 
 function NoticeBar({ notice, onClose }: { notice: Notice; onClose: () => void }) {
   return (
-    <div role="status" className={cx("flex items-start gap-3 rounded-2xl px-4 py-3 text-[13.5px] ring-1", TONE[notice.tone])}>
+    <motion.div
+      role="status"
+      initial={{ opacity: 0, y: -6, height: 0 }}
+      animate={{ opacity: 1, y: 0, height: "auto" }}
+      exit={{ opacity: 0, y: -4, height: 0 }}
+      transition={{ duration: DUR.slow, ease: EASE }}
+      className="overflow-hidden"
+    >
+    <div className={cx("flex items-start gap-3 rounded-2xl px-4 py-3 text-[13.5px] ring-1", TONE[notice.tone])}>
       <Check className="mt-0.5 size-4 shrink-0" />
       <div className="min-w-0 flex-1">
         {notice.text}
@@ -547,11 +696,16 @@ function NoticeBar({ notice, onClose }: { notice: Notice; onClose: () => void })
           </a>
         )}
       </div>
-      <button onClick={onClose} aria-label="Dismiss" className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-fg/10">
+      <button onClick={onClose} aria-label="Dismiss" className="-mt-0.5 -mr-1 grid size-7 shrink-0 place-items-center rounded-full transition-colors hover:bg-fg/5">
         <X className="size-3.5" />
       </button>
     </div>
+    </motion.div>
   );
+}
+
+function YouTag() {
+  return <span className="rounded-full bg-brand-soft px-1.5 py-px font-mono text-[9.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">you</span>;
 }
 
 /* ------------------------------------------------------------ side panels */
@@ -564,9 +718,9 @@ function Money({ req, role, brandName }: { req: ApiRequest; role: Role; brandNam
   const total = `${usdt(ledger.sellerLocks)} USDC`;
   const fee = ledger.fee > 0 ? `${usdt(ledger.fee)} USDC` : null;
   return (
-    <div className="hairline rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl sm:p-5">
-      <div className="label">{role === "observer" ? "The trade" : "Your side of the trade"}</div>
-      <div className="mt-1.5 divide-y divide-fg/[0.06]">
+    <Panel>
+      <PanelHead label={role === "observer" ? "The trade" : "Your side of the trade"} />
+      <div className="mt-2 divide-y divide-line">
         {role === "buyer" ? (
           <>
             <Row k="You buy" v={voucher} />
@@ -590,7 +744,7 @@ function Money({ req, role, brandName }: { req: ApiRequest; role: Role; brandNam
         )}
         {rate && <Row k="Implied rate" v={`${inr(rate, 2)} / USDC`} />}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -600,19 +754,19 @@ function Parties({ req, viewer }: { req: ApiRequest; viewer: string }) {
     { label: "USDC buyer", addr: req.crypto_buyer },
   ];
   return (
-    <div className="hairline rounded-[22px] bg-surface/70 p-4 backdrop-blur-xl sm:p-5">
-      <div className="label">Who's involved</div>
-      <div className="mt-1.5 divide-y divide-fg/[0.06]">
+    <Panel>
+      <PanelHead label="Who's involved" />
+      <div className="mt-2 divide-y divide-line">
         {rows.map((r) => (
-          <div key={r.label} className="flex items-center justify-between gap-3 py-2.5 text-[13.5px]">
-            <span className="text-mute">{r.label}</span>
+          <div key={r.label} className="flex min-h-11 items-center justify-between gap-3 py-1.5 text-[13.5px]">
+            <span className="shrink-0 text-mute">{r.label}</span>
             {r.addr ? (
-              <span className="flex items-center gap-2">
-                {sameAddr(r.addr, viewer) && <span className="rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">you</span>}
-                <a href={`${EXPLORER}/address/${r.addr}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-mono text-[12px] hover:text-brand-ink">
-                  {short(r.addr)} <ArrowUpRight className="size-3" />
+              <span className="flex min-w-0 items-center gap-1.5">
+                {sameAddr(r.addr, viewer) && <YouTag />}
+                <a href={`${EXPLORER}/address/${r.addr}`} target="_blank" rel="noreferrer" title={r.addr} className="inline-flex min-w-0 items-center gap-1 font-mono text-[12px] transition-colors hover:text-brand-ink">
+                  <span className="truncate">{short(r.addr)}</span> <ArrowUpRight className="size-3 shrink-0" />
                 </a>
-                <CopyBtn text={r.addr} label={`Copy ${r.label} address`} />
+                <CopyButton text={r.addr} label={`Copy ${r.label} address`} />
               </span>
             ) : (
               <span className="text-[12.5px] text-dim">Nobody yet</span>
@@ -620,7 +774,7 @@ function Parties({ req, viewer }: { req: ApiRequest; viewer: string }) {
           </div>
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -632,7 +786,7 @@ function Technical({ req }: { req: ApiRequest }) {
     ["Refund", req.refundTxHash],
   ].filter((t): t is [string, string] => !!t[1] && !t[1].startsWith("reconciled"));
   return (
-    <div className="space-y-1.5 border-t border-fg/[0.06] pt-2.5">
+    <div className="space-y-1.5 border-t border-line pt-2.5">
       <Kv k="Order ID" v={req.id} />
       <Kv k="Escrow ID" v={req.escrowId} />
       <Kv k="Network" v={`${ARC.name} (chain ${ARC.id})`} />
@@ -642,7 +796,7 @@ function Technical({ req }: { req: ApiRequest }) {
       {txs.map(([k, h]) => (
         <div key={k} className="flex gap-3">
           <span className="w-20 shrink-0 text-dim">{k} tx</span>
-          <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" className="min-w-0 truncate font-mono text-fg/85 hover:text-brand-ink">
+          <a href={`${EXPLORER}/tx/${h}`} target="_blank" rel="noreferrer" title={h} className="min-w-0 truncate font-mono text-fg/85 hover:text-brand-ink">
             {h}
           </a>
         </div>
@@ -658,28 +812,5 @@ function Kv({ k, v }: { k: string; v: string }) {
       <span className="w-20 shrink-0 text-dim">{k}</span>
       <span className="min-w-0 break-all font-mono text-fg/85">{v}</span>
     </div>
-  );
-}
-
-function CopyBtn({ text, label }: { text: string; label: string }) {
-  const [ok, setOk] = useState(false);
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setOk(true);
-          setTimeout(() => setOk(false), 1400);
-        } catch {
-          /* clipboard blocked */
-        }
-      }}
-      className="grid size-6 shrink-0 place-items-center rounded-md text-dim hover:bg-fg/5 hover:text-fg"
-    >
-      {ok ? <Check className="size-3.5 text-brand-ink" /> : <Copy className="size-3.5" />}
-    </button>
   );
 }

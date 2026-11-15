@@ -56,6 +56,9 @@
   --animate-scan: scan 2.2s ease-in-out infinite;
   --animate-blink: blink 1.1s steps(2, start) infinite;
 
+  /* Motion: one easing (fast out, gentle settle) and three durations. Everything in the app uses these. */
+  --ease-out-np: cubic-bezier(0.16, 1, 0.3, 1);
+
   @keyframes marquee {
     from { transform: translateX(0); }
     to { transform: translateX(-50%); }
@@ -120,6 +123,66 @@
     border: 1px solid var(--color-line);
     box-shadow: 0 1px 2px rgb(12 13 15 / 0.04), 0 8px 24px -16px rgb(12 13 15 / 0.12);
   }
+  /*
+   * In-app surfaces, matching the landing page's cards: white, one hairline, a whisper of shadow, 16 px corners.
+   * `.panel` is a card; `.well` is a quiet inset area inside one; `.field` is a text input or select.
+   */
+  .panel {
+    position: relative;
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgb(12 13 15 / 0.04);
+  }
+  .panel-hover {
+    transition: border-color 0.2s var(--ease-out-np), box-shadow 0.2s var(--ease-out-np);
+  }
+  .panel-hover:hover {
+    border-color: var(--color-line-2);
+    box-shadow: 0 12px 32px -20px rgb(12 13 15 / 0.25);
+  }
+  .well {
+    background: var(--color-sunken);
+    border-radius: 12px;
+  }
+  .field {
+    width: 100%;
+    min-width: 0;
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-fg);
+    font-size: 14px;
+    box-shadow: inset 0 0 0 1px var(--color-line-2);
+    outline: none;
+    transition: box-shadow 0.15s var(--ease-out-np);
+  }
+  .field:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 1px rgb(12 13 15 / 0.26);
+  }
+  .field:focus,
+  .field:focus-within {
+    box-shadow: inset 0 0 0 1.5px var(--color-brand), 0 0 0 3px rgb(0 0 255 / 0.1);
+  }
+  .field:disabled {
+    background: var(--color-sunken);
+    color: var(--color-mute);
+  }
+  /* Loading placeholder: a soft grey block with a slow sheen, the shape of what is coming. */
+  .skeleton {
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--color-sunken) 0%, var(--color-sunken-2) 50%, var(--color-sunken) 100%);
+    background-size: 200% 100%;
+    animation: np-shimmer 1.6s linear infinite;
+  }
+  @keyframes np-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes np-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .np-fade-in { animation: np-fade-in 0.18s var(--ease-out-np) both; }
   .hairline {
     position: relative;
   }

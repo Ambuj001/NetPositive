@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, ArrowUpRight, ChevronDown, CreditCard } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AMOUNTS, PLACES, ReviewModal, amountLabel } from "../pages/Spend";
 import { useMarketRate } from "../lib/rates";
@@ -11,7 +11,7 @@ import { useApp } from "../lib/store";
 import { checkAmount, feePercent, limitsLine, toBaseUnits } from "../lib/terms";
 import { useTerms } from "../lib/useTerms";
 import { RecommendedBuyers } from "./BuyRequest";
-import { BrandMark, Button, cx } from "./ui";
+import { BrandMark, Button, DUR, EASE, Segmented, cx } from "./ui";
 
 /** Largest voucher the order API accepts. */
 const MAX_INR = 100_000;
@@ -78,45 +78,43 @@ export function CustomOrder() {
   };
 
   return (
-    <Ticket title="Create an order">
-      <p className="mt-1 text-[12.5px] leading-relaxed text-mute">Pick the store, amount and rate. You review everything before any USDC is locked.</p>
+    <Ticket title="Create an order" sub="Pick the store, amount and rate. You review everything before any USDC is locked." right={<TypeTabs type={type} setType={setType} />}>
       {/* Inputs on the left, the live summary and the button on the right (stacked on narrow screens). */}
-      <div className="mt-4 grid gap-x-6 gap-y-5 md:grid-cols-2">
+      <div className="mt-5 grid gap-x-8 gap-y-6 md:grid-cols-2">
         <div className="min-w-0">
-          <TypeTabs type={type} setType={setType} />
           <VoucherPicker value={placeId} onChange={(id) => setPlaceId(id as typeof placeId)} />
           <AmountField label="Voucher value" value={amount} onChange={setAmount} />
           {type === "limit" ? (
             <LimitField label="Your rate" value={limit} onChange={setLimit} />
           ) : (
-            <p className={cx("mt-2.5 text-[11.5px]", market.rate === null && !market.loading ? "text-amber-ink" : "text-dim")}>
+            <p className={cx("mt-3 text-[12px] tabular", market.rate === null && !market.loading ? "text-amber-ink" : "text-mute")}>
               {market.rate !== null ? `Live P2P rate: ₹${market.rate.toFixed(2)} / USDC.` : market.loading ? "Loading the live rate…" : "The live rate isn't available right now. Use a Limit order to set your own rate."}
             </p>
           )}
-          {terms && <p className="mt-1 text-[11.5px] text-dim">{limitsLine(terms)}</p>}
+          {terms && <p className="mt-1 text-[12px] text-dim">{limitsLine(terms)}</p>}
         </div>
 
-        <div className="min-w-0 md:border-l md:border-fg/[0.07] md:pl-6">
+        <div className="well min-w-0 self-start p-4 sm:p-5">
           <div className="text-[12.5px] text-mute">You get a voucher worth</div>
           <div className="mt-1.5 flex items-baseline gap-2">
-            <motion.span key={amount} initial={{ opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="font-display text-[34px] leading-none font-semibold tracking-tight text-brand-ink tabular">
+            <motion.span key={amount} initial={{ opacity: 0.4, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DUR.base, ease: EASE }} className="font-display text-[34px] leading-none font-semibold tracking-tight text-fg tabular">
               {inr(validAmount ? amount : 0)}
             </motion.span>
-            <span className="text-[12px] text-dim">{place.label}</span>
+            <span className="text-[12.5px] text-mute">{place.label}</span>
           </div>
-          <div className="mt-3 space-y-1.5 border-b border-fg/[0.07] pb-2.5 text-[12.5px]">
+          <div className="mt-4 space-y-2 border-b border-line pb-3 text-[13px]">
             <Line k="USDC buyer receives" v={`${usdt(q.buyerReceives)} USDC`} />
             <Line k={`Fee · ${feeLabel}`} v={`${usdt(q.fee)} USDC`} />
             <Line k="Effective rate" v={ready ? `₹${(amount / q.sellerLocks).toFixed(2)} / USDC` : "—"} />
           </div>
-          <div className="mt-2.5 flex justify-between text-[13.5px]">
+          <div className="mt-3 flex items-baseline justify-between text-[14px]">
             <span className="text-mute">Total USDC you lock</span>
-            <span className="font-semibold tabular">{usdt(q.sellerLocks)}</span>
+            <span className="text-[17px] font-semibold tabular">{usdt(q.sellerLocks)}</span>
           </div>
           <Button className="mt-4 w-full" size="md" disabled={!ready} onClick={startReview} icon={<ArrowRight className="size-4" />}>
             {address ? "Review order" : "Connect to review"}
           </Button>
-          <p className={cx("mt-2 text-center text-[11.5px]", blocked || noMarketRate ? "text-amber-ink" : "text-dim")} role={blocked ? "alert" : undefined}>{hint}</p>
+          <p className={cx("mt-2 text-center text-[12px]", blocked || noMarketRate ? "text-amber-ink" : "text-dim")} role={blocked ? "alert" : undefined}>{hint}</p>
           <Calc open={calcOpen} setOpen={setCalcOpen}>
             <div className="space-y-1.5 text-[12.5px]">
               <Line k="Voucher value" v={inr(validAmount ? amount : 0)} />
@@ -130,7 +128,7 @@ export function CustomOrder() {
 
       {/* Buy requests (Firestore `buyIntents`) that match the store and amount entered above: same amount, and the same
           voucher or no voucher. It follows the inputs live. */}
-      <RecommendedBuyers amount={validAmount ? amount : 0} brandId={place.api} brandName={place.label} className="mt-5" onPick={startReview} pickDisabled={!ready || !!lock.phase} />
+      <RecommendedBuyers amount={validAmount ? amount : 0} brandId={place.api} brandName={place.label} className="mt-6" onPick={startReview} pickDisabled={!ready || !!lock.phase} />
       <CardsLink />
 
       <ReviewModal
@@ -162,54 +160,74 @@ export function CustomOrder() {
 
 /* ------------------------------------------------------------ pieces (design from the Trade dashboard) */
 
-function Ticket({ title, children }: { title: string; children: ReactNode }) {
+function Ticket({ title, sub, right, children }: { title: string; sub: ReactNode; right?: ReactNode; children: ReactNode }) {
   return (
-    <div className="hairline relative overflow-hidden rounded-[22px] bg-surface/85 p-5 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32" style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(0,0,255,0.12), transparent)" }} />
-      <div className="relative flex items-center justify-between">
-        <h2 className="font-display text-[20px] font-semibold tracking-tight">{title}</h2>
-        <span className="grid size-8 place-items-center rounded-full bg-[#2775ca] font-display text-[13px] font-bold text-white" aria-hidden>
-          $
-        </span>
+    <section className="panel p-4 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[20px] font-semibold tracking-[-0.02em]">{title}</h2>
+          <p className="mt-1 max-w-[52ch] text-[13px] leading-relaxed text-mute">{sub}</p>
+        </div>
+        {right}
       </div>
-      <div className="relative">{children}</div>
-    </div>
+      {children}
+    </section>
   );
 }
 
 function TypeTabs({ type, setType }: { type: OrderType; setType: (t: OrderType) => void }) {
   return (
-    <div className="grid grid-cols-2 rounded-2xl bg-fg/[0.03] p-1 ring-1 ring-fg/[0.07]" role="tablist" aria-label="Order type">
-      {(["market", "limit"] as const).map((t) => (
-        <button key={t} type="button" role="tab" aria-selected={type === t} onClick={() => setType(t)} className={cx("relative h-9 rounded-xl text-[13px] capitalize transition", type === t ? "text-fg" : "text-mute hover:text-fg")}>
-          {type === t && <motion.span layoutId="type-mint" className="absolute inset-0 rounded-xl bg-fg/[0.08] ring-1 ring-fg/10" />}
-          <span className="relative">{t}</span>
-        </button>
-      ))}
-    </div>
+    <Segmented
+      id="order-type"
+      label="Order type"
+      value={type}
+      onChange={setType}
+      options={[
+        { value: "market", label: "Market" },
+        { value: "limit", label: "Limit" },
+      ]}
+    />
   );
 }
 
 function VoucherPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const current = PLACES.find((p) => p.id === value) ?? PLACES[0];
+  const root = useRef<HTMLDivElement>(null);
+  // Closes on a click outside or Escape, like every other menu.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => !root.current?.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        root.current?.querySelector<HTMLElement>("button")?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
   return (
-    <div className="relative mt-4">
+    <div className="relative" ref={root}>
       <div className="mb-1.5 text-[12.5px] text-mute">Store</div>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex h-11 w-full items-center gap-3 rounded-2xl bg-fg/[0.03] px-3 text-left ring-1 ring-fg/10 transition hover:ring-fg/20"
+        className="field flex h-11 items-center gap-3 px-3 text-left"
       >
-        <BrandMark id={current.id} size={28} />
+        <BrandMark id={current.id} size={26} />
         <span className="flex-1 text-[14px]">{current.label}</span>
-        <ChevronDown className={cx("size-4 text-dim transition", open && "rotate-180")} />
+        <ChevronDown className={cx("size-4 text-dim transition-transform duration-200", open && "rotate-180")} />
       </button>
       <AnimatePresence>
         {open && (
-          <motion.ul role="listbox" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="hairline absolute inset-x-0 top-full z-20 mt-2 max-h-64 overflow-y-auto rounded-2xl bg-sunken p-1.5 shadow-2xl">
+          <motion.ul role="listbox" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: DUR.fast, ease: EASE }} className="panel absolute inset-x-0 top-full z-20 mt-1.5 max-h-64 overflow-y-auto p-1.5 shadow-[0_20px_50px_-16px_rgba(12,13,15,0.3)]">
             {PLACES.map((p) => (
               <li key={p.id}>
                 <button
@@ -220,7 +238,7 @@ function VoucherPicker({ value, onChange }: { value: string; onChange: (id: stri
                     onChange(p.id);
                     setOpen(false);
                   }}
-                  className={cx("flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-[13.5px] transition hover:bg-fg/[0.05]", p.id === value && "bg-brand/[0.08]")}
+                  className={cx("flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-[13.5px] transition-colors hover:bg-sunken", p.id === value && "bg-brand-soft text-brand-ink")}
                 >
                   <BrandMark id={p.id} size={24} />
                   <span className="flex-1">{p.label}</span>
@@ -236,10 +254,10 @@ function VoucherPicker({ value, onChange }: { value: string; onChange: (id: stri
 
 function AmountField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
-    <div className="mt-4">
+    <div className="mt-5">
       <div className="mb-1.5 text-[12.5px] text-mute">{label}</div>
-      <label className="flex items-baseline gap-2 rounded-2xl bg-fg/[0.03] px-4 py-2.5 ring-1 ring-fg/10 transition focus-within:ring-brand/45">
-        <span className="font-display text-2xl text-mute">₹</span>
+      <label className="field flex h-14 items-center gap-2 px-4">
+        <span className="font-display text-[22px] text-mute">₹</span>
         <input
           type="number"
           inputMode="numeric"
@@ -247,18 +265,18 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
           max={MAX_INR}
           value={value || ""}
           onChange={(e) => onChange(Math.max(0, Math.min(MAX_INR, parseInt(e.target.value || "0", 10) || 0)))}
-          className="w-full min-w-0 bg-transparent font-display text-[34px] leading-none font-semibold tracking-tight outline-none tabular"
+          className="w-full min-w-0 bg-transparent font-display text-[28px] leading-none font-semibold tracking-tight outline-none tabular"
           aria-label={`${label} in rupees`}
         />
         <span className="text-[12px] text-dim">INR</span>
       </label>
-      <div className="mt-2 grid grid-cols-5 gap-1.5">
+      <div className="mt-2 grid grid-cols-4 gap-1.5">
         {AMOUNTS.map((a) => (
           <button
             key={a.label}
             type="button"
             onClick={() => onChange(a.inr)}
-            className={cx("h-9 rounded-xl text-[12px] ring-1 transition tabular", value === a.inr ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
+            className={cx("h-9 rounded-full text-[12.5px] ring-1 transition-colors duration-200 tabular", value === a.inr ? "bg-brand-soft text-brand-ink ring-brand/40" : "text-mute ring-line-2 hover:bg-sunken hover:text-fg")}
           >
             {a.label}
           </button>
@@ -270,28 +288,28 @@ function AmountField({ label, value, onChange }: { label: string; value: number;
 
 function LimitField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
-    <div className="mt-3 flex items-center justify-between rounded-xl bg-fg/[0.03] px-3.5 py-2.5 ring-1 ring-fg/[0.07]">
-      <span className="text-[12.5px] text-mute">{label}</span>
+    <label className="field mt-3 flex h-11 items-center justify-between px-3.5">
+      <span className="text-[13px] text-mute">{label}</span>
       <span className="flex items-center gap-1 text-[14px] tabular">
         ₹
-        <input type="number" step="0.1" value={value || ""} onChange={(e) => onChange(Number(e.target.value) || 0)} className="w-16 bg-transparent text-right outline-none" aria-label={`${label}, rupees per USDC`} />
-        <span className="text-[11px] text-dim">/ USDC</span>
+        <input type="number" step="0.1" value={value || ""} onChange={(e) => onChange(Number(e.target.value) || 0)} className="w-20 bg-transparent text-right font-medium outline-none" aria-label={`${label}, rupees per USDC`} />
+        <span className="text-[11.5px] text-dim">/ USDC</span>
       </span>
-    </div>
+    </label>
   );
 }
 
 function Calc({ open, setOpen, children }: { open: boolean; setOpen: (o: boolean) => void; children: ReactNode }) {
   return (
-    <section className="mt-3 rounded-2xl bg-fg/[0.02] ring-1 ring-fg/[0.07]">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center justify-between px-4 py-2.5 text-[12.5px] font-medium">
+    <section className="mt-3 border-t border-line">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center justify-between pt-3 text-[12.5px] text-mute transition-colors hover:text-fg">
         How the rate is worked out
-        <ChevronDown className={cx("size-4 text-dim transition", open && "rotate-180")} />
+        <ChevronDown className={cx("size-4 text-dim transition-transform duration-200", open && "rotate-180")} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="px-4 pb-4">{children}</div>
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: DUR.base, ease: EASE }} className="overflow-hidden">
+            <div className="pt-3">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -302,7 +320,7 @@ function Calc({ open, setOpen, children }: { open: boolean; setOpen: (o: boolean
 function Rate({ value }: { value: number | null }) {
   return (
     <div className="mt-3 flex items-baseline gap-1.5">
-      <span className="font-display text-[30px] font-semibold tracking-tight text-brand-ink tabular">{value === null ? "—" : `₹${value.toFixed(2)}`}</span>
+      <span className="font-display text-[26px] font-semibold tracking-tight text-fg tabular">{value === null ? "—" : `₹${value.toFixed(2)}`}</span>
       <span className="text-[11px] text-dim">/ USDC</span>
     </div>
   );
@@ -319,7 +337,7 @@ function Line({ k, v }: { k: string; v: string }) {
 
 function CardsLink() {
   return (
-    <Link to="/cards" className="mt-4 flex items-center justify-between border-t border-fg/[0.07] pt-3 text-[13px] text-mute transition hover:text-fg">
+    <Link to="/cards" className="mt-5 flex items-center justify-between border-t border-line pt-4 text-[13px] text-mute transition-colors hover:text-fg">
       <span className="flex items-center gap-2.5">
         <CreditCard className="size-4" /> My cards
       </span>

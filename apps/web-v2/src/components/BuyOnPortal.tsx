@@ -4,9 +4,9 @@ import { PORTALS, PORTAL_ISSUERS, portalFor, type Portal } from "../lib/portals"
 import { readRoute } from "../lib/route";
 import { useApp } from "../lib/store";
 
-const pill = "inline-flex h-9 items-center gap-2 rounded-full px-4 text-[13px] font-medium tracking-tight transition";
-const primary = `${pill} bg-brand text-white shadow-[0_0_0_1px_rgba(0,0,255,0.5),0_8px_30px_-6px_rgba(0,0,255,0.55)] hover:brightness-110`;
-const outline = `${pill} bg-fg/[0.03] text-fg ring-1 ring-fg/12 hover:bg-fg/[0.07] hover:ring-fg/25`;
+const pill = "inline-flex items-center gap-2 rounded-full font-medium tracking-[-0.01em] transition-colors duration-200";
+const primary = `${pill} h-11 px-5 text-[14.5px] bg-brand text-white hover:bg-brand-2`;
+const outline = `${pill} h-9 px-4 text-[13px] bg-surface text-fg ring-1 ring-line-2 hover:bg-sunken`;
 
 function Out({ portal, className, children }: { portal: Portal; className: string; children: string }) {
   return (

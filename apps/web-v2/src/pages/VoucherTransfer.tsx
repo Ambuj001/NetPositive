@@ -1,6 +1,6 @@
-import { LoaderCircle, Lock } from "lucide-react";
+import { AlertTriangle, KeyRound, Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "../components/ui";
+import { Button, Callout, Stepper } from "../components/ui";
 import { ApiError, api, onchainStepText, type ApiRequest } from "../lib/api";
 import { ARC } from "../lib/chain";
 import { recordAfterTx } from "../lib/afterTx";
@@ -79,17 +79,24 @@ export function VaultSetup() {
 
   // A quiet row inside the order's main card: needed before the code can be sealed to you, but not a warning.
   return (
-    <div className="mt-4 border-t border-fg/[0.06] pt-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="min-w-0 flex-1 text-[12.5px] leading-relaxed text-mute" title="Your wallet signs a message and that signature becomes the key. It stays in this browser; the server only keeps the public key.">
+    <div className="mt-5 border-t border-line pt-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sunken text-fg">
+          <KeyRound className="size-4" />
+        </span>
+        <p className="min-w-0 flex-1 basis-56 text-[13px] leading-relaxed text-mute" title="Your wallet signs a message and that signature becomes the key. It stays in this browser; the server only keeps the public key.">
           <span className="font-medium text-fg">Set up your voucher vault.</span> The USDC buyer seals the code to it; the key stays in this browser.
         </p>
-        <Button size="sm" variant="outline" onClick={() => void setup()} disabled={phase === "working" || signingIn} icon={phase === "working" || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
+        <Button size="sm" variant="outline" onClick={() => void setup()} pending={phase === "working" || signingIn} icon={<Lock className="size-3.5" />}>
           {phase === "working" || signingIn ? "Check your wallet…" : token ? "Set up vault" : "Sign in and set up vault"}
         </Button>
       </div>
-      {hint && <p className="mt-1.5 text-[12px] text-mute">{hint}</p>}
-      {err && <p role="alert" className="mt-2 text-[12.5px] text-rose-ink">{err}</p>}
+      {hint && <p className="np-fade-in mt-2 text-[12.5px] text-mute">{hint}</p>}
+      {err && (
+        <Callout role="alert" tone="rose" icon={<AlertTriangle />} className="mt-3">
+          {err}
+        </Callout>
+      )}
     </div>
   );
 }
@@ -199,7 +206,7 @@ export function SubmitCode({ req, onUpdated, deliveredOnChain = false }: { req: 
     }
   }
 
-  const stateOf = (k: DeliverStage) => {
+  const stateOf = (k: DeliverStage): "done" | "now" | "todo" => {
     const order: DeliverStage[] = ["seal", "chain", "send"];
     if (k === "chain" && chainDone) return "done";
     if (!stage) return "todo";
@@ -210,22 +217,18 @@ export function SubmitCode({ req, onUpdated, deliveredOnChain = false }: { req: 
 
   return (
     <div>
-      <p className="text-[12px] leading-relaxed text-mute">
+      <p className="text-[13px] leading-relaxed text-mute">
         Encrypted on this device for the voucher buyer only; NetPositive can't read it. {chainDone ? "Already marked delivered on-chain, so this only sends the code." : `One transaction on ${ARC.name} marks it delivered and starts the voucher buyer's review window.`}
       </p>
-      <ol className="mt-2 grid gap-1 text-[12px] sm:grid-cols-3">
-        {STAGES.map((st, i) => {
-          const s = stateOf(st.key);
-          return (
-            <li key={st.key} className={s === "done" ? "text-brand-ink" : s === "now" ? "text-fg" : "text-dim"}>
-              {s === "done" ? "✓" : s === "now" ? "…" : `${i + 1}.`} {st.label}
-            </li>
-          );
-        })}
-      </ol>
-      {vaultMissing && <p className="mt-2 text-[12px] text-amber-ink">The voucher buyer hasn't set up their vault yet. The code stays in this box until they do. Ask them to open this order.</p>}
-      <label className="mt-3 block">
-        <span className="label">Voucher code</span>
+      {vaultMissing && (
+        <Callout tone="amber" icon={<AlertTriangle />} className="mt-3">
+          The voucher buyer hasn't set up their vault yet. The code stays in this box until they do. Ask them to open this order.
+        </Callout>
+      )}
+      <div className="mt-4 grid gap-x-6 gap-y-4 md:grid-cols-[minmax(0,1fr)_220px]">
+      <div className="min-w-0">
+      <label className="block">
+        <span className="mb-1.5 block text-[12.5px] text-mute">Voucher code</span>
         <textarea
           value={code}
           onChange={(e) => setCode(e.target.value)}
@@ -237,11 +240,11 @@ export function SubmitCode({ req, onUpdated, deliveredOnChain = false }: { req: 
           spellCheck={false}
           placeholder="Paste the code from the voucher"
           aria-label="Voucher code"
-          className="mt-1.5 w-full resize-none rounded-xl bg-canvas px-3 py-2 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-brand/40"
+          className="field resize-none px-3.5 py-2.5 font-mono text-[14px] tracking-wide placeholder:font-sans placeholder:tracking-normal"
         />
       </label>
-      <label className="mt-2 block">
-        <span className="label">PIN, if the voucher has one</span>
+      <label className="mt-3 block">
+        <span className="mb-1.5 block text-[12.5px] text-mute">PIN, if the voucher has one</span>
         <input
           value={pin}
           onChange={(e) => setPin(e.target.value)}
@@ -251,15 +254,26 @@ export function SubmitCode({ req, onUpdated, deliveredOnChain = false }: { req: 
           spellCheck={false}
           placeholder="Optional"
           aria-label="Voucher PIN"
-          className="mt-1.5 h-10 w-full rounded-xl bg-canvas px-3 font-mono text-[13px] tracking-wide ring-1 ring-fg/10 outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-dim focus:ring-brand/40"
+          className="field h-11 px-3.5 font-mono text-[14px] tracking-wide placeholder:font-sans placeholder:tracking-normal"
         />
       </label>
-      <div className="mt-3">
-        <Button size="sm" onClick={() => void send()} disabled={!codeOk || !pinOk || busy || worldBusy || signingIn} icon={busy || worldBusy || signingIn ? <LoaderCircle className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}>
+      </div>
+      {/* What pressing the button does, step by step; it lights up as each step runs. */}
+      <div className="well self-start p-3.5">
+        <div className="label mb-2.5">What happens</div>
+        <Stepper compact steps={STAGES.map((st) => ({ key: st.key, label: st.label, state: stateOf(st.key) }))} />
+      </div>
+      </div>
+      <div className="mt-4">
+        <Button onClick={() => void send()} disabled={!codeOk || !pinOk} pending={busy || worldBusy || signingIn} icon={<Lock className="size-4" />}>
           {busy ? (stage === "chain" ? "Confirm in your wallet…" : stage === "send" ? "Sending the sealed code…" : "Sealing…") : worldBusy || signingIn ? "Check your wallet…" : chainDone ? "Seal and send the code" : "Seal, mark delivered and send"}
         </Button>
         {/* Directly under the button that caused it; cleared when the button is pressed again. */}
-        {err && <p role="alert" className="mt-2 text-[12.5px] leading-relaxed text-rose-ink">{err}</p>}
+        {err && (
+          <Callout role="alert" tone="rose" icon={<AlertTriangle />} className="mt-3">
+            {err}
+          </Callout>
+        )}
       </div>
     </div>
   );

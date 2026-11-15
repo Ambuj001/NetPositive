@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, ChevronDown, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AppHead, AppPage, BrandMark, cx } from "../components/ui";
+import { AppHead, AppPage, BrandMark, Skeleton, cx } from "../components/ui";
+import { SourceTag } from "./Buy";
 import { BRANDS, brand, type Order } from "../lib/data";
 import { bestReward, inr, quote, round2, usdt } from "../lib/engine";
-import { useOrderBook, type Source } from "../lib/orderbook";
+import { useOrderBook } from "../lib/orderbook";
 import { useApp } from "../lib/store";
 
 type Sort = "rate" | "amount" | "newest";
@@ -68,16 +69,16 @@ export default function Market() {
               )}
             </>
           }
-          right={<SourceTag source={source} onRetry={reload} />}
+          right={<SourceTag source={source} onRetry={reload} long />}
         />
 
         {/* search + sort */}
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <label className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-fg/[0.03] px-4 ring-1 ring-fg/10 transition focus-within:ring-brand/45">
-            <Search className="size-4 text-dim" />
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+          <label className="field flex h-11 flex-1 items-center gap-3 rounded-full px-4 sm:max-w-md">
+            <Search className="size-4 shrink-0 text-dim" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search vouchers or wallets" className="w-full bg-transparent text-[14px] outline-none placeholder:text-dim" aria-label="Search vouchers or wallets" />
           </label>
-          <label className="relative flex h-12 items-center gap-2.5 rounded-2xl bg-fg/[0.03] pr-10 pl-4 text-[13.5px] ring-1 ring-fg/10 transition focus-within:ring-brand/45">
+          <label className="field relative flex h-11 items-center gap-2.5 rounded-full pr-10 pl-4 text-[13.5px] sm:w-auto">
             <SlidersHorizontal className="size-4 text-dim" />
             <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="appearance-none bg-transparent outline-none" aria-label="Sort orders">
               {SORTS.map((s) => (
@@ -97,7 +98,7 @@ export default function Market() {
               key={c}
               onClick={() => setCat(c)}
               aria-pressed={cat === c}
-              className={cx("h-9 shrink-0 rounded-full px-4 text-[12.5px] ring-1 transition", cat === c ? "bg-brand/10 text-brand-ink ring-brand/40" : "text-mute ring-fg/[0.08] hover:text-fg hover:ring-fg/20")}
+              className={cx("h-9 shrink-0 rounded-full px-4 text-[12.5px] ring-1 transition-colors duration-200", cat === c ? "bg-brand-soft text-brand-ink ring-brand/40" : "text-mute ring-line-2 hover:bg-sunken hover:text-fg")}
             >
               {c}
             </button>
@@ -105,11 +106,11 @@ export default function Market() {
         </div>
 
         {/* order table */}
-        <div className="hairline mt-4 overflow-hidden rounded-[22px] bg-surface/70 backdrop-blur-xl">
+        <div className="panel mt-4 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-[13.5px]">
               <thead>
-                <tr className="border-b border-fg/[0.06] bg-fg/[0.015] text-left text-[11.5px] text-dim">
+                <tr className="border-b border-line bg-sunken text-left text-[12px] text-mute">
                   <th className="px-5 py-2.5 font-normal">Voucher</th>
                   <th className="px-4 py-2.5 font-normal">Value</th>
                   <th className="px-4 py-2.5 font-normal">You receive</th>
@@ -126,30 +127,31 @@ export default function Market() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
                       onClick={() => open(o)}
                       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(o))}
                       tabIndex={0}
                       aria-label={`Open ${brand(o.brandId).name} ${inr(o.amount)} order`}
-                      className="group cursor-pointer border-b border-fg/[0.05] transition outline-none last:border-0 hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04]"
+                      className="group cursor-pointer border-b border-line outline-none transition-colors last:border-0 hover:bg-sunken focus-visible:bg-sunken"
                     >
-                      <td className="px-5 py-2.5">
-                        <span className="flex items-center gap-3.5">
-                          <BrandMark id={o.brandId} size={38} />
-                          <span>
+                      <td className="px-5 py-3">
+                        <span className="flex items-center gap-3">
+                          <BrandMark id={o.brandId} size={32} />
+                          <span className="min-w-0">
                             <span className="block font-medium">{brand(o.brandId).name}</span>
-                            <span className="block font-mono text-[11px] text-dim">{o.seller}</span>
+                            <span className="block truncate font-mono text-[11px] text-dim" title={o.spender}>{o.seller}</span>
                           </span>
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 tabular">{inr(o.amount)}</td>
-                      <td className="px-4 py-2.5 tabular">
+                      <td className="px-4 py-3 tabular">{inr(o.amount)}</td>
+                      <td className="px-4 py-3 tabular">
                         {usdt(receive)} <span className="text-[10px] text-dim">USDC</span>
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-3">
                         <span className="block font-medium text-brand-ink tabular">{net === null ? "—" : `₹${net.toFixed(2)}`}</span>
                         <span className="block text-[11px] text-dim">{route ? `${route.cardLabel} · ${route.channel.name}` : "Add a card to rank"}</span>
                       </td>
-                      <td className="px-5 py-2.5 text-right">
+                      <td className="px-5 py-3 text-right">
                         <ArrowUpRight className="ml-auto size-4 text-dim transition group-hover:text-brand-ink" />
                       </td>
                     </motion.tr>
@@ -158,38 +160,24 @@ export default function Market() {
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <div className="py-8 text-center text-[13.5px] text-mute">{source === "loading" ? "Loading orders…" : source === "offline" ? "The order book can't be reached right now, so there is nothing to show." : "No vouchers match your search."}</div>}
+          {rows.length === 0 && source === "loading" && (
+            <div aria-hidden className="divide-y divide-line">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                  <Skeleton className="size-8 rounded-xl" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="hidden h-3.5 w-16 sm:block" />
+                  <Skeleton className="hidden h-3.5 w-20 sm:block" />
+                  <Skeleton className="h-3.5 w-16" />
+                </div>
+              ))}
+            </div>
+          )}
+          {rows.length === 0 && source !== "loading" && <div className="py-10 text-center text-[13.5px] text-mute">{source === "offline" ? "The order book can't be reached right now, so there is nothing to show." : "No vouchers match your search."}</div>}
         </div>
     </AppPage>
   );
-}
-
-function SourceTag({ source, onRetry }: { source: Source; onRetry: () => void }) {
-  if (source === "live")
-    return (
-      <span className="flex w-fit items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-brand-ink uppercase ring-1 ring-brand/25">
-        <span className="size-1.5 animate-pulse rounded-full bg-brand" /> Live order book
-      </span>
-    );
-  if (source === "demo")
-    return (
-      <button
-        onClick={onRetry}
-        title="Backend not reachable. These are made-up sample orders, shown in development only. Click to retry."
-        className="flex w-fit items-center gap-1.5 rounded-full bg-amber/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-amber-ink uppercase ring-1 ring-amber/25 transition hover:bg-amber/15"
-      >
-        Demo data · not real orders <RefreshCw className="size-3" />
-      </button>
-    );
-  if (source === "offline")
-    return (
-      <button
-        onClick={onRetry}
-        title="The order book server didn't answer. Click to retry."
-        className="flex w-fit items-center gap-1.5 rounded-full bg-rose/10 px-3 py-1.5 font-mono text-[10.5px] tracking-wider text-rose-ink uppercase ring-1 ring-rose/25 transition hover:bg-rose/15"
-      >
-        Order book unreachable <RefreshCw className="size-3" />
-      </button>
-    );
-  return null;
 }

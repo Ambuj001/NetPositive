@@ -37,8 +37,8 @@ export function CardPicker({
 
   return (
     <div>
-      <label className="flex h-11 items-center gap-2.5 rounded-2xl bg-fg/[0.04] px-3.5 ring-1 ring-fg/10 transition focus-within:ring-amber/45">
-        <Search className="size-4 text-dim" />
+      <label className="field flex h-11 items-center gap-2.5 px-3.5">
+        <Search className="size-4 shrink-0 text-dim" />
         <input
           autoFocus={autoFocus}
           value={query}
@@ -50,7 +50,7 @@ export function CardPicker({
         />
       </label>
 
-      <div className={cx("scrollbar-none mt-3 space-y-1.5 overflow-y-auto pr-0.5", listHeight)} role="group" aria-label="Cards">
+      <div className={cx("mt-3 space-y-1.5 overflow-y-auto overscroll-contain pr-1", listHeight)} role="group" aria-label="Cards">
         {results.length === 0 && <p className="px-1 py-6 text-center text-[13px] text-mute">No card matches “{query.trim()}”. Try the bank or a shorter name.</p>}
         {results.map((c) => {
           const already = isSaved(c.id, savedIds);
@@ -63,16 +63,16 @@ export function CardPicker({
               aria-pressed={on}
               onClick={() => toggle(c.id)}
               className={cx(
-                "flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition",
-                already ? "cursor-default bg-fg/[0.015] opacity-55 ring-fg/[0.05]" : on ? "bg-amber/[0.07] ring-amber/50" : "bg-fg/[0.025] ring-fg/[0.07] hover:bg-fg/[0.05] hover:ring-fg/15",
+                "flex w-full items-center gap-3 rounded-xl p-3 text-left ring-1 transition-colors duration-200",
+                already ? "cursor-default opacity-55 ring-line" : on ? "bg-brand-soft ring-brand/40" : "ring-line hover:bg-sunken hover:ring-line-2",
               )}
             >
-              <span className={cx("grid size-5 shrink-0 place-items-center rounded-md ring-1", on || already ? "bg-amber text-ink ring-amber" : "ring-fg/25")}>{(on || already) && <Check className="size-3.5" strokeWidth={3} />}</span>
+              <span className={cx("grid size-5 shrink-0 place-items-center rounded-md ring-1 transition-colors", on || already ? "bg-brand text-white ring-brand" : "bg-surface ring-line-2")}>{(on || already) && <Check className="size-3.5" strokeWidth={3} />}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[14px] font-medium">{c.title}</span>
                 <span className={cx("block truncate text-[11.5px]", c.verified ? "text-brand-ink" : "text-dim")}>{already ? "Already in My cards" : c.profile.last}</span>
               </span>
-              <span className="shrink-0 rounded-full bg-fg/[0.06] px-2 py-0.5 font-mono text-[10px] tracking-wide text-mute">{c.issuer}</span>
+              <span className="shrink-0 rounded-full bg-sunken px-2 py-0.5 font-mono text-[10px] tracking-wide text-mute">{c.issuer}</span>
             </button>
           );
         })}
@@ -80,7 +80,7 @@ export function CardPicker({
 
       <div className="mt-4 flex flex-col-reverse items-stretch gap-2.5 sm:flex-row sm:items-center sm:justify-end">
         {secondary}
-        <Button variant="amber" size="md" disabled={picked.length === 0} onClick={add} className="sm:min-w-[150px]">
+        <Button size="md" disabled={picked.length === 0} onClick={add} className="sm:min-w-[170px]">
           {picked.length === 0 ? "Pick a card to add" : `Add ${picked.length} card${picked.length > 1 ? "s" : ""}`}
         </Button>
       </div>

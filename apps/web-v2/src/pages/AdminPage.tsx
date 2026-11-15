@@ -1,7 +1,8 @@
-import { ArrowUpRight, CircleAlert, ExternalLink, LoaderCircle, PenLine, RefreshCw, ShieldOff, Wallet } from "lucide-react";
+import { ArrowUpRight, CircleAlert, ExternalLink, FingerprintPattern, PenLine, RefreshCw, ShieldOff, Wallet } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Aurora, BrandMark, Button, PageHead, Pill, Row, cx } from "../components/ui";
+import { AppHead, AppPage, BrandMark, Button, Callout, Dialog, Pill, Row, Skeleton, cx, enter } from "../components/ui";
+import { motion } from "motion/react";
 import { adminApi, useIsAdmin, type AdminOverview } from "../lib/admin";
 import { FINISHED_STATUSES, LIVE_STATUSES, WORLD_ID_STATE_LINE, capUsage, changedLine, explorerFor, networkName, orderTotals, rateCheckLine, shortAddress, switchConfirm } from "../lib/adminView";
 import { ApiError, STATUS, brandIdFromApi } from "../lib/api";
@@ -14,7 +15,7 @@ import { usePageTitle } from "../lib/usePageTitle";
 import { useWorldId } from "../lib/world";
 
 const REFRESH_MS = 30_000;
-const box = "hairline rounded-[22px] bg-surface/70 p-5 backdrop-blur-xl";
+const box = "panel p-4 sm:p-5";
 const count = (n: number) => n.toLocaleString("en-US");
 
 /**
@@ -24,12 +25,9 @@ const count = (n: number) => n.toLocaleString("en-US");
 export default function AdminPage() {
   usePageTitle("Admin", "Administrator dashboard.");
   return (
-    <div className="relative pt-10 pb-16 md:pt-14">
-      <Aurora className="h-[45vh] opacity-40" />
-      <div className="relative mx-auto max-w-3xl px-4 sm:px-6">
-        <AdminGate>{(token) => <Dashboard token={token} />}</AdminGate>
-      </div>
-    </div>
+    <AppPage>
+      <AdminGate>{(token) => <Dashboard token={token} />}</AdminGate>
+    </AppPage>
   );
 }
 
@@ -38,19 +36,19 @@ export default function AdminPage() {
 function AdminGate({ children }: { children: (token: string) => ReactNode }) {
   const { fullAddress, token, signIn, signingIn, openWallet } = useApp();
   const { admin, checked } = useIsAdmin();
-  const head = <PageHead eyebrow="Admin" title="Administration" />;
+  const head = <AppHead title="Administration" />;
   if (!fullAddress || !token)
     return (
       <>
         {head}
-        <p className="mt-4 text-[14px] text-mute">Connect an administrator wallet and sign in to see this page.</p>
+        <p className="mt-3 text-[13.5px] text-mute">Connect an administrator wallet and sign in to see this page.</p>
         <div className="mt-5">
           {!fullAddress ? (
             <Button variant="outline" onClick={openWallet} icon={<Wallet className="size-4" />}>
               Connect wallet
             </Button>
           ) : (
-            <Button variant="outline" onClick={signIn} disabled={signingIn} icon={signingIn ? <LoaderCircle className="size-4 animate-spin" /> : <PenLine className="size-4" />}>
+            <Button variant="outline" onClick={signIn} pending={signingIn} icon={<PenLine className="size-4" />}>
               {signingIn ? "Check your wallet…" : "Sign in"}
             </Button>
           )}
@@ -71,8 +69,8 @@ function AdminGate({ children }: { children: (token: string) => ReactNode }) {
 function NotAdmin() {
   return (
     <>
-      <PageHead eyebrow="Admin" title="Administration" />
-      <div className={cx(box, "mt-6 flex items-start gap-3")} data-testid="admin-denied">
+      <AppHead title="Administration" />
+      <div className={cx(box, "mt-5 flex max-w-2xl items-start gap-3")} data-testid="admin-denied">
         <ShieldOff className="mt-0.5 size-5 shrink-0 text-mute" />
         <div className="min-w-0 text-[14px] leading-relaxed text-mute">
           <div className="font-medium text-fg">This page is for administrators</div>
@@ -83,30 +81,38 @@ function NotAdmin() {
   );
 }
 
+/** The dashboard's shape while it loads. */
 function Loading({ children }: { children: ReactNode }) {
   return (
-    <div className="mt-6 flex items-center gap-2 text-[13px] text-mute">
-      <LoaderCircle className="size-4 animate-spin" /> {children}
+    <div className="mt-5 grid gap-4 lg:grid-cols-2" aria-busy="true" aria-label={typeof children === "string" ? children : undefined}>
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className={cx(box, "space-y-3", i === 0 && "lg:col-span-2")}>
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      ))}
     </div>
   );
 }
 
 function Notice({ children, tone = "rose" }: { children: ReactNode; tone?: "rose" | "amber" }) {
   return (
-    <div role="alert" className={cx("flex items-start gap-2 rounded-2xl px-3.5 py-3 text-[13px] ring-1", tone === "rose" ? "bg-rose/[0.07] text-rose-ink ring-rose/25" : "bg-amber/10 text-amber-ink ring-amber/30")}>
-      <CircleAlert className="mt-0.5 size-4 shrink-0" /> <span className="min-w-0 break-words">{children}</span>
-    </div>
+    <Callout role="alert" tone={tone} icon={<CircleAlert />}>
+      {children}
+    </Callout>
   );
 }
 
-function Section({ title, sub, children, id }: { title: string; sub?: ReactNode; children: ReactNode; id: string }) {
+function Section({ title, sub, children, id, className }: { title: string; sub?: ReactNode; children: ReactNode; id: string; className?: string }) {
   return (
-    <section aria-labelledby={`${id}-title`} className={cx(box, "mt-5")}>
-      <h2 id={`${id}-title`} className="font-display text-xl font-semibold tracking-tight">
+    <section aria-labelledby={`${id}-title`} className={cx(box, "flex flex-col", className)}>
+      <h2 id={`${id}-title`} className="text-[17px] font-semibold tracking-[-0.02em]">
         {title}
       </h2>
       {sub && <p className="mt-1 text-[13px] leading-relaxed text-mute">{sub}</p>}
-      <div className="mt-4">{children}</div>
+      <div className="mt-4 flex-1">{children}</div>
     </section>
   );
 }
@@ -158,17 +164,16 @@ function Dashboard({ token }: { token: string }) {
 
   return (
     <>
-      <PageHead
-        eyebrow="Admin"
+      <AppHead
         title="Administration"
         sub="Access control, the escrow's settings, orders, disputes and the server's health. Refreshes every 30 seconds while this tab is open."
         right={
-          <div className="flex shrink-0 flex-col items-start gap-1.5 md:items-end">
+          <>
+            {at && <span className="text-[12px] text-mute tabular">Updated {new Date(at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>}
             <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading} icon={<RefreshCw className={cx("size-3.5", loading && "animate-spin")} />}>
               Refresh
             </Button>
-            {at && <span className="text-[11.5px] text-dim">Updated {new Date(at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>}
-          </div>
+          </>
         }
       />
       {error && (
@@ -178,13 +183,13 @@ function Dashboard({ token }: { token: string }) {
       )}
       {!data && !error && <Loading>Loading the overview…</Loading>}
       {data && (
-        <>
+        <motion.div {...enter} className="mt-5 grid items-start gap-4 lg:grid-cols-2">
           <WorldIdSection data={data} token={token} onChanged={(settings) => setData((d) => (d ? { ...d, settings } : d))} />
           <ContractSection data={data} />
+          <HealthSection data={data} />
           <OrdersSection data={data} />
           <DisputesSection data={data} />
-          <HealthSection data={data} />
-        </>
+        </motion.div>
       )}
     </>
   );
@@ -199,6 +204,10 @@ function WorldIdSection({ data, token, onChanged }: { data: AdminOverview; token
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const confirm = asking === null ? null : switchConfirm(asking);
+  // Keeps the dialog's words while it closes, so they don't blank out during the exit fade.
+  const lastConfirm = useRef(confirm);
+  if (confirm) lastConfirm.current = confirm;
+  const shown = confirm ?? lastConfirm.current;
   const w = data.worldId;
 
   async function apply(next: boolean) {
@@ -219,7 +228,7 @@ function WorldIdSection({ data, token, onChanged }: { data: AdminOverview; token
   }
 
   return (
-    <Section id="world-id" title="Access control: World ID requirement">
+    <Section id="world-id" title="Access control: World ID requirement" className="lg:col-span-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -232,10 +241,10 @@ function WorldIdSection({ data, token, onChanged }: { data: AdminOverview; token
               setError("");
               setAsking(!on);
             }}
-            className={cx("relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50", on ? "bg-brand" : "bg-sunken-2 ring-1 ring-line-2")}
+            className={cx("relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50", on ? "bg-brand" : "bg-sunken-2 ring-1 ring-line-2")}
             data-testid="world-id-switch"
           >
-            <span className={cx("absolute top-1 size-5 rounded-full bg-white shadow transition-[left]", on ? "left-6" : "left-1")} />
+            <span className={cx("absolute top-1 size-5 rounded-full bg-white shadow transition-[left] duration-200 ease-out-np", on ? "left-6" : "left-1")} />
           </button>
           <div className="min-w-0">
             <div className="text-[15px] font-medium">World ID is {on ? "required" : "off"}</div>
@@ -250,21 +259,28 @@ function WorldIdSection({ data, token, onChanged }: { data: AdminOverview; token
         <li className={!on ? "text-fg" : "text-mute"}>{WORLD_ID_STATE_LINE.off}</li>
       </ul>
 
-      {confirm && (
-        <div className="mt-4 rounded-2xl bg-amber/10 p-4 ring-1 ring-amber/30" role="dialog" aria-label={confirm.title}>
-          <div className="text-[14px] font-medium text-amber-ink">{confirm.title}</div>
-          <p className="mt-1 text-[13px] leading-relaxed text-mute">{confirm.body}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" variant="dark" onClick={() => void apply(asking!)} disabled={saving} icon={saving ? <LoaderCircle className="size-3.5 animate-spin" /> : undefined}>
-              {confirm.cta}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setAsking(null)} disabled={saving}>
+      <Dialog
+        open={!!confirm}
+        onClose={() => setAsking(null)}
+        dismissible={!saving}
+        icon={<FingerprintPattern />}
+        title={shown?.title ?? ""}
+        description={shown?.body}
+        testId="world-id-confirm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setAsking(null)} disabled={saving}>
               Cancel
             </Button>
-          </div>
-        </div>
-      )}
-      {error && (
+            <Button variant="dark" onClick={() => void apply(asking!)} pending={saving}>
+              {shown?.cta}
+            </Button>
+          </>
+        }
+      >
+        {error && <Notice>{error}</Notice>}
+      </Dialog>
+      {error && !confirm && (
         <div className="mt-3">
           <Notice>{error}</Notice>
         </div>
@@ -359,7 +375,7 @@ function OrdersSection({ data }: { data: AdminOverview }) {
     <div>
       <div className="flex items-baseline justify-between text-[13px]">
         <span className="font-medium">{title}</span>
-        <span className="tabular font-semibold">{count(total)}</span>
+        <span className="font-semibold tabular">{count(total)}</span>
       </div>
       <div className="mt-1 divide-y divide-line">
         {list.map((s) => (
@@ -392,7 +408,7 @@ function DisputesSection({ data }: { data: AdminOverview }) {
             const id = brandIdFromApi(d.brand);
             const at = d.disputedAt ? Date.parse(d.disputedAt) : NaN;
             return (
-              <Link key={d.id} to={`/dispute/${encodeURIComponent(d.id)}`} className="flex items-center gap-3 rounded-2xl bg-fg/[0.02] p-3 ring-1 ring-fg/[0.07] transition hover:bg-sunken">
+              <Link key={d.id} to={`/dispute/${encodeURIComponent(d.id)}`} className="flex items-center gap-3 rounded-xl p-3 ring-1 ring-line transition-colors hover:bg-sunken">
                 <BrandMark id={id} size={36} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-medium">

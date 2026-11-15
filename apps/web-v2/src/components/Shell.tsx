@@ -10,7 +10,7 @@ import { ON_MOBILE, formatChainBalance } from "../lib/wallet";
 import { useRates, inr } from "../lib/rates";
 import { WorldIdNotice, useWorldId } from "../lib/world";
 import { CardsPrompt } from "./CardsPrompt";
-import { Button, Logo, Mark, cx } from "./ui";
+import { APP_WIDTH, Button, DUR, Dialog, EASE, Logo, Mark, Spinner, cx } from "./ui";
 import { WalletLogo } from "./WalletLogos";
 
 const APP_LINKS = [
@@ -141,7 +141,15 @@ function Nav() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const inApp = isAppPath(pathname);
+  // Six app links and the account chip need more room than the five site links: they collapse into the menu below lg.
+  const wideNav = inApp && !!address;
   useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
     on();
@@ -151,9 +159,9 @@ function Nav() {
 
   return (
     <header className={cx("sticky top-0 z-50 bg-canvas/90 backdrop-blur-xl transition-[border-color] duration-300", scrolled ? "border-b border-line" : "border-b border-transparent")}>
-      <nav className={cx("mx-auto flex h-16 items-center justify-between gap-6 px-4 md:px-8", inApp ? "max-w-[1320px] 2xl:max-w-[1480px]" : "max-w-[1200px]")}>
+      <nav className={cx("mx-auto flex h-16 items-center justify-between gap-6 px-4 md:px-8", inApp ? APP_WIDTH : "max-w-[1200px]")}>
         <Logo />
-        <div className="hidden items-center gap-1 md:flex">
+        <div className={cx("hidden items-center gap-1", wideNav ? "lg:flex" : "md:flex")}>
           {inApp && address
             ? appLinks.map((l) => (
                 <NavLink
@@ -191,7 +199,7 @@ function Nav() {
                 data-testid="account-chip"
               >
                 <WalletLogo id={walletId} icon={walletIcon} name={walletName || "W"} className="size-7" />
-                <span className="hidden text-left leading-tight sm:block">
+                <span className="hidden text-left leading-tight whitespace-nowrap sm:block">
                   <span className="block font-mono text-[11px] text-mute">{address}</span>
                   <span className="tabular block text-[12.5px] font-medium">{!onArc ? "Wrong network" : walletBalance ? formatChainBalance(walletBalance) : ARC.name}</span>
                 </span>
@@ -207,17 +215,17 @@ function Nav() {
               {restoring ? "Reconnecting" : "Get started"}
             </Button>
           )}
-          <button className="grid size-9 place-items-center rounded-full text-fg ring-1 ring-line md:hidden" onClick={() => setOpen((o) => !o)} aria-label="Menu">
+          <button className={cx("grid size-9 place-items-center rounded-full text-fg ring-1 ring-line-2 transition-colors hover:bg-sunken", wideNav ? "lg:hidden" : "md:hidden")} onClick={() => setOpen((o) => !o)} aria-label="Menu" aria-expanded={open}>
             {open ? <X className="size-4" /> : <Menu className="size-4" />}
           </button>
         </div>
       </nav>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden border-t border-line bg-canvas md:hidden">
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: DUR.slow, ease: EASE }} className={cx("max-h-[calc(100dvh-64px)] overflow-y-auto border-t border-line bg-canvas", wideNav ? "lg:hidden" : "md:hidden")}>
             <div className="px-3 py-2">
               {(inApp && address ? appLinks : SITE_LINKS).map((l) => (
-                <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3.5 text-[16px] hover:bg-sunken">
+                <Link key={l.to} to={l.to} onClick={() => setOpen(false)} aria-current={pathname === l.to ? "page" : undefined} className={cx("flex items-center justify-between rounded-xl px-3 py-3.5 text-[16px] transition-colors hover:bg-sunken", pathname === l.to && "text-brand-ink")}>
                   {l.label}
                   <ChevronRight className="size-4 text-dim" />
                 </Link>
@@ -247,8 +255,8 @@ function NetworkNotice() {
   const [busy, setBusy] = useState(false);
   if (!address || onArc || !chain || !isAppPath(pathname)) return null;
   return (
-    <div role="status" className="border-b border-amber/30 bg-amber/10 px-5 py-2.5 text-[13px] text-amber-ink">
-      <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-x-4 gap-y-2 md:px-3">
+    <div role="status" className="border-b border-amber/30 bg-amber/10 py-2.5 text-[13px] text-amber-ink">
+      <div className={cx("mx-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 md:px-8", APP_WIDTH)}>
         <span className="min-w-0">
           Your wallet is on {chain}. NetPositive's escrow runs on {ARC.name}
           {walletLimited ? `, which ${walletName} can't use. Connect another wallet to trade.` : ". Your next transaction will ask to switch back."}
@@ -267,9 +275,9 @@ function NetworkNotice() {
                 setBusy(false);
               }
             }}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-fg px-3 py-1 text-[12.5px] font-medium text-white disabled:opacity-60"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-fg px-3.5 text-[12.5px] font-medium text-white transition-colors hover:bg-[#25272c] disabled:opacity-60"
           >
-            {busy && <LoaderCircle className="size-3 animate-spin" />}
+            {busy && <Spinner className="size-3" />}
             Switch to {ARC.name}
           </button>
         )}
@@ -496,13 +504,6 @@ function WalletModal() {
   const addressRef = useRef(fullAddress);
   addressRef.current = fullAddress;
 
-  useEffect(() => {
-    if (!walletOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeWallet();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [walletOpen, closeWallet]);
-
   const doConnect = async (w: (typeof choices)[number]) => {
     const ok = await connect(w);
     if (!ok) return;
@@ -524,44 +525,23 @@ function WalletModal() {
   const staging = config?.environment === "staging" && !config?.bypass;
 
   return (
-    <AnimatePresence>
-      {walletOpen && (
-        <motion.div
-          className="fixed inset-0 z-[70] grid place-items-end bg-fg/30 backdrop-blur-[3px] sm:place-items-center sm:p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={closeWallet}
-        >
-          <motion.div
-            role="dialog"
-            aria-modal
-            aria-label="Wallet"
-            onClick={(e) => e.stopPropagation()}
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 30, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 320, damping: 30 }}
-            className="relative max-h-[92dvh] w-full max-w-full overflow-x-hidden overflow-y-auto rounded-t-[24px] bg-surface pb-[env(safe-area-inset-bottom)] shadow-[0_40px_120px_-30px_rgba(12,13,15,0.45)] ring-1 ring-line sm:max-w-[420px] sm:rounded-[24px]"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Mark className="size-6 shrink-0" />
-                <h3 className="truncate text-[17px] font-semibold tracking-[-0.02em]">{address ? "Your account" : "Connect a wallet"}</h3>
-              </div>
-              <button onClick={closeWallet} className="grid size-9 shrink-0 place-items-center rounded-full text-mute hover:bg-sunken hover:text-fg" aria-label="Close">
-                <X className="size-4" />
-              </button>
-            </div>
-
+    <Dialog
+      open={walletOpen}
+      onClose={closeWallet}
+      icon={<Mark className="size-6" />}
+      title={address ? "Your account" : "Connect a wallet"}
+      label="Wallet"
+      testId="wallet-sheet"
+      bodyClassName={address ? undefined : "px-3 sm:px-4"}
+    >
             {!address ? (
-              <div className="p-3 pt-3 sm:p-4 sm:pt-3">
+              <div>
                 {ON_MOBILE && !choices.some((c) => c.status === "installed") && (
                   <p className="mx-2 mb-1 rounded-xl bg-sunken px-3 py-2.5 text-[12.5px] leading-relaxed text-mute">
                     Phone browsers don't have a wallet built in. Open this page inside your wallet app, then connect there.
                   </p>
                 )}
-                <div className="max-h-[min(460px,56dvh)] space-y-1 overflow-x-hidden overflow-y-auto pr-1" data-testid="wallet-list">
+                <div className="space-y-1" data-testid="wallet-list">
                   {choices.map((w, i) => {
                     const waiting = pending === w.id;
                     const prev = choices[i - 1];
@@ -578,11 +558,11 @@ function WalletModal() {
                               : "More ways to connect";
                     const tag =
                       w.status === "installed"
-                        ? { t: "Ready", c: "text-brand-ink bg-brand-soft" }
+                        ? { t: "Ready", c: "text-pos-ink bg-pos/10" }
                         : w.status === "popup"
-                          ? { t: "Popup", c: "text-iris bg-iris/8" }
+                          ? { t: "Popup", c: "text-brand-ink bg-brand-soft" }
                           : w.status === "qr"
-                            ? { t: ON_MOBILE ? "Connect" : "QR", c: "text-iris bg-iris/8" }
+                            ? { t: ON_MOBILE ? "Connect" : "QR", c: "text-brand-ink bg-brand-soft" }
                             : w.status === "app"
                               ? { t: "Open", c: "text-brand-ink bg-brand-soft" }
                             : w.status === "install"
@@ -596,8 +576,8 @@ function WalletModal() {
                           onClick={() => doConnect(w)}
                           data-testid={`wallet-${w.id}`}
                           className={cx(
-                            "flex min-h-[56px] w-full min-w-0 items-center gap-3 rounded-2xl p-2.5 pr-3 text-left transition hover:bg-sunken disabled:cursor-wait",
-                            waiting && "bg-sunken ring-1 ring-brand",
+                            "flex min-h-[56px] w-full min-w-0 items-center gap-3 rounded-xl p-2.5 pr-3 text-left transition-colors duration-200 hover:bg-sunken disabled:cursor-wait",
+                            waiting && "bg-brand-soft ring-1 ring-brand/40",
                             pending && !waiting && "opacity-40",
                           )}
                         >
@@ -611,7 +591,7 @@ function WalletModal() {
                           {waiting ? (
                             <LoaderCircle className="size-4 shrink-0 animate-spin text-brand-ink" />
                           ) : (
-                            <span className={cx("flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium", tag.c)}>
+                            <span className={cx("flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium", tag.c)}>
                               {tag.t}
                               {(w.status === "install" || w.status === "app") && <ArrowUpRight className="size-3" />}
                             </span>
@@ -623,7 +603,7 @@ function WalletModal() {
                 </div>
 
                 {walletError && (
-                  <p role="alert" className="mt-3 rounded-xl bg-rose/8 px-3.5 py-2.5 text-[13px] text-rose-ink ring-1 ring-rose/20">
+                  <p role="alert" className="mx-2 mt-3 rounded-xl bg-rose/8 px-3.5 py-2.5 text-[13px] text-rose-ink">
                     {walletError}
                   </p>
                 )}
@@ -635,8 +615,8 @@ function WalletModal() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3 p-4 sm:p-5">
-                <div className="rounded-2xl bg-sunken p-4">
+              <div className="space-y-3">
+                <div className="well p-4">
                   <div className="flex items-center gap-3">
                     <WalletLogo id={walletId} icon={walletIcon} name={walletName} />
                     <div className="min-w-0 flex-1">
@@ -681,9 +661,9 @@ function WalletModal() {
                             setSwitching(false);
                           }
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-fg px-3 py-1 text-[12.5px] font-medium text-white disabled:opacity-60"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-fg px-3.5 text-[12.5px] font-medium text-white transition-colors hover:bg-[#25272c] disabled:opacity-60"
                       >
-                        {switching && <LoaderCircle className="size-3 animate-spin" />}
+                        {switching && <Spinner className="size-3" />}
                         Switch to {ARC.name}
                       </button>
                     ) : (
@@ -715,12 +695,12 @@ function WalletModal() {
                 </div>
 
                 {!worldIdRequired ? (
-                  <div className="rounded-2xl bg-surface p-4 text-[13px] leading-relaxed text-mute ring-1 ring-line" data-testid="world-id-off">
+                  <div className="rounded-xl p-4 text-[13px] leading-relaxed text-mute ring-1 ring-line" data-testid="world-id-off">
                     <div className="text-[15px] font-medium text-fg">No World ID step right now</div>
                     <div className="mt-0.5">World ID is switched off on NetPositive at the moment. A signed-in wallet can post and accept orders without it.</div>
                   </div>
                 ) : (
-                <div className={cx("rounded-2xl p-4 ring-1", humanVerified ? "bg-brand-soft ring-brand/30" : "bg-surface ring-line")}>
+                <div className={cx("rounded-xl p-4 ring-1", humanVerified ? "bg-brand-soft ring-brand/30" : "bg-surface ring-line")}>
                   <div className="flex items-start gap-3">
                     <div className={cx("grid size-10 shrink-0 place-items-center rounded-full", humanVerified ? "bg-brand text-white" : "bg-fg text-white")}>
                       {humanVerified ? <Check className="size-5" /> : <FingerprintPattern className="size-5" />}
@@ -775,7 +755,7 @@ function WalletModal() {
                   <Link
                     to={ADMIN_LINK.to}
                     onClick={closeWallet}
-                    className="flex items-center gap-3 rounded-2xl bg-surface p-3.5 text-[14px] ring-1 ring-line transition hover:bg-sunken"
+                    className="flex items-center gap-3 rounded-xl bg-surface p-3.5 text-[14px] ring-1 ring-line transition-colors hover:bg-sunken"
                     data-testid="admin-link"
                   >
                     <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken">
@@ -795,16 +775,13 @@ function WalletModal() {
                       Open app
                     </Button>
                   )}
-                  <button onClick={disconnect} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-[14px] text-mute ring-1 ring-line transition hover:bg-sunken hover:text-rose-ink">
+                  <button onClick={disconnect} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full text-[14.5px] font-medium text-mute ring-1 ring-line-2 transition-colors hover:bg-rose/8 hover:text-rose-ink">
                     <LogOut className="size-4" /> Disconnect
                   </button>
                 </div>
               </div>
             )}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    </Dialog>
   );
 }
 
@@ -812,26 +789,29 @@ function WalletModal() {
 
 function Toaster() {
   const { toasts, dismiss } = useApp();
-  const dot = { mint: "bg-brand", amber: "bg-amber", iris: "bg-iris", rose: "bg-rose" };
+  const dot = { mint: "bg-brand", amber: "bg-amber", iris: "bg-brand", rose: "bg-rose" };
   return (
-    <div className="pointer-events-none fixed top-20 right-5 z-[80] flex w-[340px] max-w-[calc(100vw-40px)] flex-col gap-2">
-      <AnimatePresence>
+    <div className="pointer-events-none fixed top-20 right-4 left-4 z-[90] flex flex-col items-end gap-2 sm:left-auto sm:w-[360px]" aria-live="polite">
+      <AnimatePresence initial={false}>
         {toasts.map((t) => (
           <motion.div
             key={t.id}
             layout
-            initial={{ opacity: 0, y: -12, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 40 }}
-            className="pointer-events-auto flex gap-3 rounded-2xl bg-surface p-4 shadow-[0_20px_50px_-16px_rgba(12,13,15,0.3)] ring-1 ring-line"
-            onClick={() => dismiss(t.id)}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, x: 24, transition: { duration: DUR.fast } }}
+            transition={{ duration: DUR.base, ease: EASE }}
+            className="pointer-events-auto flex w-full gap-3 rounded-2xl bg-surface p-4 pr-3 shadow-[0_20px_50px_-16px_rgba(12,13,15,0.3)] ring-1 ring-line"
             role="status"
           >
             <span className={cx("mt-1.5 size-2 shrink-0 rounded-full", dot[t.tone ?? "mint"])} />
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="text-[14px] font-medium">{t.title}</div>
-              {t.body && <div className="mt-0.5 text-[13px] text-mute">{t.body}</div>}
+              {t.body && <div className="mt-0.5 text-[13px] leading-relaxed break-words text-mute">{t.body}</div>}
             </div>
+            <button onClick={() => dismiss(t.id)} aria-label="Dismiss" className="-mt-1 grid size-7 shrink-0 place-items-center rounded-full text-dim transition-colors hover:bg-sunken hover:text-fg">
+              <X className="size-3.5" />
+            </button>
           </motion.div>
         ))}
       </AnimatePresence>
