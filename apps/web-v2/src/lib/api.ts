@@ -17,7 +17,9 @@ import type { Card } from "./engine";
 import { parseTerms, retryAfterSeconds, serverErrorText, type EscrowTerms } from "./terms";
 
 
-const BASE = ((import.meta.env.VITE_API_URL as string | undefined) || "/api").replace(/\/$/, "");
+// VITE_BACKEND_URL (set in .env.production) wins over the older VITE_API_URL, so a stale value left in a hosting
+// dashboard cannot point a new build at a backend that no longer exists.
+const BASE = ((import.meta.env.VITE_BACKEND_URL as string | undefined) || (import.meta.env.VITE_API_URL as string | undefined) || "/api").replace(/\/$/, "");
 
 export const API_URL = BASE;
 
