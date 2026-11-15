@@ -4,7 +4,31 @@
     "indexes": "firestore.indexes.json"
   },
   "emulators": {
-    "firestore": { "host": "127.0.0.1", "port": 8085 },
-    "ui": { "enabled": false }
-  }
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8085
+    },
+    "ui": {
+      "enabled": false
+    }
+  },
+  "functions": [
+    {
+      "source": ".",
+      "codebase": "api",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "scripts",
+        "test-support",
+        "extension",
+        "vault-sdk/test",
+        "*.log",
+        ".env",
+        ".env.local",
+        ".env.example"
+      ]
+    }
+  ]
 }
