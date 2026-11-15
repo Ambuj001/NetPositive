@@ -73,11 +73,16 @@ function Notice({ children, tone = "rose" }: { children: ReactNode; tone?: "rose
 /* ------------------------------------------------------------------ list */
 
 function DisputeList() {
+  const listTerms = useTerms().terms;
   return (
     <>
       <div className="label">Disputes</div>
       <h1 className="text-gradient mt-2 font-display text-4xl font-semibold tracking-[-0.03em]">Disputes</h1>
-      <p className="mt-2 text-[14px] text-mute">Something wrong with a voucher code? If you locked the USDC, you can freeze the escrow from your wallet, explain what happened and add screenshots. The arbiter then decides. No stake is needed.</p>
+      <p className="mt-2 text-[14px] text-mute">Something wrong with a voucher code? If you locked the USDC, you can freeze the escrow from your wallet, explain what happened and add screenshots. The arbiter then decides. {stakeNotice(listTerms ? listTerms.disputeBond : null, usdcShort)}{" "}
+        <Link to="/docs#disputes" className="link text-fg">
+          How disputes work
+        </Link>
+      </p>
       <div className="mt-6">
         <SignedIn>{(token) => <Orders token={token} />}</SignedIn>
       </div>

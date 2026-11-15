@@ -18,7 +18,7 @@ export function resolveChatbotUrl(value: unknown, dev: boolean) {
 export const CHATBOT_URL = resolveChatbotUrl(env.VITE_CHATBOT_URL, env.DEV === true);
 /** False in a production build without VITE_CHATBOT_URL: nothing is ever sent to 127.0.0.1 from someone's browser. */
 export const CHATBOT_ENABLED = CHATBOT_URL !== "";
-export const CHATBOT_OFF_NOTE = "The AI assistant isn't available on this site yet. The quick actions still work.";
+export const CHATBOT_OFF_NOTE = "The AI assistant is switched off on this site. The quick actions still work.";
 
 export class ChatbotError extends Error {
   kind: "offline" | "no_ai_key" | "api" | "auth" | "disabled";

@@ -18,28 +18,50 @@ const APP_LINKS = [
   { to: "/cards", label: "My cards" },
   { to: "/track", label: "Orders" },
   { to: "/dispute", label: "Disputes" },
+  { to: "/docs", label: "Docs" },
 ];
 
 const SITE_LINKS = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#rates", label: "Live rates" },
-  { href: "/#trust", label: "Trust" },
-  { href: "/#faq", label: "FAQ" },
+  { to: "/#how", label: "How it works" },
+  { to: "/#rates", label: "Live rates" },
+  { to: "/#trust", label: "Trust" },
+  { to: "/#faq", label: "FAQ" },
+  { to: "/docs", label: "Docs" },
 ];
 
+/** Pages that need a connected wallet. Everything else (landing, docs, terms, privacy, brand kit, 404) is public. */
+const APP_PATHS = ["/trade", "/home", "/buy", "/spend", "/sell", "/track", "/market", "/cards", "/dispute", "/disputes"];
+export const isAppPath = (pathname: string) => APP_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
 export function Shell() {
-  const { pathname, hash } = useLocation();
+  const { pathname, hash, key } = useLocation();
   const { walletOpen } = useApp();
+  const lastPath = useRef<string | null>(null);
+  // A link to a section scrolls to it, also when the same link is followed twice. A new page starts at the top.
+  // `key` changes on every navigation, including ones that only change the query; those must not scroll.
   useEffect(() => {
+    const moved = lastPath.current !== pathname;
+    lastPath.current = pathname;
     if (hash) {
-      const el = document.getElementById(hash.slice(1));
+      let id = hash.slice(1);
+      try {
+        id = decodeURIComponent(id);
+      } catch {
+        /* a malformed % in the address: use it as typed */
+      }
+      const el = document.getElementById(id);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Arriving from another page (or on a deep link) jumps straight there, and again once the fonts have
+        // settled the layout. A link to a nearby section of the page you are on glides; a far one jumps, because
+        // gliding through several screens of a long page is slow and shows blank tiles on phones.
+        const far = Math.abs(el.getBoundingClientRect().top) > 1.5 * window.innerHeight;
+        el.scrollIntoView({ behavior: moved || far ? "instant" : "smooth", block: "start" });
+        if (moved) void document.fonts?.ready.then(() => el.isConnected && el.scrollIntoView({ behavior: "instant", block: "start" }));
         return;
       }
     }
-    window.scrollTo({ top: 0 });
-  }, [pathname, hash]);
+    if (moved || hash) window.scrollTo({ top: 0 });
+  }, [pathname, hash, key]);
   return (
     <div className="relative min-h-dvh overflow-x-clip bg-canvas">
       <Announcement />
@@ -78,15 +100,15 @@ function Announcement() {
       <span className="min-w-0 truncate">
         {usdt ? (
           <>
-            USDT on P2P right now <span className="tabular font-medium text-fg">{inr(usdt)}</span>. Buy for less with the card you already have.
+            USDT on P2P is <span className="tabular font-medium text-fg">{inr(usdt)}</span> right now. See what an order is worth with your card.
           </>
         ) : (
-          <>Buy USDC with your card, paid straight to your own wallet.</>
+          <>Get USDC for a gift voucher you buy on your card, paid by escrow to your own wallet.</>
         )}
       </span>
-      <a href="/#how" className="hidden shrink-0 items-center gap-1 font-medium text-fg hover:underline sm:inline-flex">
+      <Link to="/docs" className="hidden shrink-0 items-center gap-1 font-medium text-fg hover:underline sm:inline-flex">
         How it works <ChevronRight className="size-3.5" />
-      </a>
+      </Link>
       <button
         onClick={() => {
           setHidden(true);
@@ -112,7 +134,7 @@ function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
-  const inApp = pathname !== "/" && pathname !== "/brand";
+  const inApp = isAppPath(pathname);
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
@@ -144,9 +166,9 @@ function Nav() {
                 </NavLink>
               ))
             : SITE_LINKS.map((l) => (
-                <a key={l.href} href={l.href} className="rounded-lg px-3 py-2 text-[14.5px] text-mute transition-colors hover:text-fg">
+                <Link key={l.to} to={l.to} aria-current={pathname === l.to ? "page" : undefined} className={cx("rounded-lg px-3 py-2 text-[14.5px] transition-colors hover:text-fg", pathname === l.to ? "text-fg" : "text-mute")}>
                   {l.label}
-                </a>
+                </Link>
               ))}
         </div>
         <div className="flex items-center gap-2">
@@ -188,19 +210,12 @@ function Nav() {
         {open && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden border-t border-line bg-canvas md:hidden">
             <div className="px-3 py-2">
-              {(inApp && address ? APP_LINKS.map((l) => ({ href: l.to, label: l.label, internal: true })) : SITE_LINKS.map((l) => ({ ...l, internal: false }))).map((l) =>
-                l.internal ? (
-                  <NavLink key={l.href} to={l.href} className="flex items-center justify-between rounded-xl px-3 py-3.5 text-[16px] hover:bg-sunken">
-                    {l.label}
-                    <ChevronRight className="size-4 text-dim" />
-                  </NavLink>
-                ) : (
-                  <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3.5 text-[16px] hover:bg-sunken">
-                    {l.label}
-                    <ChevronRight className="size-4 text-dim" />
-                  </a>
-                ),
-              )}
+              {(inApp && address ? APP_LINKS : SITE_LINKS).map((l) => (
+                <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3.5 text-[16px] hover:bg-sunken">
+                  {l.label}
+                  <ChevronRight className="size-4 text-dim" />
+                </Link>
+              ))}
               {address && !inApp && (
                 <Link to="/trade" className="mt-1 flex items-center justify-between rounded-xl bg-fg px-3 py-3.5 text-[16px] text-white">
                   Open app <ArrowRight className="size-4" />
@@ -224,7 +239,7 @@ function NetworkNotice() {
   const { address, onArc, chain, switchToArc, walletLimited, walletName, toast } = useApp();
   const { pathname } = useLocation();
   const [busy, setBusy] = useState(false);
-  if (!address || onArc || !chain || pathname === "/" || pathname === "/brand") return null;
+  if (!address || onArc || !chain || !isAppPath(pathname)) return null;
   return (
     <div role="status" className="border-b border-amber/30 bg-amber/10 px-5 py-2.5 text-[13px] text-amber-ink">
       <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-x-4 gap-y-2 md:px-3">
@@ -260,8 +275,6 @@ function NetworkNotice() {
 /* --------------------------------------------------------------- footer */
 
 const REPO = "https://github.com/Ambuj001/NetPositive";
-const REPO_FILE = `${REPO}/blob/main`;
-const REPO_DIR = `${REPO}/tree/main`;
 
 type FooterLink = { label: string; to: string } | { label: string; href: string };
 const FOOTER_COLUMNS: { h: string; l: FooterLink[] }[] = [
@@ -275,21 +288,24 @@ const FOOTER_COLUMNS: { h: string; l: FooterLink[] }[] = [
     ],
   },
   {
-    h: "Trust",
+    h: "Docs",
     l: [
-      { label: "Escrow contract", href: `${REPO_FILE}/contracts/src/VoucherEscrow.sol` },
-      { label: "World ID", href: "https://world.org/world-id" },
-      { label: "Voucher vault", href: `${REPO_FILE}/docs/vault.md` },
-      { label: "Disputes", to: "/dispute" },
+      { label: "How it works", to: "/docs" },
+      { label: "Getting started", to: "/docs#getting-started" },
+      { label: "Fees", to: "/docs#fees" },
+      { label: "Disputes", to: "/docs#disputes" },
+      { label: "Safety and known limits", to: "/docs#safety" },
+      { label: "Common problems", to: "/docs#faq" },
     ],
   },
   {
-    h: "Build",
+    h: "More",
     l: [
-      { label: "Docs", href: `${REPO_DIR}/docs` },
-      { label: "Contracts", href: `${REPO_DIR}/contracts` },
-      { label: "Rates API", href: `${REPO_FILE}/backend/README.md` },
-      { label: "GitHub", href: REPO },
+      { label: "Contract details", to: "/docs#contract" },
+      { label: "Terms", to: "/terms" },
+      { label: "Privacy", to: "/privacy" },
+      { label: "World ID", href: "https://world.org/world-id" },
+      { label: "Source code", href: REPO },
     ],
   },
 ];
@@ -308,7 +324,15 @@ function Footer() {
             Escrow live on {ARC.name}
           </div>
           <p className="mt-3 max-w-xs text-[14px] leading-relaxed text-mute">Buy USDC with the card you already have, paid by escrow straight to your own wallet. Your reward points stay yours.</p>
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-sunken px-3 py-1.5 font-mono text-[11px] text-mute">Built at ETHGlobal Mumbai · 2026</div>
+          {!ARC.testnet && (
+            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-mute">
+              The escrow contract is not audited yet and launch limits apply.{" "}
+              <Link to="/docs#safety" className="link text-fg">
+                Read the known limits
+              </Link>
+              .
+            </p>
+          )}
         </div>
         {FOOTER_COLUMNS.map((c) => (
           <div key={c.h}>
@@ -334,9 +358,17 @@ function Footer() {
       </div>
       <div className="mx-auto flex max-w-[1200px] flex-col justify-between gap-2 px-5 py-6 text-[12.5px] text-dim md:flex-row md:px-8">
         <span>© 2026 NetPositive. {ARC.testnet ? `Testnet software: no real money moves on ${ARC.name}.` : `Escrow runs on ${ARC.name}. USDC there is real money.`} Not financial advice.</span>
-        <Link to="/brand" className="hover:text-fg">
-          Brand kit
-        </Link>
+        <span className="flex flex-wrap gap-x-5 gap-y-1">
+          <Link to="/terms" className="hover:text-fg">
+            Terms
+          </Link>
+          <Link to="/privacy" className="hover:text-fg">
+            Privacy
+          </Link>
+          <Link to="/brand" className="hover:text-fg">
+            Brand kit
+          </Link>
+        </span>
       </div>
     </footer>
   );
@@ -392,7 +424,7 @@ function Gate() {
   const { pathname, search } = useLocation();
   const wasConnected = useRef(false);
   if (address) wasConnected.current = true;
-  if (address || pathname === "/" || pathname === "/brand") return <Outlet />;
+  if (address || !isAppPath(pathname)) return <Outlet />;
   if (restoring)
     return (
       <div className="grid min-h-[60vh] place-items-center text-[14px] text-mute">

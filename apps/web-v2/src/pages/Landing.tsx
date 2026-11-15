@@ -1,12 +1,14 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, ChevronRight, Minus, Plus } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { LedBoard } from "../brand/LedBoard";
 import { PlusField } from "../brand/PlusField";
 import { PixelIcon, type PixelName } from "../components/PixelIcon";
 import { BrandMark, Button, Marquee, SectionHead, Sticker, cx } from "../components/ui";
 import { ARC } from "../lib/chain";
 import { CARDS, routesFor } from "../lib/engine";
+import { displayTerms, type DisplayTerms } from "../lib/displayTerms";
 import { feePercent } from "../lib/terms";
 import { useTerms } from "../lib/useTerms";
 import { bps, inr, useRates, type RatesSummary } from "../lib/rates";
@@ -177,7 +179,7 @@ function TwoSides() {
           <SideCard
             icon="wallet"
             title="Hold crypto? Spend it."
-            body="Pick a store and an amount, lock USDC in escrow, and receive a working gift-card code in minutes. No bank account, no P2P counterparty risk."
+            body="Pick a store and an amount and lock USDC in escrow. A card holder buys the voucher and sends you the code, and you check it before the USDC is released. No bank account needed."
             facts={[
               ["You set the rate", "₹ per USDC"],
               ["You pay", `USDC + ${feePercent(feeBps)} fee${estimated ? " (est.)" : ""}`],
@@ -219,56 +221,69 @@ function SideCard({ icon, title, body, facts, cta }: { icon: PixelName; title: s
 
 /* ---------------------------------------------------------- how it works */
 
-/** Replaced with the escrow's current fee when the list is shown. */
-const FEE_TAG = "fee";
-const HOW: { icon: PixelName; title: string; line: string; tags: string[]; detail: string[] }[] = [
+type HowStep = { icon: PixelName; title: string; line: string; tags: string[]; detail: ReactNode[] };
+
+/** The four steps, with the escrow's current numbers (`v`) written in. */
+const how = (v: DisplayTerms, feeTag: string): HowStep[] => [
   {
     icon: "lock",
     title: "A spender locks USDC in escrow",
     line: "Someone who wants to shop posts an order: a store, a voucher amount and a rate. Their USDC goes into the escrow contract on Arc, and you can check it there yourself.",
-    tags: ["Arc escrow", FEE_TAG],
+    tags: ["Arc escrow", feeTag, `${v.min} to ${v.max} USDC per order`],
     detail: [
-      "Your wallet signs two transactions: approve USDC, then deposit into VoucherEscrow under this order's id.",
-      "Nobody, including NetPositive, can move it except by the order's rules: release to the card holder, refund to you, or a dispute ruling.",
-      "If no one accepts in time, the order lapses and you can take the USDC back.",
+      "The spender's wallet sends two transactions: approve USDC, then deposit the amount plus the fee into the escrow contract.",
+      "From then on the contract can only pay the buyer the spender names, or refund the spender. No key held by NetPositive can send it anywhere else.",
+      "If no one takes the order in time, it expires and the spender gets everything back, fee included.",
     ],
   },
   {
     icon: "human",
-    title: "You accept the order",
-    line: "Only people who passed World ID's Proof of Human can accept, one account per person. The order is now yours to fill.",
-    tags: ["World ID", "One human, one account"],
+    title: "You accept, then bind yourself on-chain",
+    line: "Only people who passed World ID's one-person check can accept. When the spender presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them.",
+    tags: ["World ID", "One human, one account", "One wallet transaction"],
     detail: [
       "The order book ranks every open order by what it's worth to each card holder after their card's rewards.",
-      "A banned person can't come back on a fresh wallet: the World ID nullifier is bound to the first wallet.",
+      "Do not buy the voucher before your on-chain confirmation has gone through. Until then the spender can still cancel.",
+      "A banned person can't come back on a fresh wallet: the World ID check is bound to the first wallet.",
     ],
   },
   {
     icon: "sealed",
     title: "Buy the voucher and send the code sealed",
-    line: "Pay for the voucher on your card, then paste the code. It is encrypted in your browser to the spender's key. The server never sees it.",
-    tags: ["Client-side encryption", "Voucher vault"],
+    line: "Pay for the voucher on your card, mark it delivered from your wallet, then paste the code. It is encrypted in your browser to the spender's key. The server never sees it.",
+    tags: ["Client-side encryption", `${v.fulfil} to deliver`],
     detail: [
-      "Codes are sealed in the browser with a key derived from your wallet signature. NetPositive only stores ciphertext.",
-      "You open it in the app, add it to the store's wallet, and confirm it works.",
+      "The code is locked in your browser so that only the spender's wallet can open it. NetPositive stores only the locked box.",
+      `You have ${v.fulfil} from your on-chain confirmation to deliver. Miss it and the spender is refunded.`,
     ],
   },
   {
     icon: "clock",
     title: "Escrow pays your wallet",
-    line: "The spender confirms the voucher works and the contract releases the USDC to the wallet you connected.",
-    tags: ["Review window", "Stake-backed disputes"],
+    line: `The spender checks the voucher and releases the USDC to the wallet you connected. If they neither release nor dispute within ${v.review}, you are paid anyway.`,
+    tags: [`${v.review} review window`, v.hasStake ? `${v.stake} USDC dispute stake` : "Disputes"],
     detail: [
-      "If something is wrong, raise a dispute with a small USDC stake and screenshots. The escrow freezes until it's decided.",
-      "Whoever was right gets their stake back; the other side loses theirs and the account is banned.",
+      v.hasStake
+        ? `If the voucher is bad, the spender can open a dispute by locking a ${v.stake} USDC stake. The escrow freezes until an arbiter decides.`
+        : "If the voucher is bad, the spender can open a dispute. The escrow freezes until an arbiter decides.",
+      "If the spender was right they are refunded. If they were wrong, you receive the USDC and their stake, and their account is banned.",
+      <>
+        The full rules are in the{" "}
+        <Link to="/docs#disputes" className="link font-medium text-fg">
+          docs
+        </Link>
+        .
+      </>,
     ],
   },
 ];
 
 function HowItWorks() {
   const [open, setOpen] = useState<number | null>(0);
-  const { feeBps, estimated } = useTerms();
-  const feeTag = `${feePercent(feeBps)} fee${estimated ? " (estimated)" : ""}`;
+  const { terms, feeBps, estimated } = useTerms();
+  const v = useMemo(() => displayTerms(terms), [terms]);
+  const feeTag = `${feePercent(feeBps)} fee on top${estimated ? " (launch value)" : ""}`;
+  const HOW = how(v, feeTag);
   return (
     <section id="how" className={cx(wrap, "scroll-mt-24 py-20 md:py-28")}>
       <SectionHead eyebrow="How it works" title="From your card to USDC in your wallet, in four steps" sub="Seen from the buyer's side. Every step is enforced by the escrow contract, World ID or encryption, not by trusting the other person." />
@@ -290,7 +305,7 @@ function HowItWorks() {
                   <span className="mt-3 flex flex-wrap gap-1.5">
                     {h.tags.map((t) => (
                       <span key={t} className="rounded-md bg-sunken px-2 py-0.5 text-[12px] text-mute">
-                        {t === FEE_TAG ? feeTag : t}
+                        {t}
                       </span>
                     ))}
                   </span>
@@ -301,8 +316,8 @@ function HowItWorks() {
                 {isOpen && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden">
                     <ul className="space-y-2 px-5 pb-6 md:pl-[100px] md:pr-16">
-                      {h.detail.map((d) => (
-                        <li key={d} className="flex gap-3 text-[15px] leading-relaxed text-fg/80">
+                      {h.detail.map((d, j) => (
+                        <li key={j} className="flex gap-3 text-[15px] leading-relaxed text-fg/80">
                           <span className="mt-[9px] size-1.5 shrink-0 rounded-[2px] bg-brand" />
                           {d}
                         </li>
@@ -315,6 +330,14 @@ function HowItWorks() {
           );
         })}
       </div>
+      <p className="mt-6 text-[14.5px] text-mute">
+        {!v.live && "Time windows and limits shown are the launch values while the current ones load. "}
+        Every step, from both sides, is in the{" "}
+        <Link to="/docs#buying" className="link font-medium text-fg">
+          docs
+        </Link>
+        .
+      </p>
     </section>
   );
 }
@@ -465,26 +488,31 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
 
 /* ------------------------------------------------------------------ trust */
 
-const TRUST: { icon: PixelName; title: string; body: string; href?: string }[] = [
-  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the VoucherEscrow contract and move only by the order's rules. You send every transaction from your own wallet.", href: "https://github.com/Ambuj001/NetPositive/blob/main/contracts/src/VoucherEscrowV2.sol" },
-  { icon: "human", title: "World ID humans", body: "Proof of Human once per person. Bans stick, sybil farms don't work.", href: "https://world.org/world-id" },
-  { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the receiver's key. The server stores ciphertext only.", href: "https://github.com/Ambuj001/NetPositive/blob/main/docs/vault.md" },
-  { icon: "clock", title: "Review window", body: "Payout waits until the spender confirms the voucher works, or raises a dispute." },
-  { icon: "scale", title: "Disputes with limits", body: "Only the spender can dispute, and only inside the review window. The arbiter can split that one escrow and nothing else; if nobody rules, the USDC returns to the spender." },
-  { icon: "shield", title: "Check the escrow yourself", body: "Before you spend a rupee, the app reads the deposit straight from the contract on Arc, not from our server." },
+type TrustItem = { icon: PixelName; title: string; body: string; to?: string; href?: string };
+
+const trust = (v: DisplayTerms): TrustItem[] => [
+  { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the escrow contract and can only go to the buyer the spender named, or back to the spender. You send every transaction from your own wallet.", to: "/docs#safety" },
+  { icon: "human", title: "World ID humans", body: "One-person check once per person. One account each, and a ban follows the person, not the wallet.", href: "https://world.org/world-id" },
+  { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the spender's key. The server stores only the locked box.", to: "/docs#vouchers" },
+  { icon: "clock", title: "Review window", body: `After delivery the spender has ${v.review} to release or dispute. If they do neither, the buyer is paid.`, to: "/docs#time-limits" },
+  { icon: "scale", title: "Disputes with limits", body: "Only the spender can dispute, and only inside the review window. The arbiter can split that one escrow and nothing else; if nobody rules in 30 days, the USDC returns to the spender.", to: "/docs#disputes" },
+  { icon: "shield", title: "Check the escrow yourself", body: "Before you spend a rupee, the app reads the deposit straight from the contract on Arc, not from our server.", to: "/docs#safety" },
 ];
 
 function Trust() {
+  const { terms } = useTerms();
+  const v = useMemo(() => displayTerms(terms), [terms]);
+  const card = "group block h-full rounded-2xl border border-line bg-surface p-6 transition hover:border-line-2 hover:shadow-[0_12px_32px_-20px_rgba(12,13,15,0.25)]";
   return (
     <section id="trust" className={cx(wrap, "scroll-mt-24 py-20 md:py-28")}>
-      <SectionHead eyebrow="Trust" title="Built so neither side has to trust the other" sub="Each risk in a voucher trade has a specific control. None of them depends on NetPositive being honest." />
+      <SectionHead eyebrow="Trust" title="Built so neither side has to trust the other" sub="Each risk in a voucher trade has a specific control, most of them enforced by the contract or by encryption. Where you still have to trust someone, we say so." />
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {TRUST.map((t, i) => {
+        {trust(v).map((t, i) => {
           const inner = (
             <>
               <div className="flex items-start justify-between">
                 <PixelIcon name={t.icon} size={44} />
-                {t.href && <ChevronRight className="size-4 text-dim transition group-hover:translate-x-0.5 group-hover:text-fg" />}
+                <ChevronRight className="size-4 text-dim transition group-hover:translate-x-0.5 group-hover:text-fg" />
               </div>
               <h3 className="mt-8 text-[17px] font-medium tracking-[-0.02em]">{t.title}</h3>
               <p className="mt-1.5 text-[14.5px] leading-relaxed text-mute">{t.body}</p>
@@ -492,16 +520,27 @@ function Trust() {
           );
           return (
             <motion.div key={t.title} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ delay: i * 0.04, duration: 0.5 }}>
-              {t.href ? (
-                <a href={t.href} target="_blank" rel="noopener noreferrer" className="group block h-full rounded-2xl border border-line bg-surface p-6 transition hover:border-line-2 hover:shadow-[0_12px_32px_-20px_rgba(12,13,15,0.25)]">
+              {t.to ? (
+                <Link to={t.to} className={card}>
+                  {inner}
+                </Link>
+              ) : (
+                <a href={t.href} target="_blank" rel="noopener noreferrer" className={card}>
                   {inner}
                 </a>
-              ) : (
-                <div className="group h-full rounded-2xl border border-line bg-surface p-6">{inner}</div>
               )}
             </motion.div>
           );
         })}
+      </div>
+      <div className="mt-4 rounded-2xl bg-amber/10 p-5 ring-1 ring-amber/35 md:p-6">
+        <h3 className="text-[16px] font-semibold text-amber-ink">What is not solved yet</h3>
+        <p className="mt-1.5 max-w-[860px] text-[14.5px] leading-relaxed text-fg/80">
+          The escrow contract has not been audited, and its settings are controlled by a single owner wallet for now. A dispute is decided by an arbiter on the team. Nothing checks a voucher automatically, so the spender has to check it in time. Until an audit, orders are limited to {v.max} USDC each and {v.cap} USDC in total{v.live ? "" : " (launch values)"}.{" "}
+          <Link to="/docs#safety" className="link font-medium text-fg">
+            Read the known limits
+          </Link>
+        </p>
       </div>
     </section>
   );
@@ -509,7 +548,7 @@ function Trust() {
 
 /* -------------------------------------------------------------------- faq */
 
-const FAQS: { q: string; a: ReactNode }[] = [
+const faqs = (v: DisplayTerms): { q: string; a: ReactNode }[] => [
   {
     q: "Do I need an exchange account?",
     a: "No. The escrow contract pays the USDC to the wallet you connect, and NetPositive never holds it. From there it is yours to move or use in DeFi.",
@@ -530,7 +569,19 @@ const FAQS: { q: string; a: ReactNode }[] = [
   },
   {
     q: "What if the voucher doesn't work?",
-    a: "Don't confirm it. Raise a dispute with screenshots and a small USDC stake. The escrow is frozen until it's decided, and whoever acted in bad faith loses their stake.",
+    a: `Don't release. Open a dispute before the review window ends (${v.review} after delivery), with screenshots${v.hasStake ? ` and a ${v.stake} USDC stake` : ""}. The escrow is frozen until an arbiter decides. If you were right, the USDC, the fee and the stake come back to you. If the arbiter finds the voucher was fine, the buyer is paid, receives your stake, and your account is banned.`,
+  },
+  {
+    q: "Is the contract audited?",
+    a: (
+      <>
+        No, not yet. It is live on {ARC.name} with tests but without an independent audit, and a single owner wallet controls its settings for new orders. That is why orders are capped at {v.max} USDC each and {v.cap} USDC in total{v.live ? "" : " (launch values)"}. The{" "}
+        <Link to="/docs#safety" className="link font-medium text-fg">
+          known limits
+        </Link>{" "}
+        are listed in the docs.
+      </>
+    ),
   },
   {
     q: "How is the rate decided?",
@@ -540,6 +591,8 @@ const FAQS: { q: string; a: ReactNode }[] = [
 
 function Faq() {
   const [open, setOpen] = useState(0);
+  const { terms } = useTerms();
+  const FAQS = useMemo(() => faqs(displayTerms(terms)), [terms]);
   return (
     <section id="faq" className={cx(wrap, "scroll-mt-24 border-t border-line py-20 md:py-28")}>
       <div className="grid gap-10 md:grid-cols-[1fr_1.5fr]">
@@ -548,6 +601,13 @@ function Faq() {
             <span className="size-1.5 rounded-[2px] bg-brand" /> FAQ
           </div>
           <h2 className="text-[34px] font-semibold leading-[1.06] tracking-[-0.035em] md:text-[40px]">Questions people ask first</h2>
+          <p className="mt-4 text-[15.5px] leading-relaxed text-mute">
+            Stuck on a wrong network or a pending transaction? See{" "}
+            <Link to="/docs#faq" className="link font-medium text-fg">
+              common problems
+            </Link>{" "}
+            in the docs.
+          </p>
         </div>
         <div className="divide-y divide-line border-y border-line">
           {FAQS.map((f, i) => (
@@ -559,7 +619,7 @@ function Faq() {
               <AnimatePresence initial={false}>
                 {open === i && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <p className="pb-6 text-[15.5px] leading-relaxed text-mute">{f.a}</p>
+                    <div className="pb-6 text-[15.5px] leading-relaxed text-mute">{f.a}</div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -592,8 +652,8 @@ function Band() {
               Connect wallet
             </Button>
           )}
-          <Button size="lg" href="https://github.com/Ambuj001/NetPositive" className="!bg-transparent text-white ring-1 ring-white/40 hover:!bg-white/10">
-            Read the code
+          <Button size="lg" to="/docs" className="!bg-transparent text-white ring-1 ring-white/40 hover:!bg-white/10">
+            Read the docs
           </Button>
         </div>
       </div>
