@@ -16,6 +16,16 @@ Contract: `VoucherEscrowV2` on Arc mainnet (chain 5042) at `0x14ed5880d4c2cbf045
 
 Never put the owner key on a server. The keeper needs about 1 USDC on Arc for gas (Arc pays gas in USDC) and should be topped up when it runs low.
 
+## Where it runs today
+
+| Part | Where |
+|---|---|
+| Web app | Vercel project `net-positive`, https://net-positive-two.vercel.app, built from `main` |
+| Backend | Firebase project `netpositive-54308`, functions `api` and `sweeper` in `asia-south1`: https://asia-south1-netpositive-54308.cloudfunctions.net/api |
+| Database | Firestore in the same project (`asia-south1`) |
+
+Deploy the backend with `npm run firebase:deploy` in `backend/` (settings in `backend/.env.netpositive-54308`, secrets in Secret Manager via `npm run firebase:secrets`). The World ID requirement is switched on and off by an administrator wallet at `/admin`.
+
 ## Web app (static host, for example Vercel)
 
 Project root `apps/web-v2`, build `npm run build`, output `dist`. `vercel.json` already rewrites every path to the app.
