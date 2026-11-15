@@ -10,7 +10,13 @@ import type { ReactNode } from "react";
 import { A, Callout, CopyValue, Facts, H3, P, Steps, Table, Ul } from "../components/Prose";
 import { CONTRACT_CONSTANTS, LIVE_DEPLOYMENT as LIVE, type DisplayTerms } from "../lib/displayTerms";
 
-export type DocSection = { id: string; group: string; title: string; summary: string; body: (v: DisplayTerms) => ReactNode };
+/**
+ * What the page knows besides the escrow's numbers. `worldIdOn` is true only while the server confirms World ID is
+ * required (GET /world-id/config); an administrator can switch it off, and the text must then not claim humans-only.
+ */
+export type DocContext = { worldIdOn: boolean };
+
+export type DocSection = { id: string; group: string; title: string; summary: string; body: (v: DisplayTerms, ctx: DocContext) => ReactNode };
 
 /** Roles read back from the contract on the day it was deployed (contracts/deployments/arc-mainnet.json). */
 const ROLES_AT_LAUNCH = {
@@ -61,8 +67,8 @@ export const DOC_SECTIONS: DocSection[] = [
     id: "getting-started",
     group: "Start here",
     title: "Getting started",
-    summary: "Wallet, the Arc network, USDC and World ID.",
-    body: () => (
+    summary: "Wallet, the Arc network, USDC and, when it is switched on, World ID.",
+    body: (_v, { worldIdOn }) => (
       <>
         <H3>1. A wallet that can use Arc</H3>
         <P>
@@ -103,11 +109,23 @@ export const DOC_SECTIONS: DocSection[] = [
           NetPositive does not sell or bridge USDC. Send it to your wallet address on the Arc network from an exchange or bridge that supports Arc. USDC on another network is not usable here until it is moved to Arc. Send a small test amount first.
         </P>
 
-        <H3>4. World ID, once</H3>
-        <P>
-          Posting or accepting an order needs a World ID check, done in the World App. It proves you are one real person without telling NetPositive who you are, and it ties one person to one account. You can browse without it. It is asked for once, the first time you post or accept.
-        </P>
-        <P>The check is bound to the first wallet you use it with. A banned person cannot come back on a new wallet.</P>
+        {worldIdOn ? (
+          <>
+            <H3>4. World ID, once</H3>
+            <P>
+              Posting or accepting an order needs a World ID check, done in the World App. It proves you are one real person without telling NetPositive who you are, and it ties one person to one account. You can browse without it. It is asked for once, the first time you post or accept.
+            </P>
+            <P>The check is bound to the first wallet you use it with. A banned person cannot come back on a new wallet.</P>
+          </>
+        ) : (
+          <>
+            <H3>4. World ID, when it is switched on</H3>
+            <P>
+              An administrator can require a World ID check, done in the World App, before you post or accept an order. It proves you are one real person without telling NetPositive who you are, and it ties one person to one account. When it is on, it is asked for once, the first time you post or accept, and it is bound to the first wallet you use it with, so a banned person cannot come back on a new wallet.
+            </P>
+            <P>While it is switched off, any signed-in wallet can post and accept orders, and one person can use several wallets.</P>
+          </>
+        )}
       </>
     ),
   },
@@ -275,7 +293,7 @@ export const DOC_SECTIONS: DocSection[] = [
     group: "The rules",
     title: "Disputes",
     summary: "Who can open one, the stake, and how it ends.",
-    body: (v) => (
+    body: (v, { worldIdOn }) => (
       <>
         <P>
           Only the spender can open a dispute, and only after the buyer has marked the order delivered and before the review window ({v.review}) ends. It is a transaction from the spender's wallet.
@@ -304,7 +322,10 @@ export const DOC_SECTIONS: DocSection[] = [
         />
         <P>A dispute can also end without a ruling: the spender can release after all, or the buyer can concede with a call to the contract. In both cases the stake goes back to the spender.</P>
         <Callout tone="warn" title="A false dispute gets the account banned">
-          If the arbiter rules that the spender was wrong, the spender loses the stake and their NetPositive account is banned. Because accounts are tied to World ID, a new wallet does not get around it.
+          If the arbiter rules that the spender was wrong, the spender loses the stake and their NetPositive account is banned.{" "}
+          {worldIdOn
+            ? "Because accounts are tied to World ID, a new wallet does not get around it."
+            : "While World ID is switched on, accounts are tied to one person, so a new wallet does not get around it. While it is off, the ban applies to the wallet."}
         </Callout>
         <P>
           If the arbiter never decides, anyone can refund the spender after {days}. That fallback is in the contract and does not need us.
@@ -363,6 +384,19 @@ export const DOC_SECTIONS: DocSection[] = [
         />
         <P>
           The owner is currently one wallet held by one person, not a multisig. At launch the arbiter and the address that receives the fees are one and the same wallet (a different one from the owner), so the person who judges disputes also collects fees. The team plans to move ownership to a multisig and separate these before raising the limits.
+        </P>
+
+        <H3>Administrators</H3>
+        <P>An administrator is a wallet the NetPositive server lists as one. It has no role in the contract. In the app it has an admin page from which it can:</P>
+        <Ul
+          items={[
+            <>Switch the World ID requirement on or off. On, every trader must prove they are one person with World ID. Off, any signed-in wallet can trade, and one person can use many wallets.</>,
+            <>See how many orders are in each state, the open disputes, and the health of the server.</>,
+            <>Decide disputes, through the server's admin API (the site has no button for it yet). The ruling is carried out by the arbiter, so it can only split an order the spender has put in dispute.</>,
+          ]}
+        />
+        <P>
+          It cannot move or redirect anyone's USDC: the contract only pays the buyer the spender named, or the spender. It cannot change the contract's fee, order limits, time windows or dispute stake, or pause deposits, from the app. Those are changed only from the owner wallet on the contract, as in the table above.
         </P>
 
         <H3>Launch limits</H3>

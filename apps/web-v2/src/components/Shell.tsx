@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, ArrowUpRight, Check, ChevronRight, Copy, ExternalLink, FingerprintPattern, LoaderCircle, LogOut, Menu, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronRight, Copy, ExternalLink, FingerprintPattern, LoaderCircle, LogOut, Menu, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useIsAdmin } from "../lib/admin";
 import { ARC, ARC_USDC } from "../lib/chain";
 import { useApp } from "../lib/store";
 import { readSession } from "../lib/session";
@@ -20,6 +21,8 @@ const APP_LINKS = [
   { to: "/dispute", label: "Disputes" },
   { to: "/docs", label: "Docs" },
 ];
+/** Shown only to administrator wallets (GET /admin/me). The server refuses everyone else on every admin route. */
+const ADMIN_LINK = { to: "/admin", label: "Admin" };
 
 const SITE_LINKS = [
   { to: "/#how", label: "How it works" },
@@ -30,7 +33,7 @@ const SITE_LINKS = [
 ];
 
 /** Pages that need a connected wallet. Everything else (landing, docs, terms, privacy, brand kit, 404) is public. */
-const APP_PATHS = ["/trade", "/home", "/buy", "/spend", "/sell", "/track", "/market", "/cards", "/dispute", "/disputes"];
+const APP_PATHS = ["/trade", "/home", "/buy", "/spend", "/sell", "/track", "/market", "/cards", "/dispute", "/disputes", "/admin"];
 export const isAppPath = (pathname: string) => APP_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
 export function Shell() {
@@ -131,6 +134,9 @@ function Announcement() {
 
 function Nav() {
   const { address, walletBalance, humanVerified, openWallet, walletIcon, walletId, walletName, restoring, onArc } = useApp();
+  const { required: worldIdRequired } = useWorldId();
+  const { admin } = useIsAdmin();
+  const appLinks = admin ? [...APP_LINKS, ADMIN_LINK] : APP_LINKS;
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -149,7 +155,7 @@ function Nav() {
         <Logo />
         <div className="hidden items-center gap-1 md:flex">
           {inApp && address
-            ? APP_LINKS.map((l) => (
+            ? appLinks.map((l) => (
                 <NavLink
                   key={l.to}
                   to={l.to}
@@ -191,9 +197,9 @@ function Nav() {
                 </span>
                 {humanVerified ? (
                   <ShieldCheck className="size-4 text-brand-ink" aria-label="Verified human" />
-                ) : (
+                ) : worldIdRequired ? (
                   <span className="size-2 rounded-full bg-amber" aria-label="World ID not verified" title="Not verified with World ID yet" />
-                )}
+                ) : null}
               </button>
             </>
           ) : (
@@ -210,7 +216,7 @@ function Nav() {
         {open && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden border-t border-line bg-canvas md:hidden">
             <div className="px-3 py-2">
-              {(inApp && address ? APP_LINKS : SITE_LINKS).map((l) => (
+              {(inApp && address ? appLinks : SITE_LINKS).map((l) => (
                 <Link key={l.to} to={l.to} onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl px-3 py-3.5 text-[16px] hover:bg-sunken">
                   {l.label}
                   <ChevronRight className="size-4 text-dim" />
@@ -417,7 +423,8 @@ function FloatingCta() {
 
 /**
  * Inside pages need a connected wallet. World ID is asked for the first time someone posts or accepts an order
- * (every such action calls verifyHuman), so a failed or cancelled World ID never locks a person out of browsing.
+ * (every such action calls ensureHuman), so a failed or cancelled World ID never locks a person out of browsing.
+ * While an administrator has World ID switched off on the server, that step is skipped altogether.
  */
 function Gate() {
   const { address, restoring } = useApp();
@@ -479,7 +486,8 @@ function WalletModal() {
   const { walletOpen, closeWallet, address, fullAddress, chain, walletName, walletIcon, walletId, choices, pending, walletError, connect, disconnect, humanVerified, toast, onArc, switchToArc, walletLimited, walletRequest } = app;
   const appRef = useRef(app);
   appRef.current = app;
-  const { verifyHuman, phase, config } = useWorldId();
+  const { verifyHuman, phase, config, required: worldIdRequired, refreshConfig } = useWorldId();
+  const { admin } = useIsAdmin();
   const [copied, setCopied] = useState(false);
   const [switching, setSwitching] = useState(false);
   const navigate = useNavigate();
@@ -502,7 +510,12 @@ function WalletModal() {
     const addr = await waitForAddress(() => addressRef.current);
     if (!addr) return;
     // One flow: sign in (one free signature), then Proof of Human once. Cancelling World ID still lets them in to browse.
-    if (!readSession(addr)?.verified) await verifyHuman();
+    // With World ID switched off on the server, only the sign-in is left.
+    const stored = readSession(addr);
+    const cfg = await refreshConfig();
+    if (!cfg.required) {
+      if (!stored) await appRef.current.signIn();
+    } else if (!stored?.verified) await verifyHuman();
     closeWallet();
     const from = typeof (state as { from?: unknown } | null)?.from === "string" ? (state as { from: string }).from : "";
     if (pathname === "/") navigate(from || "/trade");
@@ -701,6 +714,12 @@ function WalletModal() {
                   )}
                 </div>
 
+                {!worldIdRequired ? (
+                  <div className="rounded-2xl bg-surface p-4 text-[13px] leading-relaxed text-mute ring-1 ring-line" data-testid="world-id-off">
+                    <div className="text-[15px] font-medium text-fg">No World ID step right now</div>
+                    <div className="mt-0.5">World ID is switched off on NetPositive at the moment. A signed-in wallet can post and accept orders without it.</div>
+                  </div>
+                ) : (
                 <div className={cx("rounded-2xl p-4 ring-1", humanVerified ? "bg-brand-soft ring-brand/30" : "bg-surface ring-line")}>
                   <div className="flex items-start gap-3">
                     <div className={cx("grid size-10 shrink-0 place-items-center rounded-full", humanVerified ? "bg-brand text-white" : "bg-fg text-white")}>
@@ -750,6 +769,25 @@ function WalletModal() {
                   )}
                   <WorldIdNotice className="mt-3" />
                 </div>
+                )}
+
+                {admin && (
+                  <Link
+                    to={ADMIN_LINK.to}
+                    onClick={closeWallet}
+                    className="flex items-center gap-3 rounded-2xl bg-surface p-3.5 text-[14px] ring-1 ring-line transition hover:bg-sunken"
+                    data-testid="admin-link"
+                  >
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-sunken">
+                      <SlidersHorizontal className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">Admin</span>
+                      <span className="block truncate text-[12.5px] text-mute">World ID switch, orders, disputes, server health</span>
+                    </span>
+                    <ChevronRight className="size-4 text-dim" />
+                  </Link>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                   {pathname === "/" && (

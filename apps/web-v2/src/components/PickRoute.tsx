@@ -12,13 +12,13 @@ import { Button, Card, Pill, cx } from "./ui";
 
 /**
  * "Pick how to buy it": the buyer ranks their saved cards for this voucher, picks a route and accepts the order.
- * Accepting needs a connected wallet, a sign-in and World ID, then calls the backend, which reserves the order for this
+ * Accepting needs a connected wallet, a sign-in and World ID (unless the server has it switched off), then calls the backend, which reserves the order for this
  * buyer. It does not bind them on-chain yet: that is the buyer's own `accept` transaction, after the spender's Ready
  * (see AcceptOnchain). The page reloads into the buyer's view, which says not to buy the voucher before then.
  */
 export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onAccepted: (r: ApiRequest) => void; onRefresh: () => void }) {
   const { fullAddress, humanVerified, openWallet, token, signIn, toast, cards, cardsAreExamples } = useApp();
-  const { verifyHuman, phase } = useWorldId();
+  const { ensureHuman, withHuman, required, phase } = useWorldId();
   const [pick, setPick] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -36,10 +36,12 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
       const auth = token ?? (await signIn());
       if (!auth) return;
       if (!humanVerified) {
-        const ok = await verifyHuman();
+        const ok = await ensureHuman();
         if (!ok) return;
       }
-      const { request } = await api.accept(req.id, auth);
+      const accepted = await withHuman(() => api.accept(req.id, auth));
+      if (!accepted) return;
+      const { request } = accepted;
       saveRoute(req.id, { cardId: chosen.cardId, cardLabel: chosen.cardLabel, channelId: chosen.channel.id, channelName: chosen.channel.name, issuer: cards.find((c) => c.id === chosen.cardId)?.issuer });
       toast({ title: "Order accepted", body: "Don't buy the voucher yet. Wait for the spender's Ready, then confirm the order from your wallet.", tone: "amber" });
       onAccepted(request);
@@ -100,10 +102,14 @@ export function PickRoute({ req, onAccepted, onRefresh }: { req: ApiRequest; onA
       </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-brand-ink" : "text-mute")}>
-          {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
-          {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
-        </div>
+        {required ? (
+          <div className={cx("flex flex-1 items-center gap-2 text-[12.5px]", humanVerified ? "text-brand-ink" : "text-mute")}>
+            {humanVerified ? <BadgeCheck className="size-4" /> : <FingerprintPattern className="size-4 text-iris" />}
+            {humanVerified ? "Verified human · Proof of Human" : "Proof of Human runs once, the first time you accept"}
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
         <Button variant="amber" size="lg" onClick={() => void accept()} disabled={busy || phase !== "idle" || (!!fullAddress && !chosen)}>
           {phase === "world" ? (
             <>

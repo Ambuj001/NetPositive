@@ -99,7 +99,7 @@ export function VaultSetup() {
  */
 export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (request: ApiRequest, notice: Notice) => void }) {
   const { fullAddress, token, signIn, signingIn, humanVerified, walletRequest, walletName } = useApp();
-  const { verifyHuman, phase: worldPhase } = useWorldId();
+  const { ensureHuman, withHuman, phase: worldPhase } = useWorldId();
   const [stage, setStage] = useState<"seal" | "chain" | "send">("seal");
   const [code, setCode] = useState("");
   const [pin, setPin] = useState("");
@@ -138,7 +138,7 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
       const t = token ?? (await signIn());
       if (!t) throw new Error("Sign in with your wallet first.");
       if (!humanVerified) {
-        const ok = await verifyHuman();
+        const ok = await ensureHuman();
         if (!ok) return;
       }
       setStage("seal");
@@ -156,7 +156,10 @@ export function SubmitCode({ req, onUpdated }: { req: ApiRequest; onUpdated: (re
       setStage("chain");
       const { mock } = await sendEscrowStep(walletRequest, "markDelivered", { req, from: fullAddress, wallet: walletName });
       setStage("send");
-      const { request } = await api.submitCode(req.id, body, t);
+      // If World ID was switched on since this page loaded, the server answers world_id_required: verify, then send again.
+      const submitted = await withHuman(() => api.submitCode(req.id, body, t));
+      if (!submitted) throw new ApiError(403, "world_id_required", "Verify with World ID before sending the code.");
+      const { request } = submitted;
       setCode("");
       setPin("");
       onUpdated(request, {

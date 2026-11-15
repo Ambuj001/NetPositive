@@ -13,6 +13,7 @@ import { feePercent } from "../lib/terms";
 import { useTerms } from "../lib/useTerms";
 import { bps, inr, useRates, type RatesSummary } from "../lib/rates";
 import { useApp } from "../lib/store";
+import { useWorldIdOn } from "../lib/world";
 
 export default function Landing() {
   return (
@@ -36,6 +37,7 @@ const wrap = "mx-auto w-full max-w-[1200px] px-5 md:px-8";
 
 function Hero() {
   const { address, openWallet } = useApp();
+  const worldOn = useWorldIdOn();
   return (
     <section className="relative overflow-hidden pt-20 pb-16 md:pt-32 md:pb-24">
       <PlusField />
@@ -62,7 +64,8 @@ function Hero() {
           <Dot />
           <span className="font-medium text-brand">Straight to your wallet</span>
           <Dot />
-          <span>World ID humans only</span>
+          {/* Only claimed while the server confirms World ID is required: an administrator can switch it off. */}
+          <span>{worldOn ? "World ID humans only" : "Sealed voucher codes"}</span>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.15, duration: 0.5 }} className="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -223,8 +226,11 @@ function SideCard({ icon, title, body, facts, cta }: { icon: PixelName; title: s
 
 type HowStep = { icon: PixelName; title: string; line: string; tags: string[]; detail: ReactNode[] };
 
-/** The four steps, with the escrow's current numbers (`v`) written in. */
-const how = (v: DisplayTerms, feeTag: string): HowStep[] => [
+/**
+ * The four steps, with the escrow's current numbers (`v`) written in. `worldOn` is true only while the server confirms
+ * World ID is required; otherwise the World ID check is described as applying when it is switched on.
+ */
+const how = (v: DisplayTerms, feeTag: string, worldOn: boolean): HowStep[] => [
   {
     icon: "lock",
     title: "A spender locks USDC in escrow",
@@ -239,12 +245,16 @@ const how = (v: DisplayTerms, feeTag: string): HowStep[] => [
   {
     icon: "human",
     title: "You accept, then bind yourself on-chain",
-    line: "Only people who passed World ID's one-person check can accept. When the spender presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them.",
-    tags: ["World ID", "One human, one account", "One wallet transaction"],
+    line: worldOn
+      ? "Only people who passed World ID's one-person check can accept. When the spender presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them."
+      : "Accept with your signed-in wallet (plus World ID's one-person check when it is switched on). When the spender presses Ready, you confirm the order from your wallet, and the USDC can then only go to you or back to them.",
+    tags: worldOn ? ["World ID", "One human, one account", "One wallet transaction"] : ["Signed-in wallet", "One wallet transaction"],
     detail: [
       "The order book ranks every open order by what it's worth to each card holder after their card's rewards.",
       "Do not buy the voucher before your on-chain confirmation has gone through. Until then the spender can still cancel.",
-      "A banned person can't come back on a fresh wallet: the World ID check is bound to the first wallet.",
+      worldOn
+        ? "A banned person can't come back on a fresh wallet: the World ID check is bound to the first wallet."
+        : "When World ID is switched on, a banned person can't come back on a fresh wallet: the check is bound to the first wallet.",
     ],
   },
   {
@@ -283,10 +293,11 @@ function HowItWorks() {
   const { terms, feeBps, estimated } = useTerms();
   const v = useMemo(() => displayTerms(terms), [terms]);
   const feeTag = `${feePercent(feeBps)} fee on top${estimated ? " (launch value)" : ""}`;
-  const HOW = how(v, feeTag);
+  const worldOn = useWorldIdOn();
+  const HOW = how(v, feeTag, worldOn);
   return (
     <section id="how" className={cx(wrap, "scroll-mt-24 py-20 md:py-28")}>
-      <SectionHead eyebrow="How it works" title="From your card to USDC in your wallet, in four steps" sub="Seen from the buyer's side. Every step is enforced by the escrow contract, World ID or encryption, not by trusting the other person." />
+      <SectionHead eyebrow="How it works" title="From your card to USDC in your wallet, in four steps" sub={`Seen from the buyer's side. Every step is enforced by the escrow contract${worldOn ? ", World ID" : ""} or encryption, not by trusting the other person.`} />
       <div className="mt-12 space-y-3">
         {HOW.map((h, i) => {
           const isOpen = open === i;
@@ -490,9 +501,11 @@ function Calculator({ usdtBuy, usdtSell }: { usdtBuy: number; usdtSell: number }
 
 type TrustItem = { icon: PixelName; title: string; body: string; to?: string; href?: string };
 
-const trust = (v: DisplayTerms): TrustItem[] => [
+const trust = (v: DisplayTerms, worldOn: boolean): TrustItem[] => [
   { icon: "lock", title: "USDC escrow on Arc", body: "Funds sit in the escrow contract and can only go to the buyer the spender named, or back to the spender. You send every transaction from your own wallet.", to: "/docs#safety" },
-  { icon: "human", title: "World ID humans", body: "One-person check once per person. One account each, and a ban follows the person, not the wallet.", href: "https://world.org/world-id" },
+  worldOn
+    ? { icon: "human", title: "World ID humans", body: "One-person check once per person. One account each, and a ban follows the person, not the wallet.", href: "https://world.org/world-id" }
+    : { icon: "human", title: "World ID, when switched on", body: "When the one-person check is on, each person gets one account and a ban follows the person, not the wallet. While it is off, any signed-in wallet can trade.", href: "https://world.org/world-id" },
   { icon: "sealed", title: "Sealed voucher codes", body: "Encrypted in the browser to the spender's key. The server stores only the locked box.", to: "/docs#vouchers" },
   { icon: "clock", title: "Review window", body: `After delivery the spender has ${v.review} to release or dispute. If they do neither, the buyer is paid.`, to: "/docs#time-limits" },
   { icon: "scale", title: "Disputes with limits", body: "Only the spender can dispute, and only inside the review window. The arbiter can split that one escrow and nothing else; if nobody rules in 30 days, the USDC returns to the spender.", to: "/docs#disputes" },
@@ -501,13 +514,14 @@ const trust = (v: DisplayTerms): TrustItem[] => [
 
 function Trust() {
   const { terms } = useTerms();
+  const worldOn = useWorldIdOn();
   const v = useMemo(() => displayTerms(terms), [terms]);
   const card = "group block h-full rounded-2xl border border-line bg-surface p-6 transition hover:border-line-2 hover:shadow-[0_12px_32px_-20px_rgba(12,13,15,0.25)]";
   return (
     <section id="trust" className={cx(wrap, "scroll-mt-24 py-20 md:py-28")}>
       <SectionHead eyebrow="Trust" title="Built so neither side has to trust the other" sub="Each risk in a voucher trade has a specific control, most of them enforced by the contract or by encryption. Where you still have to trust someone, we say so." />
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {trust(v).map((t, i) => {
+        {trust(v, worldOn).map((t, i) => {
           const inner = (
             <>
               <div className="flex items-start justify-between">
@@ -548,7 +562,7 @@ function Trust() {
 
 /* -------------------------------------------------------------------- faq */
 
-const faqs = (v: DisplayTerms): { q: string; a: ReactNode }[] => [
+const faqs = (v: DisplayTerms, worldOn: boolean): { q: string; a: ReactNode }[] => [
   {
     q: "Do I need an exchange account?",
     a: "No. The escrow contract pays the USDC to the wallet you connect, and NetPositive never holds it. From there it is yours to move or use in DeFi.",
@@ -563,10 +577,15 @@ const faqs = (v: DisplayTerms): { q: string; a: ReactNode }[] => [
     q: "Which wallets work?",
     a: "Any EVM wallet can sign in. To trade you need one that can add the Arc network: MetaMask, Rabby, Coinbase Wallet, OKX, Rainbow, Trust, Zerion, Brave, or a mobile wallet through WalletConnect. The app adds Arc for you. Phantom can sign in but can't use Arc, so it can't hold your payout.",
   },
-  {
-    q: "Why do I need World ID?",
-    a: "So every account is a different real person. It stops one person from farming orders with many wallets, and it makes a ban permanent. You can browse without it; it's asked once, the first time you post or accept an order.",
-  },
+  worldOn
+    ? {
+        q: "Why do I need World ID?",
+        a: "So every account is a different real person. It stops one person from farming orders with many wallets, and it makes a ban permanent. You can browse without it; it's asked once, the first time you post or accept an order.",
+      }
+    : {
+        q: "Do I need World ID?",
+        a: "Only while it is switched on. NetPositive can require a World ID check so every account is a different real person and a ban follows the person, not the wallet. When it is on, it's asked once, the first time you post or accept an order. While it is off, any signed-in wallet can trade.",
+      },
   {
     q: "What if the voucher doesn't work?",
     a: `Don't release. Open a dispute before the review window ends (${v.review} after delivery), with screenshots${v.hasStake ? ` and a ${v.stake} USDC stake` : ""}. The escrow is frozen until an arbiter decides. If you were right, the USDC, the fee and the stake come back to you. If the arbiter finds the voucher was fine, the buyer is paid, receives your stake, and your account is banned.`,
@@ -592,7 +611,8 @@ const faqs = (v: DisplayTerms): { q: string; a: ReactNode }[] => [
 function Faq() {
   const [open, setOpen] = useState(0);
   const { terms } = useTerms();
-  const FAQS = useMemo(() => faqs(displayTerms(terms)), [terms]);
+  const worldOn = useWorldIdOn();
+  const FAQS = useMemo(() => faqs(displayTerms(terms), worldOn), [terms, worldOn]);
   return (
     <section id="faq" className={cx(wrap, "scroll-mt-24 border-t border-line py-20 md:py-28")}>
       <div className="grid gap-10 md:grid-cols-[1fr_1.5fr]">

@@ -33,12 +33,17 @@ export type WorldConfig = {
   problem: string | null;
   /** Loaded from the server (false = fallback values). */
   fromServer: boolean;
+  /**
+   * Whether trading needs a World ID right now. An administrator can switch it off on the server; the app then skips
+   * the World ID step. Missing from the server's answer (older server) or unknown (server unreachable) counts as true.
+   */
+  required: boolean;
 };
 
 let configPromise: Promise<WorldConfig> | null = null;
 /** One fetch per page load. Keeps the app's app_id / action / environment identical to what the server will check. */
 export function loadWorldConfig(): Promise<WorldConfig> {
-  configPromise ??= api<{ app_id?: string; rp_id?: string | null; action?: string; environment?: string; ready?: boolean; bypass?: boolean; problem?: string | null }>("/world-id/config")
+  configPromise ??= api<{ required?: boolean; app_id?: string; rp_id?: string | null; action?: string; environment?: string; ready?: boolean; bypass?: boolean; problem?: string | null }>("/world-id/config")
     .then((c) => ({
       app_id: (c.app_id?.startsWith("app_") ? c.app_id : ENV_DEFAULTS.app_id) as `app_${string}`,
       action: c.action || ENV_DEFAULTS.action,
@@ -48,10 +53,11 @@ export function loadWorldConfig(): Promise<WorldConfig> {
       bypass: !!c.bypass,
       problem: typeof c.problem === "string" ? c.problem : null,
       fromServer: true,
+      required: c.required !== false,
     }))
     .catch(() => {
       configPromise = null; // try again next time
-      return { ...ENV_DEFAULTS, ready: false, bypass: LOCAL_BYPASS, problem: null, fromServer: false };
+      return { ...ENV_DEFAULTS, ready: false, bypass: LOCAL_BYPASS, problem: null, fromServer: false, required: true };
     });
   return configPromise;
 }
@@ -68,8 +74,26 @@ export type WorldNotice = {
 type WorldCtx = {
   /** Server-side World ID settings, once loaded. */
   config: WorldConfig | null;
+  /**
+   * False only when the server has said World ID is switched off. While the settings load, or when the server can't be
+   * read, it is true, so the app behaves as it always has.
+   */
+  required: boolean;
+  /** Reads /world-id/config again. Keeps the last answer from the server when the server can't be reached. */
+  refreshConfig: () => Promise<WorldConfig>;
   /** Opens Proof of Human. Resolves true only after the server accepts the proof. */
   verifyHuman: () => Promise<boolean>;
+  /**
+   * The World ID step before posting, funding, accepting or delivering. Resolves true straight away when the wallet is
+   * verified or when the server has World ID switched off (read fresh, so an administrator's change applies at once);
+   * otherwise runs `verifyHuman`. Does not sign in when it skips the step.
+   */
+  ensureHuman: () => Promise<boolean>;
+  /**
+   * Runs a server call. If the server answers 403 `world_id_required` (an administrator switched World ID on since the
+   * page loaded), runs the normal verify flow and tries the call once more. Resolves null when verification didn't finish.
+   */
+  withHuman: <T>(run: () => Promise<T>) => Promise<T | null>;
   phase: WorldPhase;
   notice: WorldNotice | null;
   clearNotice: () => void;
@@ -254,6 +278,29 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  /** Asks the server again. A failed read keeps the last answer the server gave, so a network blip doesn't flip the setting. */
+  const refreshConfig = useCallback(async () => {
+    configPromise = null;
+    const c = await loadWorldConfig();
+    const prev = configRef.current;
+    const next = !c.fromServer && prev?.fromServer ? prev : c;
+    configRef.current = next;
+    setConfig(next);
+    return next;
+  }, []);
+
+  // An administrator can switch the requirement on or off while the app is open: read it again when the tab comes back
+  // into view, and every few minutes while it is visible.
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === "visible" && void refreshConfig();
+    document.addEventListener("visibilitychange", onVisible);
+    const id = window.setInterval(onVisible, 120_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(id);
+    };
+  }, [refreshConfig]);
+
   const tokenRef = useRef<string | null>(null);
   const requestRef = useRef<RpContext | null>(null);
   const pendingRef = useRef<((ok: boolean) => void) | null>(null);
@@ -344,10 +391,7 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
       if (session.already) return true;
       stage = "request";
       // Settings are re-read on every attempt so a server that was just fixed works without a page reload.
-      configPromise = null;
-      const cfg = await loadWorldConfig();
-      configRef.current = cfg;
-      setConfig(cfg);
+      const cfg = await refreshConfig();
       // A saved session can be stale (expired, or the server was restarted). Sign in again once instead of failing.
       const withSession = async <T,>(run: (token: string) => Promise<T>): Promise<T> => {
         try {
@@ -385,7 +429,34 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
       runRef.current = false;
       setPhase("idle");
     }
-  }, [ensureSession, fetchSignature]);
+  }, [ensureSession, fetchSignature, refreshConfig]);
+
+  const ensureHuman = useCallback(async () => {
+    if (appRef.current.humanVerified) return true;
+    const cfg = await refreshConfig();
+    if (!cfg.required) return true;
+    return verifyHuman();
+  }, [refreshConfig, verifyHuman]);
+
+  const withHuman = useCallback(
+    async <T,>(run: () => Promise<T>): Promise<T | null> => {
+      try {
+        return await run();
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.code !== "world_id_required") throw error;
+        // The server needs World ID after all: remember that, then the usual verify flow, then one more try.
+        const cfg = await refreshConfig();
+        if (!cfg.required) {
+          const forced = { ...cfg, required: true };
+          configRef.current = forced;
+          setConfig(forced);
+        }
+        if (!(await verifyHuman())) return null;
+        return run();
+      }
+    },
+    [refreshConfig, verifyHuman],
+  );
 
   const handleVerify = useCallback(async (result: IDKitResult) => {
     const token = tokenRef.current;
@@ -443,7 +514,11 @@ export function WorldIdProvider({ children }: { children: ReactNode }) {
     resolve(false);
   }, []);
 
-  const value = useMemo<WorldCtx>(() => ({ config, verifyHuman, phase, notice, clearNotice }), [config, verifyHuman, phase, notice, clearNotice]);
+  const required = config?.required !== false;
+  const value = useMemo<WorldCtx>(
+    () => ({ config, required, refreshConfig, verifyHuman, ensureHuman, withHuman, phase, notice, clearNotice }),
+    [config, required, refreshConfig, verifyHuman, ensureHuman, withHuman, phase, notice, clearNotice],
+  );
 
   return (
     <Ctx.Provider value={value}>
@@ -473,6 +548,16 @@ export function useWorldId() {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useWorldId outside provider");
   return ctx;
+}
+
+/**
+ * For copy that describes the product (landing, docs, privacy): true only once the server has confirmed World ID is
+ * required. While unknown or switched off, pages phrase the check as something that applies "when it is switched on",
+ * so they never claim humans-only while it is off.
+ */
+export function useWorldIdOn() {
+  const { config } = useWorldId();
+  return !!config?.fromServer && config.required;
 }
 
 export function WorldIdNotice({ className }: { className?: string }) {

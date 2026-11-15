@@ -137,9 +137,9 @@ export function buildStages(r: ApiRequest, role: Role, brandName: string = r.bra
             : "You took this order."
           : f.accepted
             ? s === "accepted"
-              ? "A verified buyer is purchasing the voucher."
-              : "A verified buyer took the order."
-            : "Waiting for a World-ID-verified buyer to take the order.",
+              ? "The buyer is purchasing the voucher."
+              : "The buyer took the order."
+            : "Waiting for a buyer to take the order.",
       at: r.acceptedAt ?? null,
       actor: r.crypto_buyer,
       state: f.accepted ? "done" : "upcoming",

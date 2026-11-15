@@ -10,7 +10,7 @@ import { useWorldId } from "./world";
  * Create an order, lock the USDC in escrow and publish it. One implementation shared by the assistant chat and the
  * custom-order panel, so both go through the same sign-in, World ID, wallet and server steps.
  *
- * Steps: sign in -> World ID (once) -> POST /requests (the server answers with fee and total) -> check those against
+ * Steps: sign in -> World ID (once, skipped while the server has it switched off) -> POST /requests (the server answers with fee and total) -> check those against
  * what was on screen -> approve + deposit from the wallet -> POST /requests/:id/fund.
  * If the deposit was sent but publishing didn't finish, `held` remembers it so the next try only publishes.
  * Nothing here ever pretends: with no server, or no escrow configured, it stops with an error.
@@ -39,11 +39,14 @@ export function amountUsdc(n: number) {
   return trimmed === "" ? "0" : trimmed;
 }
 
+/** The server asked for World ID while publishing (switched on since the order was started) and it didn't finish. */
+const NEEDS_WORLD_ID = "The server now asks for a World ID check before publishing, and it didn't finish.";
+
 type Held = { id: string; txHash: string; auth: string; total: string };
 
 export function useLockOrder() {
   const { fullAddress, humanVerified, openWallet, token, signIn, walletRequest, walletName } = useApp();
-  const { verifyHuman } = useWorldId();
+  const { ensureHuman, withHuman } = useWorldId();
   const [phase, setPhase] = useState<LockPhase | null>(null);
   const [error, setError] = useState("");
   const [held, setHeld] = useState<Held | null>(null);
@@ -73,9 +76,13 @@ export function useLockOrder() {
         setError("The deposit is still pending in your wallet. Wait for it to confirm, then publish.");
         return null;
       }
-      const funded = await api.fund(h.id, h.txHash, h.auth);
-      setHeld(null);
+      const funded = await withHuman(() => api.fund(h.id, h.txHash, h.auth));
       setPhase(null);
+      if (!funded) {
+        setError(NEEDS_WORLD_ID);
+        return null;
+      }
+      setHeld(null);
       return { id: funded.request.id, mock: false, total: h.total };
     } catch (e) {
       setPhase(null);
@@ -107,8 +114,9 @@ export function useLockOrder() {
         setPhase(null);
         return null;
       }
+      const session = auth;
       if (!humanVerified) {
-        const ok = await verifyHuman();
+        const ok = await ensureHuman();
         if (!ok) {
           setPhase(null);
           return null;
@@ -127,7 +135,11 @@ export function useLockOrder() {
       }
       const shown = { receives: amountUsdc(a.usdcReceives), total: amountUsdc(a.usdcTotal) };
       // `amountUsdc` is what the buyer receives. The server adds the fee and tells us the total.
-      const created = await api.create({ brand: a.brandApi, amountInr: a.amountInr, amountUsdc: shown.receives }, auth);
+      const created = await withHuman(() => api.create({ brand: a.brandApi, amountInr: a.amountInr, amountUsdc: shown.receives }, session));
+      if (!created) {
+        setPhase(null);
+        return null;
+      }
       createdId = created.request.id;
       const target = targetFrom({ chainId: created.escrow?.chainId, contract: created.escrow?.contract ?? created.escrowContract });
 
@@ -137,7 +149,8 @@ export function useLockOrder() {
         const placeholder = import.meta.env.DEV ? mockTxHash() : "";
         if (!placeholder) throw new Error("Escrow is not configured on the server. Nothing was locked.");
         setPhase("publish");
-        const funded = await api.fund(createdId, placeholder, auth);
+        const funded = await withHuman(() => api.fund(createdId, placeholder, session));
+        if (!funded) throw new Error(NEEDS_WORLD_ID);
         setPhase(null);
         return { id: funded.request.id, mock: true, total: shown.total };
       }
@@ -167,7 +180,8 @@ export function useLockOrder() {
       confirmed = true;
       setHeld({ id: createdId, txHash, auth, total });
       setPhase("publish");
-      const funded = await api.fund(createdId, txHash, auth);
+      const funded = await withHuman(() => api.fund(createdId, txHash, session));
+      if (!funded) throw new Error(NEEDS_WORLD_ID);
       setHeld(null);
       setPhase(null);
       return { id: funded.request.id, mock: false, total };

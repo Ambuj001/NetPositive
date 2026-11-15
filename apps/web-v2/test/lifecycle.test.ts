@@ -89,7 +89,7 @@ test("finished steps are history, not instructions", () => {
   const settled = base({ ...coded, status: "released", settledAt: T(90), releaseTxHash: "0xrel" });
   assert.equal(stage(settled, "buyer", "accepted").detail, "You took this order.");
   assert.equal(stage(settled, "buyer", "code").detail, "You submitted the code.");
-  assert.equal(stage(settled, "spender", "accepted").detail, "A verified buyer took the order.");
+  assert.equal(stage(settled, "spender", "accepted").detail, "The buyer took the order.");
   assert.equal(stage(settled, "spender", "code").detail, "The buyer handed over the voucher.");
   // ...but while the step is live, it still tells the person what to do
   assert.match(stage(base(accepted), "buyer", "accepted").detail, /confirm it from your wallet, then buy the voucher and submit its code/);

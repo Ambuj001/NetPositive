@@ -188,7 +188,7 @@ type ApiClient = {
   cardSave: (card: Card, token: string) => Promise<{ card: Card }>;
   cardRemove: (id: string, token: string) => Promise<{ ok: true }>;
   cardsPromptDismiss: (token: string) => Promise<{ ok: true }>;
-  /** A World-ID-verified buyer takes an open order. Locks it to them for the fulfil window. */
+  /** A signed-in buyer (World-ID-verified while the server requires it) takes an open order. Locks it to them for the fulfil window. */
   accept: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   cancel: (id: string, token: string) => Promise<{ request: ApiRequest }>;
   /** The EIP-712 "Ready" typed data for the spender's wallet to sign (gasless). */
@@ -312,7 +312,7 @@ export const api: ApiClient = Object.assign(call, {
 
 export const STATUS: Record<ReqStatus, { label: string; tone: "mint" | "amber" | "iris" | "rose" | "mute"; note: string }> = {
   pending_funding: { label: "Awaiting deposit", tone: "amber", note: "Deposit USDC into escrow to publish the request." },
-  open: { label: "Open", tone: "mint", note: "Live in the order book. Waiting for a verified buyer." },
+  open: { label: "Open", tone: "mint", note: "Live in the order book. Waiting for a buyer." },
   accepted: { label: "Accepted", tone: "amber", note: "A buyer is purchasing the voucher." },
   code_submitted: { label: "Code submitted", tone: "iris", note: "Check the voucher and confirm, or it is paid to the buyer when the review window ends." },
   disputed: { label: "Disputed", tone: "rose", note: "Under review by the arbiter." },

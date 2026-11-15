@@ -24,7 +24,7 @@ import { BrandMark, Button, cx } from "./ui";
  */
 export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number; voucher: string; onRestore?: (intent: BuyIntent) => void }) {
   const { fullAddress, token, signIn, humanVerified, openWallet, toast } = useApp();
-  const { verifyHuman } = useWorldId();
+  const { ensureHuman, withHuman } = useWorldId();
   const [mine, setMine] = useState<BuyIntent | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -64,14 +64,17 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
       let auth = token;
       if (!humanVerified) {
         // Registering as a human signs the wallet in first when there is no session, so don't also sign in here:
-        // the wallet would be asked to sign twice. The session it just stored holds the token.
-        if (!(await verifyHuman())) return;
-        auth = readSession(fullAddress)?.token ?? null;
-      } else if (!auth) {
-        auth = await signIn();
+        // the wallet would be asked to sign twice. The session it just stored holds the token. With World ID
+        // switched off on the server the step is skipped and nothing was signed, so sign in below.
+        if (!(await ensureHuman())) return;
+        auth = readSession(fullAddress)?.token ?? auth;
       }
+      if (!auth) auth = await signIn();
       if (!auth) return;
-      const { intent } = await api.postBuyIntent({ amountInr: amount, voucher: apiVoucher }, auth);
+      const session = auth;
+      const posted = await withHuman(() => api.postBuyIntent({ amountInr: amount, voucher: apiVoucher }, session));
+      if (!posted) return;
+      const { intent } = posted;
       setMine(intent);
       toast({ title: "Buy request posted", body: `${inr(intent.amountInr)} · ${voucherOf(intent) ? brand(voucherOf(intent)!).name : "any voucher"}. Spenders can see it now.`, tone: "mint" });
     } catch (e) {
@@ -79,7 +82,7 @@ export function BuyRequestCard({ amount, voucher, onRestore }: { amount: number;
     } finally {
       setBusy(false);
     }
-  }, [busy, fullAddress, openWallet, token, signIn, humanVerified, verifyHuman, amount, apiVoucher, toast]);
+  }, [busy, fullAddress, openWallet, token, signIn, humanVerified, ensureHuman, withHuman, amount, apiVoucher, toast]);
 
   const withdraw = async () => {
     if (!token || busy) return;

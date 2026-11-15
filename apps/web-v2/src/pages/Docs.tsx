@@ -6,6 +6,7 @@ import { DOC_SECTIONS, resolveDocSection } from "../content/docs";
 import { displayTerms } from "../lib/displayTerms";
 import { useTerms } from "../lib/useTerms";
 import { usePageTitle } from "../lib/usePageTitle";
+import { useWorldIdOn } from "../lib/world";
 
 const wrap = "mx-auto w-full max-w-[1200px] px-5 md:px-8";
 
@@ -27,6 +28,7 @@ export default function Docs() {
   usePageTitle("Docs", "How NetPositive works: the two sides of a trade, fees, time limits, disputes, safety and contract details.");
   const { terms, loading } = useTerms();
   const v = useMemo(() => displayTerms(terms), [terms]);
+  const worldIdOn = useWorldIdOn();
   const { hash } = useLocation();
   const [active, setActive] = useState(() => resolveDocSection(hash.slice(1)) ?? DOC_SECTIONS[0].id);
   const [tocOpen, setTocOpen] = useState(false);
@@ -124,7 +126,7 @@ export default function Docs() {
                   </Link>
                 </h2>
                 <p className="mt-2 text-[16px] text-mute">{s.summary}</p>
-                <div className="mt-6 space-y-4">{s.body(v)}</div>
+                <div className="mt-6 space-y-4">{s.body(v, { worldIdOn })}</div>
               </section>
             ))}
 

@@ -5,6 +5,7 @@ import { Aurora, PageHead, cx } from "../components/ui";
 import { CONTRACT_CONSTANTS, LIVE_DEPLOYMENT as LIVE, displayTerms } from "../lib/displayTerms";
 import { usePageTitle } from "../lib/usePageTitle";
 import { useTerms } from "../lib/useTerms";
+import { useWorldIdOn } from "../lib/world";
 
 /**
  * Terms and Privacy, as plain-language summaries of what the product does today. They were written from the code
@@ -50,6 +51,7 @@ export function Terms() {
   const { terms } = useTerms();
   const v = useMemo(() => displayTerms(terms), [terms]);
   const now = v.live ? "currently" : "at launch";
+  const worldOn = useWorldIdOn();
   return (
     <Page eyebrow="Terms" title="Terms, in plain language" sub="What you are agreeing to in practice when you use NetPositive: what it does with your funds, what it charges, and which risks are yours.">
       <Block title="What NetPositive is">
@@ -78,7 +80,11 @@ export function Terms() {
       <Block title="Rules you accept by trading">
         <Ul
           items={[
-            <>{b("One person, one account.")} Posting and accepting orders requires a World ID check.</>,
+            worldOn ? (
+              <>{b("One person, one account.")} Posting and accepting orders requires a World ID check.</>
+            ) : (
+              <>{b("World ID, when switched on.")} NetPositive can require a World ID check for posting and accepting orders, which allows one account per person. While it is switched off, any signed-in wallet can trade.</>
+            ),
             <>
               {b("Deadlines are enforced by the contract.")} A buyer who misses the delivery window ({v.fulfil} {now}) is not paid. A spender who neither releases nor disputes within the review window ({v.review} {now}) pays the buyer. See <A to="/docs#time-limits">Time limits</A>.
             </>,
@@ -130,6 +136,7 @@ export function Terms() {
 
 export function Privacy() {
   usePageTitle("Privacy summary", "What NetPositive stores about you, what is public on the blockchain, and what it never sees. Not a legal document.");
+  const worldOn = useWorldIdOn();
   return (
     <Page eyebrow="Privacy" title="Privacy, in plain language" sub="What the product stores, where, who else is involved, and what it never sees.">
       <Block title="The short version">
@@ -149,7 +156,11 @@ export function Privacy() {
           head={["What", "Why", "Who can read it"]}
           rows={[
             ["Your wallet address, and whether the account is verified or banned", "It is your account", "The server; your address appears on your orders"],
-            ["A World ID identifier (a one-way code that is unique to you for this app)", "To allow one account per person and make bans stick", "The server. It does not reveal who you are"],
+            [
+              worldOn ? "A World ID identifier (a one-way code that is unique to you for this app)" : "A World ID identifier (a one-way code that is unique to you for this app), only if you verified while the check was switched on",
+              "To allow one account per person and make bans stick",
+              "The server. It does not reveal who you are",
+            ],
             ["Your orders: store, rupee value, USDC amount, both wallet addresses, status, transaction hashes, deadlines", "To run the order book and show each order's history", "Anyone with the order's link"],
             ["Voucher codes, as sealed boxes only", "To hand the code from the buyer to the spender", "Only the spender's browser can open them (see below)"],
             ["Your voucher public key, and your own encrypted notes on vouchers", "So buyers can seal codes to you; so your notes follow your wallet", "The public key: signed-in users. The notes: only you"],
@@ -192,7 +203,7 @@ export function Privacy() {
         <Ul
           items={[
             <>{b("Your wallet,")} and WalletConnect if you connect a phone wallet through it. They see your address and the requests the site makes to your wallet.</>,
-            <>{b("World ID")} (the World App) carries out the one-person check. NetPositive receives a proof and the one-way identifier, not your identity.</>,
+            <>{b("World ID")} (the World App) carries out the one-person check{worldOn ? "" : ", when it is switched on"}. NetPositive receives a proof and the one-way identifier, not your identity.</>,
             <>{b("Arc network nodes.")} Your browser and wallet talk to public Arc nodes to read the contract and send transactions. Like any web server, a node can see your IP address.</>,
             <>{b("The assistant,")} where it is switched on. What you type to it is sent to our assistant server and from there to an AI model provider to produce the answer. Do not type voucher codes or secrets into it.</>,
             <>{b("Stores and card issuers.")} Buying a voucher happens on their sites under their own privacy terms.</>,

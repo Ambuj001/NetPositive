@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-
 import { Shell } from "./components/Shell";
 import { AppProvider } from "./lib/store";
 import { WorldIdProvider } from "./lib/world";
+import AdminPage from "./pages/AdminPage";
 import Brand from "./pages/Brand";
 import Cards from "./pages/Cards";
 import DisputePage from "./pages/DisputePage";
@@ -49,6 +50,7 @@ export default function App() {
               <Route path="dispute/:id" element={<DisputePage />} />
               <Route path="disputes" element={<Navigate to="/dispute" replace />} />
               <Route path="trade/:id" element={<TradeRedirect />} />
+              <Route path="admin" element={<AdminPage />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
