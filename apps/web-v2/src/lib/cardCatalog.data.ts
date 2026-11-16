@@ -4,6 +4,8 @@ export type RawRoute = {
   channel: string;
   kind: "points" | "flat_pct" | "unknown" | "excluded";
   verified: boolean;
+  /** Source grade from the research: OFFICIAL = read on the bank's own page or PDF; SECONDARY = a review site citing the bank; PENDING = not researched. */
+  status?: "OFFICIAL" | "SECONDARY" | "PENDING";
   unit?: number;
   base_pts?: number;
   mult?: number;
@@ -32,6 +34,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "HDFC SmartBuy (accelerated 5X)",
         "kind": "points",
         "verified": true,
+        "status": "OFFICIAL",
         "unit": 150,
         "base_pts": 5,
         "mult": 5,
@@ -43,6 +46,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "HDFC SmartBuy InstaDeals (GyFTR)",
         "kind": "points",
         "verified": true,
+        "status": "OFFICIAL",
         "unit": 150,
         "base_pts": 5,
         "mult": 1,
@@ -54,6 +58,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Direct on merchant/brand site",
         "kind": "points",
         "verified": true,
+        "status": "SECONDARY",
         "unit": 150,
         "base_pts": 5,
         "mult": 1,
@@ -74,6 +79,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "HDFC SmartBuy (accelerated 5X)",
         "kind": "points",
         "verified": true,
+        "status": "OFFICIAL",
         "unit": 150,
         "base_pts": 5,
         "mult": 5,
@@ -85,6 +91,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "HDFC SmartBuy InstaDeals (GyFTR)",
         "kind": "points",
         "verified": true,
+        "status": "OFFICIAL",
         "unit": 150,
         "base_pts": 5,
         "mult": 1,
@@ -108,6 +115,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "HDFC SmartBuy",
         "kind": "unknown",
         "verified": false,
+        "status": "SECONDARY",
         "note": "Voucher multiplier not confirmed; bonus capped at 3,000 RP/month."
       }
     ]
@@ -126,6 +134,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "HDFC SmartBuy",
         "kind": "unknown",
         "verified": false,
+        "status": "SECONDARY",
         "note": "Voucher multiplier not confirmed; bonus capped at 3,000 RP/month."
       }
     ]
@@ -143,6 +152,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Gift vouchers",
         "kind": "unknown",
         "verified": false,
+        "status": "PENDING",
         "note": "No voucher route researched; 5% applies to 10 partner brands only, not vouchers in general."
       }
     ]
@@ -161,6 +171,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "ICICI iShop 6X",
         "kind": "flat_pct",
         "verified": false,
+        "status": "SECONDARY",
         "reward_pct": 18,
         "bonus_cap_pts": 18000,
         "note": "Stale data. Amazon/Flipkart vouchers capped at Rs 12,000/month. Re-verify iShop 2026 terms first."
@@ -180,6 +191,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "ICICI iShop 6X",
         "kind": "flat_pct",
         "verified": false,
+        "status": "SECONDARY",
         "reward_pct": 12,
         "bonus_cap_pts": 15000,
         "note": "Stale data. Re-verify."
@@ -199,6 +211,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "ICICI iShop 6X",
         "kind": "flat_pct",
         "verified": false,
+        "status": "SECONDARY",
         "reward_pct": 3,
         "bonus_cap_pts": 9000,
         "note": "Stale data. Re-verify."
@@ -218,6 +231,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "ICICI iShop 6X",
         "kind": "flat_pct",
         "verified": false,
+        "status": "SECONDARY",
         "reward_pct": 3,
         "bonus_cap_pts": 9000,
         "note": "Stale data. Re-verify."
@@ -237,6 +251,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "ICICI iShop 6X",
         "kind": "flat_pct",
         "verified": false,
+        "status": "SECONDARY",
         "reward_pct": 3,
         "bonus_cap_pts": 9000,
         "note": "Stale data. Re-verify."
@@ -258,6 +273,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "ICICI iShop (cashback)",
         "kind": "flat_pct",
         "verified": false,
+        "status": "SECONDARY",
         "reward_pct": 4,
         "note": "Stale. The 5%/3% Amazon rate is for Amazon purchases, NOT gift cards; gift-card treatment pending terms PDF."
       }
@@ -277,6 +293,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Any",
         "kind": "excluded",
         "verified": true,
+        "status": "OFFICIAL",
         "note": "Gift cards earn 0 from 28 Aug 2026."
       }
     ]
@@ -295,6 +312,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Any",
         "kind": "excluded",
         "verified": true,
+        "status": "OFFICIAL",
         "note": "Gift cards earn 0 from 28 Aug 2026."
       }
     ]
@@ -312,6 +330,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Any",
         "kind": "excluded",
         "verified": true,
+        "status": "OFFICIAL",
         "note": "Gift-card purchases earn 0 from 28 Aug 2026."
       }
     ]
@@ -349,6 +368,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Online",
         "kind": "unknown",
         "verified": false,
+        "status": "PENDING",
         "note": "5% online excludes many categories; voucher treatment not researched."
       }
     ]
@@ -396,6 +416,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Aurum reward portal / direct",
         "kind": "flat_pct",
         "verified": true,
+        "status": "OFFICIAL",
         "reward_pct": 1,
         "note": "No accelerated voucher earn; 4 RP/Rs100 standard, only if vouchers earn at all."
       }
@@ -414,6 +435,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Any",
         "kind": "excluded",
         "verified": true,
+        "status": "SECONDARY",
         "note": "Voucher purchases excluded from rewards."
       }
     ]
@@ -442,6 +464,7 @@ export const CATALOG_DATA: RawCard[] = [
         "channel": "Amex ShopWise e-vouchers (5X)",
         "kind": "unknown",
         "verified": false,
+        "status": "SECONDARY",
         "note": "Value depends on MR redemption; applications paused; not confirmed."
       }
     ]

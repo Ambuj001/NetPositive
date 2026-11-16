@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const SOURCE = path.resolve(here, '../../../chatbot/data/cards.json');
 export const OUT = path.resolve(here, '../src/lib/cardCatalog.data.ts');
 
-const ROUTE_FIELDS = ['id', 'channel', 'kind', 'verified', 'unit', 'base_pts', 'mult', 'discount_pct', 'reward_pct', 'bonus_cap_pts', 'note'];
+const ROUTE_FIELDS = ['id', 'channel', 'kind', 'verified', 'status', 'unit', 'base_pts', 'mult', 'discount_pct', 'reward_pct', 'bonus_cap_pts', 'note'];
 
 /** The data this app needs: every card available in India, with the voucher routes known for it. */
 export function buildCatalogData(json) {
@@ -30,6 +30,8 @@ export type RawRoute = {
   channel: string;
   kind: "points" | "flat_pct" | "unknown" | "excluded";
   verified: boolean;
+  /** Source grade from the research: OFFICIAL = read on the bank's own page or PDF; SECONDARY = a review site citing the bank; PENDING = not researched. */
+  status?: "OFFICIAL" | "SECONDARY" | "PENDING";
   unit?: number;
   base_pts?: number;
   mult?: number;

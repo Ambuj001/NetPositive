@@ -14,6 +14,8 @@ import { useTerms } from "../lib/useTerms";
 import { bps, inr, useRates, type RatesSummary } from "../lib/rates";
 import { useApp } from "../lib/store";
 import { useWorldIdOn } from "../lib/world";
+import { RewardsSection } from "../components/RewardsSection";
+import { ORDER_BOOK_STORES, pickReference } from "../lib/rewards";
 
 export default function Landing() {
   return (
@@ -23,6 +25,7 @@ export default function Landing() {
       <Lifecycle />
       <TwoSides />
       <HowItWorks />
+      <Rewards />
       <Rates />
       <Trust />
       <Faq />
@@ -92,16 +95,7 @@ const Dot = () => <span className="text-dim">•</span>;
 /* ---------------------------------------------------------------- stores */
 
 /** Stores the order book accepts today (backend BRANDS). */
-const STORES: [string, string][] = [
-  ["amazon", "Amazon"],
-  ["flipkart", "Flipkart"],
-  ["myntra", "Myntra"],
-  ["swiggy", "Swiggy"],
-  ["zomato", "Zomato"],
-  ["bigbasket", "BigBasket"],
-  ["mmt", "MakeMyTrip"],
-  ["blinkit", "Blinkit"],
-];
+const STORES: [string, string][] = ORDER_BOOK_STORES.map((s) => [s.id, s.name]);
 
 function Stores() {
   return (
@@ -351,6 +345,15 @@ function HowItWorks() {
       </p>
     </section>
   );
+}
+
+/* ---------------------------------------------------------------- rewards */
+
+function Rewards() {
+  const m = useMarket();
+  // While the feed is still connecting, show no rupee figures rather than an old snapshot that may be replaced a moment later.
+  const reference = m.loading ? null : pickReference({ live: m.live, usdcBuy: m.usdcBuy, usdtBuy: m.live ? m.usdtBuy : undefined }, SNAPSHOT);
+  return <RewardsSection reference={reference} loading={m.loading} />;
 }
 
 /* ------------------------------------------------------------------ rates */
